@@ -5,4 +5,3 @@ echo 🚀 Iniciando Sincronizacao FocusOS...
 %GIT_PATH% commit -m "Sync: Auto Update"
 %GIT_PATH% push origin main
 echo ✅ Sincronizado com Sucesso!
-pause
