@@ -48,6 +48,8 @@ function calcScore(habits: Habit[], tasks: Task[]) {
   }
 }
 
+export const revalidate = 0
+
 export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   
