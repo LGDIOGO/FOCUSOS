@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenAI } from "@google/genai"
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -10,8 +10,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Configuração de IA ausente' }, { status: 500 })
     }
 
-    const ai = new GoogleGenerativeAI(apiKey)
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash-latest' })
+    const ai = new GoogleGenAI({ apiKey })
     const { text, type, categories, currentDetails } = await req.json()
 
     const today = currentDetails?.today || format(new Date(), 'yyyy-MM-dd')
@@ -45,15 +44,19 @@ export async function POST(req: NextRequest) {
       - Retorne APENAS o JSON.
     `
 
-    const result = await model.generateContent({
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
       contents: [
-        { role: 'user', parts: [{ text: systemPrompt }] },
-        { role: 'user', parts: [{ text: `FRASE PARA PARSE: "${text}"\nTIPO: ${type} (habit ou agenda)` }] }
-      ]
+        systemPrompt,
+        `FRASE PARA PARSE: "${text}"\nTIPO: ${type} (habit ou agenda)`
+      ],
+      config: {
+        maxOutputTokens: 1024,
+        temperature: 0.1 // Low temperature for high precision parsing
+      }
     })
     
-    const response = await result.response
-    const textResponse = response.text()
+    const textResponse = response.text || ''
     if (!textResponse) {
       throw new Error('Resposta da IA vazia')
     }
