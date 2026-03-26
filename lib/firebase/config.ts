@@ -11,8 +11,9 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-const app = getApps().length > 0 ? getApp() : (firebaseConfig.apiKey ? initializeApp(firebaseConfig) : null);
+// Initialize Firebase with strict check to avoid build-time crashes on Vercel
+const isConfigValid = firebaseConfig.apiKey && firebaseConfig.apiKey.startsWith('AIza');
+const app = getApps().length > 0 ? getApp() : (isConfigValid ? initializeApp(firebaseConfig) : null);
 const auth = app ? getAuth(app) : null as any;
 const db = app ? getFirestore(app) : null as any;
 
