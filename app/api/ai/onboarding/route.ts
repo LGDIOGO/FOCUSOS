@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI } from "@google/genai"
+// Triggering fresh build for Gemini 3 environment variables
 
 export async function POST(req: NextRequest) {
   try {
