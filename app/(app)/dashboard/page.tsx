@@ -392,7 +392,7 @@ export default function DashboardPage() {
               ))}
             </AnimatePresence>
           </div>
-          <p className="text-[12px] text-white/40 text-center mt-2 tracking-wide">Selecione o status: ✓ feito · ½ parcial · ✗ falhou</p>
+          <p className="text-[12px] text-white/40 text-center mt-2 tracking-wide font-black uppercase">Interação Estilo Apple Ativa (Botão direito / Segure para selecionar)</p>
         </section>
 
         {/* ─── Negative Habits ─── */}
