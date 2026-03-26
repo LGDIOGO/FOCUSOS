@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       ]
     })
     
-    const text = result.text
+    const text = result.text || ''
     
     // Extract JSON from potential markdown formatting
     const jsonStr = text.replace(/```json|```/g, '').trim()

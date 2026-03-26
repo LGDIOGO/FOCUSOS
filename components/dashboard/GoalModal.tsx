@@ -192,7 +192,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Ícone & Personalização</label>
               <div className="flex gap-3 items-center">
-                <EmojiPicker value={formData.emoji || ''} onChange={emoji => setFormData({ ...formData, emoji })} direction="up" />
+                <EmojiPicker value={formData.emoji || ''} onChange={emoji => setFormData({ ...formData, emoji })} />
                 <div className="flex-1 grid grid-cols-5 gap-1">
                    {['#0A84FF', '#32D74B', '#FFD60A', '#FF9F0A', '#FF453A'].map(color => (
                      <button
