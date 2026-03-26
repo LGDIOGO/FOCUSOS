@@ -155,10 +155,10 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
               <Target className="text-white w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-2xl font-black tracking-tightest">
+              <h2 className="text-2xl font-black tracking-tightest leading-none">
                 {editingGoal ? 'Editar Meta' : 'Nova Meta'}
               </h2>
-              <p className="text-[9px] text-white/40 uppercase tracking-widest font-black">Planejamento Estratégico</p>
+              <p className="text-[10px] text-white/40 uppercase tracking-widest font-black mt-1">Planejamento Estratégico</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-all">
@@ -167,8 +167,8 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 pt-0 space-y-4 custom-scrollbar">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Título do Objetivo</label>
+          <div className="space-y-1">
+            <label className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Título do Objetivo</label>
             <input 
               required
               value={formData.title}
@@ -178,8 +178,8 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Descrição / Motivação</label>
+          <div className="space-y-1">
+            <label className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Descrição / Motivação</label>
             <textarea 
               value={formData.description}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
@@ -189,8 +189,8 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Ícone & Personalização</label>
+            <div className="space-y-1">
+              <label className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Ícone & Personalização</label>
               <div className="flex gap-3 items-center">
                 <EmojiPicker value={formData.emoji || ''} onChange={emoji => setFormData({ ...formData, emoji })} />
                 <div className="flex-1 grid grid-cols-5 gap-1">
@@ -210,18 +210,18 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Categoria</label>
+            <div className="space-y-1">
+              <label className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Categoria</label>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, category_id: '' })}
                   className={cn(
-                    "px-4 py-2.5 rounded-xl border whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-all",
+                    "px-4 py-2.5 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all",
                     !formData.category_id ? "bg-white text-black border-white" : "bg-white/5 text-white/30 border-white/5"
                   )}
                 >
-                  Geral
+                  Nenhuma
                 </button>
                 {categories?.map(cat => (
                   <button
@@ -229,7 +229,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
                     type="button"
                     onClick={() => setFormData({ ...formData, category_id: cat.id })}
                     className={cn(
-                      "px-4 py-2.5 rounded-xl border whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
+                      "px-4 py-2.5 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
                       formData.category_id === cat.id ? "bg-white/10 text-white border-white" : "bg-white/5 text-white/30 border-white/5"
                     )}
                     style={formData.category_id === cat.id ? { borderColor: cat.color, color: cat.color } : {}}
@@ -244,7 +244,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Inicial</label>
+              <label className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Inicial</label>
               <input 
                 type="number"
                 value={formData.initial_value}
@@ -253,7 +253,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Valor Atual</label>
+              <label className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Valor Atual</label>
               <input 
                 type="number"
                 value={formData.current_value}
@@ -262,7 +262,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Alvo Total</label>
+              <label className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Alvo Total</label>
               <input 
                 type="number"
                 value={formData.target_value}
@@ -271,7 +271,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Unidade</label>
+              <label className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Unidade</label>
               <input 
                 type="text"
                 value={formData.unit}
@@ -284,22 +284,22 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
 
           <div className="space-y-2 pt-1">
             <div className="flex justify-between items-center px-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Progresso Visual</label>
-              <div className="flex items-center gap-1 group/pct border-b border-white/10 focus-within:border-white/30 transition-all">
+              <label className="text-[11px] font-black uppercase tracking-widest text-white/30">Progresso Visual</label>
+              <div className="flex items-baseline gap-1 group/pct border-b border-white/10 focus-within:border-white/30 transition-all pb-0.5">
                 <input 
                   type="number"
                   min="0"
                   max="100"
                   value={formData.progress_pct}
                   onChange={e => handlePercentageInputChange(e.target.value)}
-                  className="bg-transparent border-none text-right text-xl font-black text-white italic w-12 focus:outline-none group-hover/pct:text-blue-400 transition-colors"
+                  className="bg-transparent border-none text-right text-2xl font-black text-white italic w-14 focus:outline-none group-hover/pct:text-blue-400 transition-colors leading-none"
                 />
-                <span className="text-xl font-black text-white italic">%</span>
+                <span className="text-xl font-black text-white/40 italic">%</span>
               </div>
             </div>
             
             <div 
-              className="relative h-5 bg-white/5 rounded-full border border-white/10 cursor-pointer flex items-center group overflow-hidden"
+              className="relative h-6 bg-white/5 rounded-full border border-white/10 cursor-pointer flex items-center group mb-2"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect()
                 const x = e.clientX - rect.left
@@ -317,7 +317,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
               
               {/* Interactive Handle (Thumb) */}
               <motion.div 
-                className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg shadow-white/40 z-20 pointer-events-none"
+                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.6)] z-20 pointer-events-none"
                 initial={false}
                 animate={{ left: `${formData.progress_pct}%`, x: `-${formData.progress_pct}%` }}
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
@@ -339,30 +339,30 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles size={14} className="text-blue-400" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Análise por IA</span>
+                <span className="text-[11px] font-black uppercase tracking-widest text-white/50">Análise por IA</span>
               </div>
               <button 
                 type="button"
                 onClick={calculateMilestones}
-                className="text-[9px] font-black uppercase tracking-tighter text-blue-400 hover:text-blue-300 transition-colors"
+                className="text-[11px] font-black uppercase tracking-tighter text-blue-400 hover:text-blue-300 transition-colors"
               >
                 Gerar Sugestões
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-black/20 border border-white/5 p-3 rounded-xl space-y-1">
-                <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Meta Mínima</p>
+              <div className="bg-black/20 border border-white/5 p-3.5 rounded-xl space-y-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Meta Mínima</p>
                 <div className="flex items-end gap-1.5">
-                  <span className="text-lg font-black text-white/70">{formData.min_goal_value || '--'}</span>
-                  <span className="text-[9px] text-white/20 mb-1 font-bold italic">{formData.unit}</span>
+                  <span className="text-xl font-black text-white/70">{formData.min_goal_value || '--'}</span>
+                  <span className="text-[10px] text-white/20 mb-1 font-black italic">{formData.unit}</span>
                 </div>
               </div>
-              <div className="bg-black/20 border border-white/5 p-3 rounded-xl space-y-1 ring-1 ring-blue-500/10">
-                <p className="text-[8px] font-black uppercase tracking-widest text-blue-400/50">Meta Elite</p>
+              <div className="bg-black/20 border border-white/5 p-3.5 rounded-xl space-y-1 ring-1 ring-blue-500/10">
+                <p className="text-[10px] font-black uppercase tracking-widest text-blue-400/40">Meta Elite</p>
                 <div className="flex items-end gap-1.5">
-                  <span className="text-lg font-black text-white">{formData.elite_goal_value || '--'}</span>
-                  <span className="text-[9px] text-white/20 mb-1 font-bold italic">{formData.unit}</span>
+                  <span className="text-2xl font-black text-white">{formData.elite_goal_value || '--'}</span>
+                  <span className="text-[10px] text-white/30 mb-1.5 font-black italic">{formData.unit}</span>
                 </div>
               </div>
             </div>
@@ -386,8 +386,8 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Prioridade Especial</label>
+          <div className="space-y-1">
+            <label className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Prioridade Especial</label>
             <div className="grid grid-cols-4 gap-2">
               {PRIORITIES.map(p => (
                 <button
