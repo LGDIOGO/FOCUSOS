@@ -116,7 +116,7 @@ export interface CalendarEvent {
   date: string; // ISO yyyy-MM-dd
   time?: string; // HH:mm
   type: EventType;
-  status: 'todo' | 'done' | 'cancelled';
+  status: 'todo' | 'done' | 'partial' | 'failed';
   recurrence?: RecurrenceRule;
   category_id?: string;
   color?: string;      // Curated Apple hex or tailwind class

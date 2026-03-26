@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Target, Plus, Trash2, Calendar, TrendingUp, Check, ChevronRight, Sparkles } from 'lucide-react'
+import { Target, Plus, Trash2, Calendar, TrendingUp, Check, ChevronRight, Sparkles, Zap } from 'lucide-react'
 import { useGoals, useDeleteGoal } from '@/lib/hooks/useGoals'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { Goal } from '@/types'
@@ -10,6 +10,168 @@ import { cn } from '@/lib/utils/cn'
 import { GoalModal } from '@/components/dashboard/GoalModal'
 import { differenceInDays, parseISO, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useLongPress } from '@/lib/hooks/useLongPress'
+
+function GoalGridItem({ 
+  goal, 
+  idx, 
+  category,
+  daysLeft,
+  isSelectionMode, 
+  isSelected, 
+  onToggleSelection, 
+  onOpenEdit, 
+  onDelete,
+  setIsSelectionMode,
+  formatDateSafely
+}: {
+  goal: Goal
+  idx: number
+  category?: any
+  daysLeft: number
+  isSelectionMode: boolean
+  isSelected: boolean
+  onToggleSelection: (id: string) => void
+  onOpenEdit: (goal: Goal) => void
+  onDelete: (id: string, e: React.MouseEvent) => void
+  setIsSelectionMode: (val: boolean) => void
+  formatDateSafely: (date?: string) => string
+}) {
+  const longPress = useLongPress(
+    () => {
+      setIsSelectionMode(true)
+      onToggleSelection(goal.id)
+    },
+    () => {
+      if (isSelectionMode) {
+        onToggleSelection(goal.id)
+      } else {
+        onOpenEdit(goal)
+      }
+    },
+    { delay: 500 }
+  )
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ delay: idx * 0.05 }}
+      {...longPress}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        setIsSelectionMode(true)
+        onToggleSelection(goal.id)
+      }}
+      className={cn(
+        "group relative bg-white/[0.02] border rounded-[48px] p-10 hover:bg-white/[0.04] transition-all flex flex-col justify-between overflow-hidden cursor-pointer",
+        isSelected ? "border-blue-500/50 bg-blue-500/[0.08] ring-1 ring-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]" : 
+        (goal.priority === 'high' || goal.priority === 'critical' ? "ring-1 ring-white/5 border-white/10" : "border-white/10")
+      )}
+    >
+      {isSelected && (
+        <div className="absolute top-8 right-8 z-20">
+          <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
+            <Check size={14} className="text-white" strokeWidth={4} />
+          </div>
+        </div>
+      )}
+      {/* Background Glow */}
+      <div 
+        className="absolute -top-24 -right-24 w-64 h-64 blur-[120px] opacity-10 rounded-full"
+        style={{ backgroundColor: goal.color || '#FFFFFF' }}
+      />
+
+      <div className="relative z-10 space-y-8">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center gap-6">
+            <div 
+              className="w-16 h-16 rounded-3xl flex items-center justify-center text-3xl shadow-2xl transition-transform group-hover:scale-110"
+              style={{ backgroundColor: `${goal.color}15`, color: goal.color }}
+            >
+              {goal.emoji || '🎯'}
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                 <h3 className="text-2xl font-black text-white">{goal.title}</h3>
+                 {goal.priority === 'critical' && <Sparkles size={16} className="text-red-400 animate-pulse" />}
+              </div>
+              <div className="flex items-center gap-2 text-white/30 text-xs font-black uppercase tracking-widest">
+                 <span className={cn(!category?.name && "text-white/20")}>{category?.name || 'Nenhuma'}</span>
+                 <span className="w-1 h-1 rounded-full bg-white/10" />
+                 <span style={{ color: goal.priority === 'critical' ? '#FF453A' : goal.priority === 'high' ? '#FF9F0A' : '#FFFFFF' }}>
+                   {goal.priority}
+                 </span>
+              </div>
+            </div>
+          </div>
+          {!isSelectionMode && (
+            <button 
+              onClick={(e) => onDelete(goal.id, e)}
+              className="p-3 text-white/5 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+            >
+              <Trash2 size={20} />
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex justify-between items-end">
+            <div className="space-y-1">
+              <p className="text-sm font-black uppercase tracking-widest text-white/20">Progresso Atual</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-black text-white italic">{goal.current_value}</span>
+                <span className="text-lg font-bold text-white/40">/ {goal.target_value} {goal.unit}</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-1">Status</p>
+              <span className="text-3xl font-black text-white italic">{goal.progress_pct}%</span>
+            </div>
+          </div>
+
+          <div className="relative h-3 bg-white/5 rounded-full overflow-hidden border border-white/5">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${goal.progress_pct}%` }}
+              className="absolute h-full bg-white"
+              style={{ backgroundColor: goal.color }}
+            />
+          </div>
+          
+          {/* Milestones context */}
+          <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/20 px-1 pt-1">
+             <span>Início: {goal.initial_value}</span>
+             <div className="flex gap-4">
+                {goal.min_goal_value && <span className="text-white/40">Mínimo: {goal.min_goal_value}</span>}
+                {goal.elite_goal_value && <span className="text-blue-400/60">Elite: {goal.elite_goal_value}</span>}
+             </div>
+             <span>Alvo: {goal.target_value}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative z-10 pt-10 flex items-center justify-between border-t border-white/5 mt-8 opacity-60 group-hover:opacity-100 transition-opacity">
+         <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+               <Calendar size={14} className="text-white/40" />
+               <span className="text-xs font-bold text-white/60">
+                 Até {formatDateSafely(goal.end_date)}
+               </span>
+            </div>
+            <div className="w-1 h-1 rounded-full bg-white/10" />
+            <span className="text-xs font-black text-white/40 uppercase tracking-widest">
+              {daysLeft} dias restantes
+            </span>
+         </div>
+         <div className="flex items-center gap-2 text-white/40 font-black text-[10px] uppercase tracking-widest group-hover:text-white transition-colors">
+            Detalhes <ChevronRight size={14} />
+         </div>
+      </div>
+    </motion.div>
+  )
+}
 
 export default function GoalsPage() {
   const { data: goals, isLoading, error: goalsError } = useGoals()
@@ -32,6 +194,23 @@ export default function GoalsPage() {
     e.stopPropagation()
     if (confirm('Tem certeza que deseja excluir esta meta estratégica?')) {
       deleteGoal.mutate(id)
+    }
+  }
+
+  const handleSelectGroup = (type: 'all') => {
+    let ids: string[] = []
+    if (type === 'all') {
+      ids = (goals || []).map(h => h.id)
+    }
+    setSelectedIds(ids)
+    if (ids.length > 0) setIsSelectionMode(true)
+  }
+
+  const handleBulkDelete = () => {
+    if (confirm(`Excluir ${selectedIds.length} metas estratégicas?`)) {
+      selectedIds.forEach(id => deleteGoal.mutate(id))
+      setSelectedIds([])
+      setIsSelectionMode(false)
     }
   }
 
@@ -103,109 +282,20 @@ export default function GoalsPage() {
             const category = categories?.find(c => c.id === goal.category_id)
 
             return (
-              <motion.div
+              <GoalGridItem
                 key={goal.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: idx * 0.05 }}
-                onClick={() => handleOpenEdit(goal)}
-                className={cn(
-                  "group relative bg-white/[0.02] border rounded-[48px] p-10 hover:bg-white/[0.04] transition-all flex flex-col justify-between overflow-hidden cursor-pointer",
-                  goal.priority === 'high' || goal.priority === 'critical' ? "ring-1 ring-white/5" : "border-white/10"
-                )}
-              >
-                {/* Background Glow */}
-                <div 
-                  className="absolute -top-24 -right-24 w-64 h-64 blur-[120px] opacity-10 rounded-full"
-                  style={{ backgroundColor: goal.color || '#FFFFFF' }}
-                />
-
-                <div className="relative z-10 space-y-8">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-6">
-                      <div 
-                        className="w-16 h-16 rounded-3xl flex items-center justify-center text-3xl shadow-2xl transition-transform group-hover:scale-110"
-                        style={{ backgroundColor: `${goal.color}15`, color: goal.color }}
-                      >
-                        {goal.emoji || '🎯'}
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                           <h3 className="text-2xl font-black text-white">{goal.title}</h3>
-                           {goal.priority === 'critical' && <Sparkles size={16} className="text-red-400 animate-pulse" />}
-                        </div>
-                        <div className="flex items-center gap-2 text-white/30 text-xs font-black uppercase tracking-widest">
-                           <span>{category?.name || 'Geral'}</span>
-                           <span className="w-1 h-1 rounded-full bg-white/10" />
-                           <span style={{ color: goal.priority === 'critical' ? '#FF453A' : goal.priority === 'high' ? '#FF9F0A' : '#FFFFFF' }}>
-                             {goal.priority}
-                           </span>
-                        </div>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={(e) => handleDelete(goal.id, e)}
-                      className="p-3 text-white/5 hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 size={20} />
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-end">
-                      <div className="space-y-1">
-                        <p className="text-sm font-black uppercase tracking-widest text-white/20">Progresso Atual</p>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-4xl font-black text-white italic">{goal.current_value}</span>
-                          <span className="text-lg font-bold text-white/40">/ {goal.target_value} {goal.unit}</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-1">Status</p>
-                        <span className="text-3xl font-black text-white italic">{goal.progress_pct}%</span>
-                      </div>
-                    </div>
-
-                    <div className="relative h-3 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${goal.progress_pct}%` }}
-                        className="absolute h-full bg-white"
-                        style={{ backgroundColor: goal.color }}
-                      />
-                    </div>
-                    
-                    {/* Milestones context */}
-                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/20 px-1 pt-1">
-                       <span>Início: {goal.initial_value}</span>
-                       <div className="flex gap-4">
-                          {goal.min_goal_value && <span className="text-white/40">Mínimo: {goal.min_goal_value}</span>}
-                          {goal.elite_goal_value && <span className="text-blue-400/60">Elite: {goal.elite_goal_value}</span>}
-                       </div>
-                       <span>Alvo: {goal.target_value}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="relative z-10 pt-10 flex items-center justify-between border-t border-white/5 mt-8 opacity-60 group-hover:opacity-100 transition-opacity">
-                   <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                         <Calendar size={14} className="text-white/40" />
-                         <span className="text-xs font-bold text-white/60">
-                           Até {formatDateSafely(goal.end_date)}
-                         </span>
-                      </div>
-                      <div className="w-1 h-1 rounded-full bg-white/10" />
-                      <span className="text-xs font-black text-white/40 uppercase tracking-widest">
-                        {daysLeft} dias restantes
-                      </span>
-                   </div>
-                   <div className="flex items-center gap-2 text-white/40 font-black text-[10px] uppercase tracking-widest group-hover:text-white transition-colors">
-                      Detalhes <ChevronRight size={14} />
-                   </div>
-                </div>
-              </motion.div>
+                goal={goal}
+                idx={idx}
+                category={category}
+                daysLeft={daysLeft}
+                isSelectionMode={isSelectionMode}
+                isSelected={selectedIds.includes(goal.id)}
+                onToggleSelection={toggleSelection}
+                onOpenEdit={handleOpenEdit}
+                onDelete={handleDelete}
+                setIsSelectionMode={setIsSelectionMode}
+                formatDateSafely={formatDateSafely}
+              />
             )
           })}
         </AnimatePresence>
@@ -229,6 +319,69 @@ export default function GoalsPage() {
            </button>
         </div>
       )}
+
+      {/* Selection Tray */}
+      <AnimatePresence>
+        {isSelectionMode && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[32px] px-8 py-5 flex items-center gap-8 shadow-2xl"
+          >
+            <div className="text-sm font-black uppercase tracking-widest text-white/60 text-center flex flex-col items-center">
+              <span className="text-2xl text-white">{selectedIds.length}</span>
+              <span className="text-[9px]">Selecionados</span>
+            </div>
+
+            <div className="h-10 w-px bg-white/10" />
+
+            <div className="flex items-center gap-4">
+              {[
+                { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
+              ].map(btn => (
+                <button 
+                  key={btn.label}
+                  onClick={btn.onClick}
+                  className="flex flex-col items-center gap-1.5 text-white/40 hover:text-white transition-all group/sel"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all">
+                    <btn.icon size={18} />
+                  </div>
+                  <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/sel:opacity-60 transition-opacity">
+                    {btn.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="h-10 w-px bg-white/10" />
+
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={handleBulkDelete}
+                disabled={selectedIds.length === 0}
+                className="flex flex-col items-center gap-1.5 text-red-500/40 hover:text-red-500 transition-all disabled:opacity-5 group/del"
+              >
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all">
+                  <Trash2 size={18} />
+                </div>
+                <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/del:opacity-60 transition-opacity">Excluir</span>
+              </button>
+              
+              <button 
+                onClick={() => {
+                  setIsSelectionMode(false)
+                  setSelectedIds([])
+                }}
+                className="bg-white/10 hover:bg-white text-white hover:text-black px-8 py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all"
+              >
+                Cancelar
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Goal Modal */}
       <GoalModal 

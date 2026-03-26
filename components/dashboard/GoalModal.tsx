@@ -212,33 +212,33 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
 
             <div className="space-y-1">
               <label className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Categoria</label>
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, category_id: '' })}
-                  className={cn(
-                    "px-4 py-2.5 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all",
-                    !formData.category_id ? "bg-white text-black border-white" : "bg-white/5 text-white/30 border-white/5"
-                  )}
-                >
-                  Nenhuma
-                </button>
-                {categories?.map(cat => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, category_id: cat.id })}
-                    className={cn(
-                      "px-4 py-2.5 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                      formData.category_id === cat.id ? "bg-white/10 text-white border-white" : "bg-white/5 text-white/30 border-white/5"
-                    )}
-                    style={formData.category_id === cat.id ? { borderColor: cat.color, color: cat.color } : {}}
-                  >
-                    <span>{cat.icon}</span>
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, category_id: '' })}
+                      className={cn(
+                        "px-4 py-2.5 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all",
+                        !formData.category_id ? "bg-white text-black border-white shadow-lg shadow-white/10" : "bg-white/5 text-white/30 border-white/5 hover:bg-white/10"
+                      )}
+                    >
+                      Nenhuma
+                    </button>
+                    {categories?.map(cat => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, category_id: cat.id })}
+                        className={cn(
+                          "px-4 py-2.5 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
+                          formData.category_id === cat.id ? "bg-white/10 text-white border-white" : "bg-white/5 text-white/30 border-white/5 hover:bg-white/10"
+                        )}
+                        style={formData.category_id === cat.id ? { borderColor: cat.color, color: cat.color } : {}}
+                      >
+                        <span>{cat.icon}</span>
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
             </div>
           </div>
 
@@ -286,24 +286,28 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
             <div className="flex justify-between items-center px-1">
               <label className="text-[11px] font-black uppercase tracking-widest text-white/30">Progresso Visual</label>
               <div className="flex items-baseline gap-1 group/pct border-b border-white/10 focus-within:border-white/30 transition-all pb-0.5">
-                <input 
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.progress_pct}
-                  onChange={e => handlePercentageInputChange(e.target.value)}
-                  className="bg-transparent border-none text-right text-2xl font-black text-white italic w-14 focus:outline-none group-hover/pct:text-blue-400 transition-colors leading-none"
-                />
-                <span className="text-xl font-black text-white/40 italic">%</span>
+                  <div className="relative flex items-center">
+                    <input 
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={formData.progress_pct ?? 0}
+                      onChange={e => handlePercentageInputChange(e.target.value)}
+                      className="bg-transparent border-none text-right text-2xl font-black text-white italic w-16 focus:outline-none group-hover/pct:text-blue-400 transition-colors leading-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="text-xl font-black text-white/40 italic ml-1">%</span>
+                  </div>
               </div>
             </div>
             
             <div 
-              className="relative h-6 bg-white/5 rounded-full border border-white/10 cursor-pointer flex items-center group mb-2"
+              className="relative h-6 bg-white/5 rounded-full border border-white/10 cursor-pointer flex items-center group mb-2 overflow-visible px-2"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect()
-                const x = e.clientX - rect.left
-                const pct = Math.round((x / rect.width) * 100)
+                // Compensar padding de 8px (px-2)
+                const x = e.clientX - rect.left - 8
+                const width = rect.width - 16
+                const pct = Math.round((x / width) * 100)
                 handleSliderChange(pct)
               }}
             >
@@ -317,9 +321,9 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
               
               {/* Interactive Handle (Thumb) */}
               <motion.div 
-                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.6)] z-20 pointer-events-none"
+                className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.8)] z-20 pointer-events-none"
                 initial={false}
-                animate={{ left: `${formData.progress_pct}%`, x: `-${formData.progress_pct}%` }}
+                animate={{ left: `calc(${(formData.progress_pct ?? 0)}% - ${(formData.progress_pct ?? 0) * 0.2}px + 8px)`, x: '-50%' }}
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               />
 

@@ -1,9 +1,8 @@
-'use client'
-
 import { motion } from 'framer-motion'
+import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
-
 import { Task, TaskPriority } from '@/types'
+import { useLongPress } from '@/lib/hooks/useLongPress'
 
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
   critical: 'bg-[#b80000]',
@@ -29,19 +28,25 @@ export default function TaskItem({
 }) {
   const dueLabel = task.due || (task.due_time ? `Hoje · ${task.due_time}` : 'Hoje')
 
-  const handleClick = () => {
-    if (isSelectionMode && onSelect) {
-      onSelect()
-    } else {
-      onToggle()
-    }
-  }
+  const longPress = useLongPress(
+    () => {
+      onContextMenu?.()
+    },
+    () => {
+      if (isSelectionMode && onSelect) {
+        onSelect()
+      } else {
+        onToggle()
+      }
+    },
+    { delay: 500 }
+  )
 
   return (
     <motion.div
       layout
       whileTap={{ scale: 0.98 }}
-      onClick={handleClick}
+      {...longPress}
       onContextMenu={(e) => {
         if (onContextMenu) {
           e.preventDefault()
@@ -49,20 +54,19 @@ export default function TaskItem({
         }
       }}
       className={cn(
-        'flex items-center gap-3 px-3.5 py-3 rounded-xl border cursor-pointer transition-all duration-200 select-none relative',
+        'flex items-center gap-3 px-4 py-4 rounded-[28px] border cursor-pointer transition-all duration-300 select-none relative',
         task.done ? 'bg-white/[0.02] border-white/[0.05] opacity-50' : 'bg-white/[0.04] border-white/[0.08]',
-        isSelected && 'border-blue-500 bg-blue-500/5 opacity-100'
+        isSelected && 'border-blue-500/50 bg-blue-500/[0.08] ring-1 ring-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]'
       )}
     >
-      {isSelectionMode && (
-        <div className="absolute top-2 right-2 z-10">
-           <div className={cn(
-             "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
-             isSelected ? "bg-blue-500 border-blue-500" : "border-white/20"
-           )}>
-             {isSelected && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
-           </div>
-        </div>
+      {isSelected && (
+        <motion.div 
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="absolute top-3 right-3 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center z-10 shadow-lg"
+        >
+          <Check size={12} className="text-white" strokeWidth={4} />
+        </motion.div>
       )}
       {/* Check circle */}
       <div className={cn(

@@ -16,10 +16,12 @@ import { useEvents, useUpdateEvent } from '@/lib/hooks/useEvents'
 import { HabitStatus, Habit, Task, CalendarEvent } from '@/types'
 import { generateLocalInsights } from '@/lib/services/aiService'
 import SeedData from '@/components/dashboard/SeedData'
-import { Zap, Search, Bell, TrendingUp, Calendar, Target, Award, MoreHorizontal, RefreshCcw, Clock, ChevronRight, Plus, Trash2, Check, ArrowLeft } from 'lucide-react'
+import { Zap, Search, Bell, TrendingUp, Calendar, Target, Award, MoreHorizontal, RefreshCcw, Clock, ChevronRight, Plus, Trash2, Check, ArrowLeft, Minus, X } from 'lucide-react'
 import { PerformanceHeader } from '@/components/dashboard/PerformanceHeader'
 import { cn } from '@/lib/utils/cn'
 import Link from 'next/link'
+import AgendaItem from '@/components/dashboard/AgendaItem'
+import { RescheduleModal } from '@/components/dashboard/RescheduleModal'
 
 // ─── Utilidades ─────────────────────────────────────────────
 const CYCLE: HabitStatus[] = ['none', 'done', 'partial', 'failed']
@@ -69,10 +71,25 @@ export default function DashboardPage() {
     )
   }
 
-  const handleSelectAll = () => {
-    if (!tasksData) return
-    const allIds = tasksData.map(t => t.id)
-    setSelectedIds(allIds)
+  const handleSelectGroup = (type: 'all' | 'positive' | 'negative' | 'events' | 'tasks') => {
+    let ids: string[] = []
+    if (type === 'all') {
+      ids = [
+        ...(habits.map(h => h.id)),
+        ...(tasks.map(t => t.id)),
+        ...(todayEvents.map(e => e.id))
+      ]
+    } else if (type === 'positive') {
+      ids = habits.filter(h => h.type === 'positive').map(h => h.id)
+    } else if (type === 'negative') {
+      ids = habits.filter(h => h.type === 'negative').map(h => h.id)
+    } else if (type === 'events') {
+      ids = todayEvents.map(e => e.id)
+    } else if (type === 'tasks') {
+      ids = tasks.map(t => t.id)
+    }
+    setSelectedIds(ids)
+    if (ids.length > 0) setIsSelectionMode(true)
   }
 
   const handleBulkDelete = () => {
@@ -82,6 +99,9 @@ export default function DashboardPage() {
       setIsSelectionMode(false)
     }
   }
+
+  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false)
+  const [eventToReschedule, setEventToReschedule] = useState<CalendarEvent | null>(null)
 
   const [toast, setToast] = useState<string | null>(null)
   
@@ -124,10 +144,32 @@ export default function DashboardPage() {
     return () => clearTimeout(t)
   }, [toast])
 
-  // Toggle habit: none → done → partial → failed → none
-  function cycleHabit(id: string, currentStatus: HabitStatus) {
-    const nextStatus = CYCLE[(CYCLE.indexOf(currentStatus) + 1) % CYCLE.length]
+  function setEventStatus(id: string, status: any) {
+    updateEvent({ id, status })
     
+    if (status === 'partial') {
+      const ev = todayEvents.find(e => e.id === id)
+      if (ev) {
+        setEventToReschedule(ev)
+        setIsRescheduleOpen(true)
+      }
+    }
+
+    const labels: any = { done: '✓ Concluído!', partial: '½ Parcial - Reagendar?', failed: '✗ Falhou.' }
+    if (labels[status]) setToast(labels[status])
+  }
+
+  function handleRescheduleConfirm(newDate: string) {
+    if (eventToReschedule) {
+      updateEvent({ id: eventToReschedule.id, date: newDate, status: 'todo' })
+      setToast('📅 Compromisso reagendado!')
+    }
+    setIsRescheduleOpen(false)
+    setEventToReschedule(null)
+  }
+
+  // Set habit status directly: none, done, partial, failed
+  function setHabitStatus(id: string, nextStatus: HabitStatus) {
     logHabit({ 
       habitId: id, 
       status: nextStatus,
@@ -296,45 +338,22 @@ export default function DashboardPage() {
              </div>
              <div className="flex flex-col gap-2">
                 {todayEvents.map(event => (
-                    <motion.div 
-                      key={event.id}
-                      className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4 flex items-center justify-between gap-4 hover:bg-white/[0.05] transition-all group"
-                    >
-                      <div className="flex items-center gap-4 flex-1 min-w-0">
-                        <div className={cn(
-                          "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-                          event.status === 'done' ? "bg-green-500 text-white" : "bg-white/5 text-white/60"
-                        )}>
-                           <Calendar size={18} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                           <h4 className={cn("text-base font-bold truncate", event.status === 'done' && "line-through opacity-40")}>{event.title}</h4>
-                           <div className="flex items-center gap-3 text-[12px] font-medium text-white/50">
-                              <span className="flex items-center gap-1"><Clock size={10} /> {event.time}</span>
-                              <span className="uppercase tracking-widest">{event.type}</span>
-                           </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {event.status !== 'done' && (
-                          <button 
-                            onClick={() => updateEvent({ id: event.id, status: 'done' })}
-                            className="w-8 h-8 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white transition-all flex items-center justify-center"
-                          >
-                            <TrendingUp size={14} />
-                          </button>
-                        )}
-                        {event.status === 'done' && (
-                          <button 
-                            onClick={() => updateEvent({ id: event.id, status: 'todo' })}
-                            className="w-8 h-8 rounded-lg bg-white/10 text-white/60 hover:bg-white/20 flex items-center justify-center transition-all"
-                          >
-                            <RefreshCcw size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </motion.div>
+                  <AgendaItem 
+                    key={event.id} 
+                    event={event} 
+                    onStatusChange={status => setEventStatus(event.id, status)}
+                    onReschedule={() => {
+                      setEventToReschedule(event)
+                      setIsRescheduleOpen(true)
+                    }}
+                    isSelectionMode={isSelectionMode}
+                    isSelected={selectedIds.includes(event.id)}
+                    onSelect={() => toggleSelection(event.id)}
+                    onContextMenu={() => {
+                      setIsSelectionMode(true)
+                      toggleSelection(event.id)
+                    }}
+                  />
                 ))}
                  {todayEvents.length === 0 && (
                    <p className="text-sm text-white/30 italic px-4 py-2">Nenhum compromisso para hoje.</p>
@@ -358,11 +377,22 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-2">
             <AnimatePresence>
               {positive.map((h: Habit) => (
-                <HabitCard key={h.id} habit={h} onCycle={() => cycleHabit(h.id, h.status)} />
+                <HabitCard 
+                  key={h.id} 
+                  habit={h} 
+                  onStatusChange={status => setHabitStatus(h.id, status)}
+                  isSelectionMode={isSelectionMode}
+                  isSelected={selectedIds.includes(h.id)}
+                  onSelect={() => toggleSelection(h.id)}
+                  onContextMenu={() => {
+                    setIsSelectionMode(true)
+                    toggleSelection(h.id)
+                  }}
+                />
               ))}
             </AnimatePresence>
           </div>
-          <p className="text-[12px] text-white/40 text-center mt-2 tracking-wide">Toque para ciclar: ○ vazio → ✓ feito → ½ parcial → ✗ falhou</p>
+          <p className="text-[12px] text-white/40 text-center mt-2 tracking-wide">Selecione o status: ✓ feito · ½ parcial · ✗ falhou</p>
         </section>
 
         {/* ─── Negative Habits ─── */}
@@ -373,7 +403,19 @@ export default function DashboardPage() {
           </div>
           <div className="flex flex-col gap-2">
             {negative.map((h: Habit) => (
-              <HabitCard key={h.id} habit={h} onCycle={() => cycleHabit(h.id, h.status)} isNegative />
+              <HabitCard 
+                key={h.id} 
+                habit={h} 
+                onStatusChange={status => setHabitStatus(h.id, status)} 
+                isNegative 
+                isSelectionMode={isSelectionMode}
+                isSelected={selectedIds.includes(h.id)}
+                onSelect={() => toggleSelection(h.id)}
+                onContextMenu={() => {
+                  setIsSelectionMode(true)
+                  toggleSelection(h.id)
+                }}
+              />
             ))}
           </div>
         </section>
@@ -424,37 +466,56 @@ export default function DashboardPage() {
 
       </main>
 
-      {/* ─── Selection Tray ─── */}
       <AnimatePresence>
         {isSelectionMode && (
           <motion.div 
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-[#121212]/80 backdrop-blur-3xl border border-white/10 rounded-[32px] px-8 py-5 flex items-center gap-8 shadow-2xl"
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[32px] px-8 py-5 flex items-center gap-8 shadow-2xl"
           >
-            <div className="text-sm font-black uppercase tracking-widest text-white/60 text-center">
-              {selectedIds.length} <br /> Selecionados
+            <div className="text-sm font-black uppercase tracking-widest text-white/60 text-center flex flex-col items-center">
+              <span className="text-2xl text-white">{selectedIds.length}</span>
+              <span className="text-[9px]">Selecionados</span>
             </div>
-            <div className="h-10 w-px bg-white/10" />
-            <div className="flex items-center gap-6">
-              <button 
-                onClick={handleSelectAll}
-                className="flex flex-col items-center gap-1 text-white/60 hover:text-white transition-colors"
-              >
-                <div className="w-5 h-5 border-2 border-white/20 rounded-md flex items-center justify-center">
-                   <div className="w-2 h-2 bg-white rounded-sm" />
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-widest">Tudo</span>
-              </button>
 
+            <div className="h-10 w-px bg-white/10" />
+
+            <div className="flex items-center gap-4">
+              {[
+                { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
+                { label: 'Positivos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
+                { label: 'A Evitar', icon: Target, onClick: () => handleSelectGroup('negative') },
+                { label: 'Agenda', icon: Calendar, onClick: () => handleSelectGroup('events') },
+                { label: 'Rascunho', icon: Clock, onClick: () => handleSelectGroup('tasks') },
+              ].map(btn => (
+                <button 
+                  key={btn.label}
+                  onClick={btn.onClick}
+                  className="flex flex-col items-center gap-1.5 text-white/40 hover:text-white transition-all group/sel"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all">
+                    <btn.icon size={18} />
+                  </div>
+                  <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/sel:opacity-60 transition-opacity">
+                    {btn.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="h-10 w-px bg-white/10" />
+
+            <div className="flex items-center gap-4">
               <button 
                 onClick={handleBulkDelete}
                 disabled={selectedIds.length === 0}
-                className="flex flex-col items-center gap-1 text-red-400 hover:text-red-300 transition-colors disabled:opacity-20"
+                className="flex flex-col items-center gap-1.5 text-red-500/40 hover:text-red-500 transition-all disabled:opacity-5 group/del"
               >
-                <Trash2 size={20} />
-                <span className="text-[9px] font-black uppercase tracking-widest">Excluir</span>
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all">
+                  <Trash2 size={18} />
+                </div>
+                <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/del:opacity-60 transition-opacity">Excluir</span>
               </button>
               
               <button 
@@ -462,7 +523,7 @@ export default function DashboardPage() {
                   setIsSelectionMode(false)
                   setSelectedIds([])
                 }}
-                className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all"
+                className="bg-white/10 hover:bg-white text-white hover:text-black px-8 py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all"
               >
                 Cancelar
               </button>

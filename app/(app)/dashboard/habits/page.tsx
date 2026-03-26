@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Plus, Trash2, Zap, ShieldAlert, Sparkles, X, RefreshCcw, Check, Square
+  Plus, Trash2, Zap, ShieldAlert, Sparkles, X, RefreshCcw, Check, Square, TrendingUp, Target, Clock, Calendar
 } from 'lucide-react'
 import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
 import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicker'
@@ -14,8 +14,134 @@ import { Habit, RecurrenceFreq, RecurrenceRule } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useLongPress } from '@/lib/hooks/useLongPress'
 
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+
+function HabitGridItem({ 
+  habit, 
+  idx, 
+  isSelectionMode, 
+  isSelected, 
+  onToggleSelection, 
+  onOpenEdit, 
+  onDelete,
+  setIsSelectionMode
+}: {
+  habit: Habit
+  idx: number
+  isSelectionMode: boolean
+  isSelected: boolean
+  onToggleSelection: (id: string) => void
+  onOpenEdit: (habit: Habit) => void
+  onDelete: (id: string) => void
+  setIsSelectionMode: (val: boolean) => void
+}) {
+  const longPress = useLongPress(
+    () => {
+      setIsSelectionMode(true)
+      onToggleSelection(habit.id)
+    },
+    () => {
+      if (isSelectionMode) {
+        onToggleSelection(habit.id)
+      } else {
+        onOpenEdit(habit)
+      }
+    },
+    { delay: 500 }
+  )
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ delay: idx * 0.05 }}
+      {...longPress}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        setIsSelectionMode(true)
+        onToggleSelection(habit.id)
+      }}
+      className={cn(
+        "group relative bg-white/[0.02] border rounded-[40px] p-8 hover:bg-white/[0.04] transition-all flex flex-col justify-between overflow-hidden cursor-pointer h-full",
+        isSelected ? "border-blue-500/50 bg-blue-500/[0.08] ring-1 ring-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]" : "border-white/10"
+      )}
+    >
+      {isSelected && (
+        <div className="absolute top-6 right-6 z-20">
+          <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
+            <Check size={14} className="text-white" strokeWidth={4} />
+          </div>
+        </div>
+      )}
+
+      <div className="relative z-10 flex justify-between items-start">
+        <div className="flex items-center gap-4">
+          <div 
+            className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-110"
+            style={{ backgroundColor: habit.color ? `${habit.color}20` : 'rgba(255,255,255,0.05)', color: habit.color || '#FFFFFF' }}
+          >
+            {habit.emoji || (habit.type === 'positive' ? <Sparkles size={20} /> : <ShieldAlert size={20} />)}
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-xl font-bold text-white transition-colors">{habit.name}</h3>
+            <p className="text-white/50 text-base font-medium line-clamp-1 italic">{habit.description || 'Sem descrição'}</p>
+          </div>
+        </div>
+        {!isSelectionMode && (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete(habit.id)
+            }}
+            className="p-2 text-white/5 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <Trash2 size={18} />
+          </button>
+        )}
+      </div>
+
+      <div className="relative z-10 pt-8 flex items-end justify-between">
+        <div className="space-y-2">
+           <div className="flex gap-1">
+              {DAYS.map((label, i) => {
+                const isActive = !habit.recurrence || 
+                  habit.recurrence.frequency === 'daily' || 
+                  (habit.recurrence.frequency === 'specific_days' && habit.recurrence.days_of_week?.includes(i))
+                return (
+                  <div 
+                    key={i} 
+                    className={cn(
+                      "w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-black border transition-all",
+                      isActive ? "bg-white/10 border-white/20 text-white" : "bg-transparent border-white/5 text-white/5"
+                    )}
+                  >
+                    {label}
+                  </div>
+                )
+              })}
+           </div>
+           <p className="text-[12px] uppercase tracking-widest font-black text-white/20">
+             {habit.recurrence?.frequency === 'specific_days' ? 'Personalizado' : 
+              habit.recurrence?.frequency === 'weekly' ? 'Semanal' :
+              habit.recurrence?.frequency === 'monthly' ? 'Mensal' :
+              habit.recurrence?.frequency === 'yearly' ? 'Anual' : 'Diário'}
+           </p>
+        </div>
+        
+        <div className="flex flex-col items-end">
+           <span className="text-sm font-black uppercase text-white/60 tracking-widest mb-1">Streak</span>
+           <div className="flex items-center gap-2">
+              <Zap size={16} className="text-yellow-400 fill-yellow-400" />
+              <span className="text-2xl font-black italic">{habit.streak}</span>
+           </div>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
 
 export default function HabitsPage() {
   const { data: habits, isLoading } = useHabits()
@@ -187,10 +313,17 @@ export default function HabitsPage() {
     })
   }
 
-  const handleSelectAll = () => {
-    if (!habits) return
-    const allIds = habits.map(h => h.id)
-    setSelectedIds(allIds)
+  const handleSelectGroup = (type: 'all' | 'positive' | 'negative') => {
+    let ids: string[] = []
+    if (type === 'all') {
+      ids = (habits || []).map(h => h.id)
+    } else if (type === 'positive') {
+      ids = (habits || []).filter(h => h.type === 'positive').map(h => h.id)
+    } else if (type === 'negative') {
+      ids = (habits || []).filter(h => h.type === 'negative').map(h => h.id)
+    }
+    setSelectedIds(ids)
+    if (ids.length > 0) setIsSelectionMode(true)
   }
 
   return (
@@ -231,103 +364,18 @@ export default function HabitsPage() {
             [1, 2, 3].map(i => (
               <div key={i} className="h-48 rounded-[40px] bg-white/[0.02] border border-white/10 animate-pulse" />
             ))
-          ) : habits?.map((habit: Habit, idx: number) => (
-            <motion.div
+          ) : (habits || []).map((habit: Habit, idx: number) => (
+            <HabitGridItem
               key={habit.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ delay: idx * 0.05 }}
-              className={cn(
-                "group relative bg-white/[0.02] border rounded-[40px] p-8 hover:bg-white/[0.04] transition-all flex flex-col justify-between overflow-hidden cursor-pointer",
-                selectedIds.includes(habit.id) ? "border-blue-500 bg-blue-500/5" : "border-white/10"
-              )}
-              onClick={() => isSelectionMode ? toggleSelection(habit.id) : openEditModal(habit)}
-              onContextMenu={(e) => {
-                e.preventDefault()
-                setIsSelectionMode(true)
-                toggleSelection(habit.id)
-              }}
-            >
-              {isSelectionMode && (
-                <div className="absolute top-6 right-6 z-20">
-                  <div className={cn(
-                    "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                    selectedIds.includes(habit.id) ? "bg-blue-500 border-blue-500" : "border-white/20"
-                  )}>
-                    {selectedIds.includes(habit.id) && <Check size={14} className="text-white" />}
-                  </div>
-                </div>
-              )}
-              <div 
-                className="relative z-10 flex justify-between items-start cursor-pointer"
-                onClick={() => openEditModal(habit)}
-              >
-                <div className="flex items-center gap-4">
-                  <div 
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-110"
-                    style={{ backgroundColor: habit.color ? `${habit.color}20` : 'rgba(255,255,255,0.05)', color: habit.color || '#FFFFFF' }}
-                  >
-                    {habit.emoji || (habit.type === 'positive' ? <Sparkles size={20} /> : <ShieldAlert size={20} />)}
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-bold text-white transition-colors">{habit.name}</h3>
-                    <p className="text-white/50 text-base font-medium line-clamp-1 italic">{habit.description || 'Sem descrição'}</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (isSelectionMode) return
-                    deleteHabit.mutate(habit.id)
-                  }}
-                  className={cn(
-                    "p-2 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100",
-                    isSelectionMode ? "hidden" : "text-white/5"
-                  )}
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-
-              <div className="relative z-10 pt-8 flex items-end justify-between">
-                <div className="space-y-2">
-                   <div className="flex gap-1">
-                      {DAYS.map((label, i) => {
-                        const isActive = !habit.recurrence || 
-                          habit.recurrence.frequency === 'daily' || 
-                          (habit.recurrence.frequency === 'specific_days' && habit.recurrence.days_of_week?.includes(i))
-                        return (
-                          <div 
-                            key={i} 
-                            className={cn(
-                              "w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-black border transition-all",
-                              isActive ? "bg-white/10 border-white/20 text-white" : "bg-transparent border-white/5 text-white/5"
-                            )}
-                          >
-                            {label}
-                          </div>
-                        )
-                      })}
-                   </div>
-                   <p className="text-[12px] uppercase tracking-widest font-black text-white/20">
-                     {habit.recurrence?.frequency === 'specific_days' ? 'Personalizado' : 
-                      habit.recurrence?.frequency === 'weekly' ? 'Semanal' :
-                      habit.recurrence?.frequency === 'monthly' ? 'Mensal' :
-                      habit.recurrence?.frequency === 'yearly' ? 'Anual' : 'Diário'}
-                      {habit.recurrence?.interval && habit.recurrence.interval > 1 && ` • A cada ${habit.recurrence.interval} semanas`}
-                   </p>
-                </div>
-                
-                <div className="flex flex-col items-end">
-                   <span className="text-sm font-black uppercase text-white/60 tracking-widest mb-1">Streak</span>
-                   <div className="flex items-center gap-2">
-                      <Zap size={16} className="text-yellow-400 fill-yellow-400" />
-                      <span className="text-2xl font-black italic">{habit.streak}</span>
-                   </div>
-                </div>
-              </div>
-            </motion.div>
+              habit={habit}
+              idx={idx}
+              isSelectionMode={isSelectionMode}
+              isSelected={selectedIds.includes(habit.id)}
+              onToggleSelection={toggleSelection}
+              onOpenEdit={openEditModal}
+              onDelete={(id) => deleteHabit.mutate(id)}
+              setIsSelectionMode={setIsSelectionMode}
+            />
           ))}
         </AnimatePresence>
       </div>
@@ -689,37 +737,54 @@ export default function HabitsPage() {
         )}
       </AnimatePresence>
 
-      {/* Selection Tray */}
       <AnimatePresence>
         {isSelectionMode && (
           <motion.div 
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-[#121212]/80 backdrop-blur-3xl border border-white/10 rounded-[32px] px-8 py-5 flex items-center gap-8 shadow-2xl"
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[32px] px-8 py-5 flex items-center gap-8 shadow-2xl"
           >
-            <div className="text-sm font-black uppercase tracking-widest text-white/60 text-center">
-              {selectedIds.length} <br /> Selecionados
+            <div className="text-sm font-black uppercase tracking-widest text-white/60 text-center flex flex-col items-center">
+              <span className="text-2xl text-white">{selectedIds.length}</span>
+              <span className="text-[9px]">Selecionados</span>
             </div>
-            <div className="h-10 w-px bg-white/10" />
-            <div className="flex items-center gap-6">
-              <button 
-                onClick={handleSelectAll}
-                className="flex flex-col items-center gap-1 text-white/60 hover:text-white transition-colors"
-              >
-                <div className="w-5 h-5 border-2 border-white/20 rounded-md flex items-center justify-center">
-                   <div className="w-2 h-2 bg-white rounded-sm" />
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-widest">Tudo</span>
-              </button>
 
+            <div className="h-10 w-px bg-white/10" />
+
+            <div className="flex items-center gap-4">
+              {[
+                { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
+                { label: 'Positivos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
+                { label: 'A Evitar', icon: Target, onClick: () => handleSelectGroup('negative') },
+              ].map(btn => (
+                <button 
+                  key={btn.label}
+                  onClick={btn.onClick}
+                  className="flex flex-col items-center gap-1.5 text-white/40 hover:text-white transition-all group/sel"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all">
+                    <btn.icon size={18} />
+                  </div>
+                  <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/sel:opacity-60 transition-opacity">
+                    {btn.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="h-10 w-px bg-white/10" />
+
+            <div className="flex items-center gap-4">
               <button 
                 onClick={handleBulkDelete}
                 disabled={selectedIds.length === 0}
-                className="flex flex-col items-center gap-1 text-red-400 hover:text-red-300 transition-colors disabled:opacity-20"
+                className="flex flex-col items-center gap-1.5 text-red-500/40 hover:text-red-500 transition-all disabled:opacity-5 group/del"
               >
-                <Trash2 size={20} />
-                <span className="text-[9px] font-black uppercase tracking-widest">Excluir</span>
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all">
+                  <Trash2 size={18} />
+                </div>
+                <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/del:opacity-60 transition-opacity">Excluir</span>
               </button>
               
               <button 
@@ -727,7 +792,7 @@ export default function HabitsPage() {
                   setIsSelectionMode(false)
                   setSelectedIds([])
                 }}
-                className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all"
+                className="bg-white/10 hover:bg-white text-white hover:text-black px-8 py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all"
               >
                 Cancelar
               </button>
