@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import { auth, db } from '@/lib/firebase/config' // Using client config for simplicity in dev
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  addDoc, 
-  serverTimestamp 
-} from 'firebase/firestore'
+import { GoogleGenAI } from "@google/genai"
+import { auth, db } from '@/lib/firebase/config'
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,8 +9,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Configuração de IA ausente (API Key)' }, { status: 500 })
     }
 
-    const ai = new GoogleGenerativeAI(apiKey)
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash-latest' })
+    const ai = new GoogleGenAI({ apiKey })
     const { type, userData } = await req.json()
 
     const context = userData || {}
@@ -38,15 +29,19 @@ export async function POST(req: NextRequest) {
       Fale em Português do Brasil. Seja motivador mas profissional.
     `
 
-    const result = await model.generateContent({
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
       contents: [
-        { role: 'user', parts: [{ text: systemPrompt }] },
-        { role: 'user', parts: [{ text: `Dados do Usuário:\n${JSON.stringify(context, null, 2)}\n\nTipo de insight esperado: ${type || 'auto'}` }] }
-      ]
+        systemPrompt,
+        `Dados do Usuário:\n${JSON.stringify(context, null, 2)}\n\nTipo de insight esperado: ${type || 'auto'}`
+      ],
+      config: {
+        maxOutputTokens: 1024,
+        temperature: 0.7
+      }
     })
     
-    const response = await result.response
-    const text = response.text() || ''
+    const text = response.text || ''
     
     // Extract JSON from potential markdown formatting
     const jsonStr = text.replace(/```json|```/g, '').trim()

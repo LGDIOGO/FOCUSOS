@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from "@google/generative-ai"
+import { GoogleGenAI } from "@google/genai"
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,9 +8,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Configuração de IA ausente (API Key)' }, { status: 500 })
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
-
+    const ai = new GoogleGenAI({ apiKey })
+    
     const { messages } = await req.json()
 
     const systemPrompt = `Você é o "FocusOS Concierge", um assistente de elite inspirado na estética e precisão da Apple. 
@@ -40,26 +39,18 @@ export async function POST(req: NextRequest) {
     - Meta (Goal): Use "title", "target_value" (número), "unit" (ex: "vezes", "km"), "emoji", "description", "color" (HEX Apple), "priority" ('high'|'medium'), "term": "annual", "end_date": "2026-12-31".
     - IMPORTANTE: Se o usuário citar "segunda, quarta e sexta", use specific_days com [1, 3, 5].`
 
-    // O Gemini exige que a primeira mensagem do histórico seja 'user'.
-    const historyEntries = messages.slice(0, -1).map((m: any) => ({
-      role: m.role === 'ai' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }))
+    const chatInput = `SYSTEM: ${systemPrompt}\n\nUSER MESSAGE: ${messages[messages.length - 1].content}`
 
-    const firstUserIndex = historyEntries.findIndex((h: any) => h.role === 'user')
-    const validHistory = firstUserIndex !== -1 ? historyEntries.slice(firstUserIndex) : []
-
-    const chat = model.startChat({
-      history: validHistory,
-      generationConfig: {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: chatInput,
+      config: {
         maxOutputTokens: 2048,
-      },
+        temperature: 0.7
+      }
     })
 
-    const chatInput = `SYSTEM: ${systemPrompt}\n\nUSER MESSAGE: ${messages[messages.length - 1].content}`
-    const result = await chat.sendMessage(chatInput)
-    const response = await result.response
-    const text = response.text()
+    const text = response.text
 
     if (text) {
       return NextResponse.json({ message: text })

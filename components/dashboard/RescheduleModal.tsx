@@ -51,7 +51,7 @@ export function RescheduleModal({ isOpen, onClose, onConfirm, event }: Reschedul
         </div>
 
         <p className="text-sm text-white/60 mb-6 italic">
-          "O que foi feito é importante, mas o que falta precisa de um novo momento."
+          &quot;O que foi feito é importante, mas o que falta precisa de um novo momento.&quot;
         </p>
 
         <div className="space-y-4">

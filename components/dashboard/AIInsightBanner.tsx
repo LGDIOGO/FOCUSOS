@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, ArrowRight, BrainCircuit, RefreshCw } from 'lucide-react'
 import { Habit, Task } from '@/types'
@@ -14,7 +14,7 @@ export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps)
   const [insight, setInsight] = useState<{ type: string; title: string; body: string } | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const fetchInsight = async () => {
+  const fetchInsight = useCallback(async () => {
     if (habits.length === 0 && tasks.length === 0) return
     
     setLoading(true)
@@ -34,11 +34,11 @@ export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps)
     } finally {
       setLoading(false)
     }
-  }
+  }, [habits, tasks])
 
   useEffect(() => {
     fetchInsight()
-  }, []) // Initial fetch
+  }, [fetchInsight]) // Initial fetch
 
   if (!insight && !loading) return null
 
