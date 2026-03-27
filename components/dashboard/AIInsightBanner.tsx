@@ -84,7 +84,7 @@ export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps)
             <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
               <Icon className="w-4 h-4 text-white" />
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">Gemini Insight</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">FocusOS Insight</span>
           </div>
           <button 
             onClick={() => fetchInsight(true)}

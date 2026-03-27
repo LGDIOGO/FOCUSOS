@@ -373,7 +373,7 @@ export default function AIChatOnboarding({ isOpen, onClose }: { isOpen: boolean;
               <Sparkles className="text-white w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-black text-lg tracking-tightest">Gemini Concierge</h2>
+              <h2 className="font-black text-lg tracking-tightest">FocusOS Concierge</h2>
               <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Onboarding Inteligente</p>
             </div>
           </div>
@@ -554,7 +554,7 @@ export default function AIChatOnboarding({ isOpen, onClose }: { isOpen: boolean;
           ))}
           {loading && (
             <div className="flex items-center gap-2 text-white/40 text-xs px-2">
-              <Loader2 className="animate-spin w-3 h-3" /> Gemini está pensando...
+              <Loader2 className="animate-spin w-3 h-3" /> FocusOS está pensando...
             </div>
           )}
         </div>

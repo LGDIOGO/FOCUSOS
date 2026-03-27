@@ -30,7 +30,7 @@ export default function SeedData() {
                 <span className="px-2 py-0.5 bg-white/10 rounded-full text-[10px] uppercase tracking-widest text-white/60 border border-white/10">Alpha</span>
               </h3>
               <p className="text-sm md:text-base text-white/40 font-medium mt-1">
-                Personalize sua experiência com ajuda do <span className="text-white/80 font-bold">Gemini AI</span>.
+                Personalize sua experiência com ajuda do <span className="text-white/80 font-bold">FocusOS AI</span>.
               </p>
             </div>
           </div>
@@ -40,7 +40,7 @@ export default function SeedData() {
             className="w-full md:w-auto px-8 py-4 bg-white text-black rounded-2xl hover:bg-neutral-200 transition-all text-base font-black flex items-center justify-center gap-2 active:scale-95 shadow-xl relative z-10"
           >
             <Wand2 size={18} />
-            Conversar com Gemini
+            Conversar com o Concierge
           </button>
         </div>
       </div>
