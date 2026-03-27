@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI } from "@google/genai"
+import OpenAI from "openai"
 
 const SYSTEM_PROMPT = `Você é o "FocusOS Concierge", um assistente de elite inspirado na estética e precisão da Apple. 
 Seu objetivo é ajudar o usuário a organizar sua rotina, focando em HÁBITOS, COMPROMISSOS e METAS ESTRATÉGICAS. Responda em Português de forma elegante e minimalista. 
@@ -30,59 +31,67 @@ Você DEVE incluir as sugestões estruturadas no formato JSON exato dentro das t
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = (process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY)?.trim()
+    const groqKey = process.env.GROQ_API_KEY?.trim()
+    const geminiKey = (process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY)?.trim()
     
-    if (!apiKey) {
-      console.error('Gemini API Key missing')
-      return NextResponse.json({ 
-        error: 'Configuração de IA ausente', 
-        details: 'Nenhuma chave de API (GOOGLE_AI_API_KEY, GOOGLE_API_KEY ou GEMINI_API_KEY) foi encontrada nas variáveis de ambiente.' 
-      }, { status: 500 })
-    }
-
-    const ai = new GoogleGenAI({ apiKey })
-
     const { messages } = await req.json()
     const lastUserMsg = messages[messages.length - 1]?.content || ''
 
-    // Tentativa com o modelo solicitado no SKILL.md
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [{ role: 'user', parts: [{ text: lastUserMsg }] }],
-        config: {
-          systemInstruction: SYSTEM_PROMPT,
-          maxOutputTokens: 2048,
-          temperature: 0.7
-        }
-      })
-
-      if (response.text) {
-        return NextResponse.json({ message: response.text })
-      }
-    } catch (modelErr: any) {
-      console.warn('Gemini 3 Flash failed, falling back to 1.5 Flash:', modelErr.message)
-      
-      // Fallback para modelo estável caso o gemini-3-flash-preview (beta/interno) falhe
-      const fallbackResponse = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: [{ role: 'user', parts: [{ text: lastUserMsg }] }],
-        config: {
-          systemInstruction: SYSTEM_PROMPT,
-          maxOutputTokens: 2048,
-          temperature: 0.7
-        }
-      })
-
-      if (fallbackResponse.text) {
-        return NextResponse.json({ 
-          message: fallbackResponse.text,
-          warning: 'Modelo fallback utilizado'
+    // 1. Tentar com GROQ (Primário - mais rápido e maior cota)
+    if (groqKey) {
+      try {
+        const groq = new OpenAI({
+          apiKey: groqKey,
+          baseURL: "https://api.groq.com/openai/v1",
         })
+
+        const completion = await groq.chat.completions.create({
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            ...messages.map((m: any) => ({
+              role: m.role === 'ai' ? 'assistant' : 'user',
+              content: m.content
+            }))
+          ],
+          model: "llama-3.1-70b-versatile",
+          temperature: 0.7,
+        })
+
+        const text = completion.choices[0]?.message?.content
+        if (text) {
+          return NextResponse.json({ message: text, provider: 'groq' })
+        }
+      } catch (groqErr: any) {
+        console.warn('Groq failed, falling back to Gemini:', groqErr.message)
       }
     }
 
-    return NextResponse.json({ error: 'Falha na geração de conteúdo' }, { status: 500 })
+    // 2. Tentar com GEMINI (Sempre como fallback)
+    if (geminiKey) {
+      try {
+        const ai = new GoogleGenAI({ apiKey: geminiKey })
+        const response = await ai.models.generateContent({
+          model: "gemini-1.5-flash",
+          contents: [{ role: 'user', parts: [{ text: lastUserMsg }] }],
+          config: {
+            systemInstruction: SYSTEM_PROMPT,
+            maxOutputTokens: 2048,
+            temperature: 0.7
+          }
+        })
+
+        if (response.text) {
+          return NextResponse.json({ message: response.text, provider: 'gemini' })
+        }
+      } catch (geminiErr: any) {
+        console.error('Gemini fallback also failed:', geminiErr.message)
+      }
+    }
+
+    return NextResponse.json({ 
+      error: 'Falha em todos os provedores de IA',
+      details: 'Groq e Gemini falharam ou não estão configurados.'
+    }, { status: 500 })
 
   } catch (err: unknown) {
     const error = err as Error
