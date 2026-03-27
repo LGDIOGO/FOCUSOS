@@ -24,13 +24,24 @@ interface Message {
   applied?: string[] // IDs of applied suggestions (e.g. 'habit-0', 'event-1', 'goal-2')
 }
 
-export default function AIChatOnboarding({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+interface AIChatOnboardingProps {
+  isOpen: boolean
+  onClose: () => void
+  initialMessage?: string
+}
+
+export default function AIChatOnboarding({ isOpen, onClose, initialMessage }: AIChatOnboardingProps) {
   const queryClient = useQueryClient()
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'ai', content: 'Olá! Sou o FocusOS Concierge. Vamos organizar sua rotina!\n\nComo é o seu dia a dia atualmente? (Horários, trabalho, exercícios...)' }
-  ])
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  
+  // Efeito para carregar mensagem inicial se fornecida
+  useEffect(() => {
+    if (isOpen && initialMessage && messages.length === 0) {
+      setInput(initialMessage)
+    }
+  }, [isOpen, initialMessage, messages.length])
   const [editingItem, setEditingItem] = useState<{ msgIndex: number; itemIndex: number; type: 'habit' | 'event'; data: any } | null>(null)
   const [removedSuggestions, setRemovedSuggestions] = useState<string[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
