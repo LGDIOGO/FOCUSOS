@@ -1,5 +1,5 @@
 'use client'
-// Force build v2.2 (Layout and click-anywhere fix)
+// Force build v2.3 (Global Bubble Manager fix)
 
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -17,12 +17,17 @@ import { useEvents, useUpdateEvent } from '@/lib/hooks/useEvents'
 import { HabitStatus, Habit, Task, CalendarEvent, TaskStatus } from '@/types'
 import { generateLocalInsights } from '@/lib/services/aiService'
 import SeedData from '@/components/dashboard/SeedData'
-import { Zap, Search, Bell, TrendingUp, Calendar, Target, Award, MoreHorizontal, RefreshCcw, Clock, ChevronRight, Plus, Trash2, Check, ArrowLeft, Minus, X } from 'lucide-react'
+import { 
+  Zap, TrendingUp, Target, Clock, Calendar, Trash2, Plus, 
+  ChevronRight, ArrowLeft, ArrowRight, RefreshCcw,
+  Check, Minus, X, Circle, Search, Bell, Award, MoreHorizontal
+} from 'lucide-react'
 import { PerformanceHeader } from '@/components/dashboard/PerformanceHeader'
 import { cn } from '@/lib/utils/cn'
 import Link from 'next/link'
 import AgendaItem from '@/components/dashboard/AgendaItem'
 import { RescheduleModal } from '@/components/dashboard/RescheduleModal'
+import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
 
 // ─── Utilidades ─────────────────────────────────────────────
 const CYCLE: HabitStatus[] = ['none', 'done', 'partial', 'failed']
@@ -66,6 +71,34 @@ export default function DashboardPage() {
   const [weekOffset, setWeekOffset] = useState(0)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [activeBubble, setActiveBubble] = useState<{
+    id: string;
+    position: { x: number; y: number };
+    options: any[];
+    onSelect: (status: any) => void;
+  } | null>(null);
+
+  const HABIT_OPTIONS = [
+    { id: 'done', label: 'CONCLUÍDO', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
+    { id: 'partial', label: 'PARCIAL', icon: Minus, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
+    { id: 'failed', label: 'FALHOU', icon: X, color: 'text-[#e02020]', bg: 'hover:bg-[#e02020]/10' },
+    { id: 'none', label: 'LIMPAR', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' }
+  ];
+
+  const AGENDA_OPTIONS = [
+    { id: 'done', label: 'CONCLUÍDO', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
+    { id: 'partial', label: 'PARCIAL', icon: Minus, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
+    { id: 'failed', label: 'FALHOU', icon: X, color: 'text-red-500', bg: 'hover:bg-red-500/10' },
+    { id: 'todo', label: 'LIMPAR', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' },
+    { id: 'reschedule', label: 'REMARCAR', icon: RefreshCcw, color: 'text-blue-400', bg: 'hover:bg-blue-500/10' }
+  ];
+
+  const TASK_OPTIONS = [
+    { id: 'done', label: 'CONCLUÍDO', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
+    { id: 'partial', label: 'PARCIAL', icon: Minus, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
+    { id: 'failed', label: 'FALHOU', icon: X, color: 'text-red-500', bg: 'hover:bg-red-500/10' },
+    { id: 'todo', label: 'LIMPAR', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' }
+  ];
 
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => 
@@ -244,7 +277,7 @@ export default function DashboardPage() {
       <motion.div 
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 px-6 pt-4 md:px-10 md:pt-6 lg:px-14"
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 px-6 pt-4 md:px-10 md:pt-6 lg:px-14 max-w-[1600px] mx-auto w-full"
       >
         <div className="flex items-center gap-6">
            <div>
@@ -265,7 +298,7 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      <main className="px-6 md:px-10 lg:px-14 space-y-6 pt-0 pb-12">
+      <main className="px-6 md:px-10 lg:px-14 space-y-6 pt-0 pb-12 max-w-[1600px] mx-auto">
 
         {/* ─── Tab Switcher ─── */}
         <div className="flex gap-2 p-1.5 bg-white/5 rounded-2xl w-fit mx-auto md:mx-0">
@@ -371,7 +404,7 @@ export default function DashboardPage() {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
-              className="space-y-10"
+              className="space-y-10 max-w-[1600px] mx-auto w-full"
             >
               {/* ─── Today's Agenda ─── */}
               <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -403,6 +436,20 @@ export default function DashboardPage() {
                             setIsSelectionMode(true)
                             toggleSelection(event.id)
                           }}
+                          onOpenBubble={(position) => setActiveBubble({
+                            id: event.id,
+                            position,
+                            options: AGENDA_OPTIONS,
+                            onSelect: (status) => {
+                              if (status === 'reschedule') {
+                                setEventToReschedule(event)
+                                setIsRescheduleOpen(true)
+                              } else {
+                                setEventStatus(event.id, status)
+                              }
+                              setActiveBubble(null)
+                            }
+                          })}
                         />
                       ))}
                        {todayEvents.length === 0 && (
@@ -437,6 +484,15 @@ export default function DashboardPage() {
                           setIsSelectionMode(true)
                           toggleSelection(h.id)
                         }}
+                        onOpenBubble={(position) => setActiveBubble({
+                          id: h.id,
+                          position,
+                          options: HABIT_OPTIONS,
+                          onSelect: (status) => {
+                            setHabitStatus(h.id, status)
+                            setActiveBubble(null)
+                          }
+                        })}
                       />
                     ))}
                 </div>
@@ -462,6 +518,15 @@ export default function DashboardPage() {
                         setIsSelectionMode(true)
                         toggleSelection(h.id)
                       }}
+                      onOpenBubble={(position) => setActiveBubble({
+                        id: h.id,
+                        position,
+                        options: HABIT_OPTIONS,
+                        onSelect: (status) => {
+                          setHabitStatus(h.id, status)
+                          setActiveBubble(null)
+                        }
+                      })}
                     />
                   ))}
                 </div>
@@ -508,6 +573,17 @@ export default function DashboardPage() {
                         setIsSelectionMode(true)
                         toggleSelection(t.id)
                       }}
+                      onOpenBubble={(position) => setActiveBubble({
+                        id: t.id,
+                        position,
+                        options: TASK_OPTIONS,
+                        onSelect: (status) => {
+                          if (status === 'done') toggleTask(t.id, false)
+                          else if (status === 'todo') toggleTask(t.id, true)
+                          else updateTaskStatus(t.id, status)
+                          setActiveBubble(null)
+                        }
+                      })}
                     />
                   ))}
                 </div>
@@ -519,7 +595,7 @@ export default function DashboardPage() {
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
-              className="space-y-10"
+              className="space-y-10 max-w-[1600px] mx-auto w-full"
             >
               <div className="bg-white/[0.02] border border-white/[0.05] rounded-[32px] p-8">
                  <h2 className="text-2xl font-black tracking-tight mb-6">Performance & Metas</h2>
@@ -561,6 +637,15 @@ export default function DashboardPage() {
                               setIsSelectionMode(true)
                               toggleSelection(h.id)
                             }}
+                            onOpenBubble={(position) => setActiveBubble({
+                              id: h.id,
+                              position,
+                              options: HABIT_OPTIONS,
+                              onSelect: (status) => {
+                                setHabitStatus(h.id, status)
+                                setActiveBubble(null)
+                              }
+                            })}
                           />
                         ))}
                      </div>
@@ -655,6 +740,17 @@ export default function DashboardPage() {
           >
             {toast}
           </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {activeBubble && (
+          <StatusChoiceBubble
+            isOpen={true}
+            onClose={() => setActiveBubble(null)}
+            onSelect={activeBubble.onSelect}
+            options={activeBubble.options}
+            position={activeBubble.position}
+          />
         )}
       </AnimatePresence>
     </div>

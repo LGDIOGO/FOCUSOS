@@ -14,6 +14,7 @@ interface HabitCardProps {
   isSelected?: boolean
   onSelect?: () => void
   onContextMenu?: () => void
+  onOpenBubble?: (pos: { x: number; y: number }) => void
 }
 
 // ─── Mapeamento de status → estilos ──────────────────────────
@@ -63,10 +64,9 @@ export function HabitCard({
   isSelectionMode,
   isSelected,
   onSelect,
-  onContextMenu
+  onContextMenu,
+  onOpenBubble
 }: HabitCardProps) {
-  const [bubbleOpen, setBubbleOpen] = useState(false)
-  const [bubblePos, setBubblePos] = useState({ x: 0, y: 0 })
   const cfg = STATUS_CONFIG[habit.status]
 
   const longPress = useLongPress(
@@ -84,8 +84,7 @@ export function HabitCard({
   const handleStatusClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (isSelectionMode) return
-    setBubblePos({ x: e.clientX, y: e.clientY })
-    setBubbleOpen(true)
+    onOpenBubble?.({ x: e.clientX, y: e.clientY })
   }
 
   const STATUS_OPTIONS = [
@@ -112,7 +111,7 @@ export function HabitCard({
         onContextMenu?.()
       }}
       className={cn(
-        'flex items-center gap-3 rounded-[28px] border px-4 py-4 cursor-pointer select-none transition-all duration-300 relative overflow-hidden group w-full max-w-5xl mx-auto',
+        'flex items-center gap-3 rounded-[28px] border px-4 py-4 cursor-pointer select-none transition-all duration-300 relative overflow-hidden group',
         cfg.card,
         isSelected && "border-blue-500/50 bg-blue-500/[0.08] ring-1 ring-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]"
       )}
@@ -192,14 +191,7 @@ export function HabitCard({
         </motion.div>
       )}
 
-      {/* Choice Bubble Popover */}
-      <StatusChoiceBubble
-        isOpen={bubbleOpen}
-        onClose={() => setBubbleOpen(false)}
-        onSelect={(status) => onStatusChange(status)}
-        options={STATUS_OPTIONS}
-        position={bubblePos}
-      />
+      {/* Choice Bubble removed (now managed at root) */}
     </motion.div>
   )
 }

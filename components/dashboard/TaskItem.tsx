@@ -21,7 +21,8 @@ function TaskItem({
   isSelectionMode,
   isSelected,
   onSelect,
-  onContextMenu
+  onContextMenu,
+  onOpenBubble
 }: { 
   task: Task; 
   onToggle?: () => void;
@@ -30,17 +31,15 @@ function TaskItem({
   isSelected?: boolean;
   onSelect?: () => void;
   onContextMenu?: () => void;
+  onOpenBubble?: (pos: { x: number; y: number }) => void;
 }) {
-  const [bubbleOpen, setBubbleOpen] = useState(false)
-  const [bubblePos, setBubblePos] = useState({ x: 0, y: 0 })
   
   const dueLabel = task.due || (task.due_time ? `Hoje · ${task.due_time}` : 'Hoje')
 
   const handleStatusClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (isSelectionMode) return
-    setBubblePos({ x: e.clientX, y: e.clientY })
-    setBubbleOpen(true)
+    onOpenBubble?.({ x: e.clientX, y: e.clientY })
   }
 
   const STATUS_OPTIONS = [
@@ -80,7 +79,7 @@ function TaskItem({
         }
       }}
       className={cn(
-        'flex items-center gap-3 px-4 py-4 rounded-[28px] border cursor-pointer transition-all duration-300 select-none relative group w-full max-w-5xl mx-auto',
+        'flex items-center gap-3 px-4 py-4 rounded-[28px] border cursor-pointer transition-all duration-300 select-none relative group w-full',
         task.status === 'done' || task.done ? 'bg-green-500/[0.03] border-green-500/20' : 
         task.status === 'partial' ? 'bg-amber-400/[0.03] border-amber-400/20' :
         task.status === 'failed' ? 'bg-red-500/[0.03] border-red-500/20' :
@@ -146,14 +145,7 @@ function TaskItem({
         </div>
       )}
 
-      {/* Choice Bubble Popover */}
-      <StatusChoiceBubble
-        isOpen={bubbleOpen}
-        onClose={() => setBubbleOpen(false)}
-        onSelect={(status) => onStatusChange?.(status)}
-        options={STATUS_OPTIONS}
-        position={bubblePos}
-      />
+      {/* Choice Bubble removed (now managed at root) */}
     </motion.div>
   )
 }
