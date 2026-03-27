@@ -1,5 +1,5 @@
 'use client'
-// Force build v2.1 (Localization polish)
+// Force build v2.2 (Layout and click-anywhere fix)
 
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -547,10 +547,10 @@ export default function DashboardPage() {
         </AnimatePresence>
 
         {/* ─── AI Insight ─── */}
-        <AIInsightBanner habits={habits} tasks={tasks} />
 
         <SeedData />
 
+        <AIInsightBanner habits={habits} tasks={tasks} />
       </main>
 
       <AnimatePresence>

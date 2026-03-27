@@ -84,12 +84,19 @@ function AgendaItem({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       {...longPress}
+      onClick={(e) => {
+        if (!isSelectionMode) {
+          handleStatusClick(e)
+        } else {
+          onSelect?.()
+        }
+      }}
       onContextMenu={(e) => {
         e.preventDefault()
         onContextMenu?.()
       }}
       className={cn(
-        "bg-white/[0.03] border rounded-[28px] p-4 flex items-center justify-between gap-4 hover:bg-white/[0.05] transition-all group relative overflow-hidden",
+        "bg-white/[0.03] border rounded-[28px] p-4 flex items-center justify-between gap-4 hover:bg-white/[0.05] transition-all group relative overflow-hidden cursor-pointer",
         cfg.border,
         isSelected && "border-blue-500/50 bg-blue-500/[0.08] ring-1 ring-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]"
       )}
@@ -107,10 +114,9 @@ function AgendaItem({
       <div className="flex items-center gap-4 flex-1 min-w-0">
         {/* Status Trigger */}
         {!isSelectionMode && (
-          <motion.button
+          <motion.div
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            onClick={handleStatusClick}
             className={cn(
               "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
               event.status === 'todo' ? "border-white/10 bg-white/5" : cfg.icon
@@ -120,7 +126,7 @@ function AgendaItem({
              event.status === 'partial' ? <Minus size={18} strokeWidth={3} /> :
              event.status === 'failed' ? <X size={18} strokeWidth={3} /> :
              <Calendar size={18} />}
-          </motion.button>
+          </motion.div>
         )}
 
         {isSelectionMode && (

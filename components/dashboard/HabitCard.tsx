@@ -100,6 +100,13 @@ export function HabitCard({
       animate={{ opacity: 1, y: 0 }}
       whileTap={{ scale: 0.98 }}
       {...longPress}
+      onClick={(e) => {
+        if (!isSelectionMode) {
+          handleStatusClick(e)
+        } else {
+          onSelect?.()
+        }
+      }}
       onContextMenu={(e) => {
         e.preventDefault()
         onContextMenu?.()
@@ -122,17 +129,16 @@ export function HabitCard({
 
       {/* Status Trigger (Círculo lateral) */}
       {!isSelectionMode && (
-        <motion.button
+        <motion.div
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          onClick={handleStatusClick}
           className={cn(
             "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
             habit.status === 'none' ? "border-white/10 bg-white/5" : cfg.btn
           )}
         >
           <StatusIcon status={habit.status} />
-        </motion.button>
+        </motion.div>
       )}
 
       {isSelectionMode && (
