@@ -2,27 +2,39 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI } from "@google/genai"
 import OpenAI from "openai"
 
-const SYSTEM_PROMPT = `Você é um coach de produtividade especialista em design Apple (minimalista, elegante, direto). 
-Analise os dados de hábitos e tarefas fornecidos e gere um insight CONCISO (máximo 2 frases).
+const SYSTEM_PROMPT = `Você é o FocusOS Concierge, um coach de produtividade de elite inspirado no design da Apple.
+Sua missão é analisar os dados do usuário (hábitos, tarefas, metas) e fornecer INSIGHTS PROFUNDOS e AÇÕES concretas.
 
-Padrões a identificar:
-- Consistência (ou falta dela)
-- Correlações entre hábitos e conclusão de tarefas
-- Sugestões para o dia atual baseado no histórico
+DIRETRIZES DE ANÁLISE:
+1. DESEMPENHO: Avalie a relação entre hábitos realizados e tarefas concluídas.
+2. RESGATE DE HÁBITOS: Identifique hábitos com 0% de progresso e sugira uma micro-mudança (Ex: Em vez de "1h de Academia", comece com "15min Corrida").
+3. CONEXÃO COM METAS: Mostre como as ações diárias estão (ou não) movendo o ponteiro das Metas Anuais.
 
-Categorias de retorno (type): "warning", "pattern", "tip", "achievement"
+ESTRUTURA DA RESPOSTA (JSON OBRIGATÓRIO):
+Retorne um objeto com um array de insights. Cada insight deve ter:
+- type: "performance" | "warning" | "tip" | "achievement" | "rescue"
+- title: Título curto e impactante (Estilo Apple).
+- body: Explicação concisa (máx 2 frases).
+- action: (Opcional) Sugestão de ação técnica.
+  - label: Texto do botão (ex: "Reduzir Meta", "Mudar Horário").
+  - type: "create_habit" | "update_goal" | "reschedule_task".
+  - payload: Objeto com sugestão de campos (ex: { name: "Novo Nome", time: "08:00" }).
 
-Responda APENAS em JSON no formato: { "type": "...", "title": "...", "body": "..." }
-Fale em Português do Brasil. Seja motivador mas profissional.`
+Responda APENAS em JSON.`
 
 export async function POST(req: NextRequest) {
   try {
     const groqKey = process.env.GROQ_API_KEY?.trim()
     const geminiKey = (process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY)?.trim()
     
-    const { type, userData } = await req.json()
-    const context = userData || {}
-    const userMessage = `Dados do Usuário:\n${JSON.stringify(context, null, 2)}\n\nTipo de insight esperado: ${type || 'auto'}`
+    const { userData } = await req.json()
+    const { habits = [], tasks = [], goals = [] } = userData || {}
+
+    const userContext = `
+      HÁBITOS: ${JSON.stringify(habits.map((h: any) => ({ name: h.name, status: h.status, streak: h.streak })))}
+      TAREFAS: ${JSON.stringify(tasks.map((t: any) => ({ title: t.title, status: t.status, priority: t.priority })))}
+      METAS: ${JSON.stringify(goals.map((g: any) => ({ title: g.title, progress: g.progress_pct, target: g.target_value })))}
+    `
 
     // 1. Tentar com GROQ
     if (groqKey) {
@@ -35,7 +47,7 @@ export async function POST(req: NextRequest) {
         const completion = await groq.chat.completions.create({
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: userMessage }
+            { role: "user", content: userContext }
           ],
           model: "llama-3.3-70b-versatile",
           temperature: 0.7,
@@ -44,7 +56,8 @@ export async function POST(req: NextRequest) {
 
         const text = completion.choices[0]?.message?.content
         if (text) {
-          return NextResponse.json(JSON.parse(text))
+          const parsed = JSON.parse(text)
+          return NextResponse.json(parsed.insights || parsed)
         }
       } catch (groqErr: any) {
         console.warn('Insights Groq failed, falling back to Gemini:', groqErr.message)
@@ -57,7 +70,7 @@ export async function POST(req: NextRequest) {
         const ai = new GoogleGenAI({ apiKey: geminiKey })
         const response = await ai.models.generateContent({
           model: "gemini-1.5-flash",
-          contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+          contents: [{ role: 'user', parts: [{ text: userContext }] }],
           config: {
             systemInstruction: SYSTEM_PROMPT,
             maxOutputTokens: 1024,
@@ -67,7 +80,8 @@ export async function POST(req: NextRequest) {
 
         if (response.text) {
           const jsonStr = response.text.replace(/```json|```/g, '').trim()
-          return NextResponse.json(JSON.parse(jsonStr))
+          const parsed = JSON.parse(jsonStr)
+          return NextResponse.json(parsed.insights || parsed)
         }
       } catch (geminiErr: any) {
         console.error('Insights Gemini fallback failed:', geminiErr.message)
