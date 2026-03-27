@@ -36,8 +36,11 @@ export function StatusChoiceBubble({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[1000] cursor-default"
+            onClick={(e) => {
+              e.stopPropagation()
+              onClose()
+            }}
+            className="fixed inset-0 z-[1000] bg-black/[0.01] cursor-default pointer-events-auto"
           />
 
           {/* Bubble Menu */}
@@ -57,7 +60,8 @@ export function StatusChoiceBubble({
                 key={opt.id}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation()
                   onSelect(opt.id)
                   onClose()
                 }}
