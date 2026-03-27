@@ -7,7 +7,7 @@ import { useHabits } from '@/lib/hooks/useHabits'
 import { useTasks } from '@/lib/hooks/useTasks'
 import { useGoals } from '@/lib/hooks/useGoals'
 import { InsightActionCard } from '@/components/dashboard/InsightActionCard'
-import { AIChatOnboarding } from '@/components/dashboard/AIChatOnboarding'
+import AIChatOnboarding from '@/components/dashboard/AIChatOnboarding'
 
 export default function InsightsPage() {
   const { data: habits = [] } = useHabits()

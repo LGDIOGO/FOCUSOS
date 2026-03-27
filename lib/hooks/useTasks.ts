@@ -106,3 +106,26 @@ export function useDeleteTask() {
     },
   })
 }
+export function useTasks() {
+  const user = auth.currentUser
+
+  return useQuery({
+    queryKey: ['tasks', 'all', user?.uid],
+    queryFn: async () => {
+      if (!user) return []
+
+      const q = query(
+        collection(db, 'tasks'),
+        where('user_id', '==', user.uid)
+      )
+      const snap = await getDocs(q)
+      return snap.docs.map(d => ({ 
+        id: d.id, 
+        ...d.data(),
+        done: d.data().status === 'done'
+      })) as Task[]
+    },
+    enabled: !!user,
+    staleTime: 5_000,
+  })
+}
