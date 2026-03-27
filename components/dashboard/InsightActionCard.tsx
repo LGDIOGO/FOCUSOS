@@ -40,7 +40,7 @@ export function InsightActionCard({ type, title, body, action, onAction, onDiscu
   }
 
   const getLabel = () => {
-    switch (type) {
+    switch (String(type).toLowerCase()) {
       case 'performance': return 'DESEMPENHO'
       case 'warning': return 'ALERTA'
       case 'achievement': return 'CONQUISTA'
