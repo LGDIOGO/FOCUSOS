@@ -66,12 +66,12 @@ function HabitGridItem({
       }}
       className={cn(
         "group relative bg-white/[0.02] border rounded-[40px] p-8 hover:bg-white/[0.04] transition-all flex flex-col justify-between overflow-hidden cursor-pointer h-full",
-        isSelected ? "border-blue-500/50 bg-blue-500/[0.08] ring-1 ring-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]" : "border-white/10"
+        isSelected ? "border-red-500/50 bg-red-500/[0.08] ring-1 ring-red-500/20 shadow-[0_0_20px_rgba(224,32,32,0.1)]" : "border-white/10"
       )}
     >
       {isSelected && (
         <div className="absolute top-6 right-6 z-20">
-          <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
+          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center shadow-lg">
             <Check size={14} className="text-white" strokeWidth={4} />
           </div>
         </div>
@@ -181,7 +181,7 @@ export default function HabitsPage() {
 
   // Novo estado para criação de categoria
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false)
-  const [newCategory, setNewCategory] = useState({ name: '', icon: '📁', color: '#0A84FF' })
+  const [newCategory, setNewCategory] = useState({ name: '', icon: '📁', color: '#e02020' })
   const [isParsing, setIsParsing] = useState(false)
 
   const handleMagicParse = async () => {
@@ -208,6 +208,7 @@ export default function HabitsPage() {
         ...prev,
         name: data.title || prev.name,
         time: data.time || prev.time,
+        emoji: data.emoji || prev.emoji,
         category_id: data.category_id || prev.category_id,
         recurrence: data.recurrence ? {
           ...prev.recurrence,
@@ -422,7 +423,7 @@ export default function HabitsPage() {
                       className={cn(
                         "absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all",
                         isParsing ? "bg-white/10 animate-pulse" : "bg-white/0 hover:bg-white/5",
-                        newHabit.name ? "text-blue-400 opacity-100" : "text-white/10 opacity-0 pointer-events-none"
+                        newHabit.name ? "text-red-500 opacity-100" : "text-white/10 opacity-0 pointer-events-none"
                       )}
                     >
                       {isParsing ? <RefreshCcw size={20} className="animate-spin" /> : <Sparkles size={20} className={cn(newHabit.name && "animate-pulse")} />}
@@ -436,7 +437,7 @@ export default function HabitsPage() {
                     <button 
                       type="button" 
                       onClick={() => setShowAddCategoryModal(true)}
-                      className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300"
+                      className="text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-red-300"
                     >
                       + Nova
                     </button>
@@ -727,7 +728,7 @@ export default function HabitsPage() {
                     })
                   }}
                   disabled={addCategory.isPending || !newCategory.name}
-                  className="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-500 transition-all active:scale-95 disabled:opacity-50"
+                  className="w-full bg-red-600 text-white font-black py-4 rounded-xl hover:bg-red-500 transition-all active:scale-95 disabled:opacity-50"
                 >
                   {addCategory.isPending ? 'Salvando...' : 'Criar Categoria'}
                 </button>

@@ -16,9 +16,9 @@ import { format, isToday, isTomorrow, parseISO, addMonths, subMonths, startOfMon
 import { ptBR } from 'date-fns/locale'
 
 const EVENT_TYPES: { type: EventType; label: string; icon: any; color: string }[] = [
-  { type: 'meeting', label: 'Reunião', icon: Users, color: 'text-blue-400 bg-blue-400/10' },
+  { type: 'meeting', label: 'Reunião', icon: Users, color: 'text-red-400 bg-red-400/10' },
   { type: 'birthday', label: 'Aniversário', icon: Cake, color: 'text-pink-400 bg-pink-400/10' },
-  { type: 'event', label: 'Evento', icon: Star, color: 'text-purple-400 bg-purple-400/10' },
+  { type: 'event', label: 'Evento', icon: Star, color: 'text-amber-400 bg-amber-400/10' },
   { type: 'priority' as any, label: 'Tarefa Crítica', icon: Bell, color: 'text-orange-400 bg-orange-400/10' },
   { type: 'other', label: 'Outros', icon: CalendarIcon, color: 'text-white/60 bg-white/5' },
 ]
@@ -63,7 +63,7 @@ export default function AgendaPage() {
 
   // Novo estado para criação de categoria
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false)
-  const [newCategory, setNewCategory] = useState({ name: '', icon: '📅', color: '#0A84FF' })
+  const [newCategory, setNewCategory] = useState({ name: '', icon: '📅', color: '#e02020' })
   const [isParsing, setIsParsing] = useState(false)
 
   const handleMagicParse = async () => {
@@ -91,6 +91,7 @@ export default function AgendaPage() {
         title: data.title || prev.title,
         time: data.time || prev.time,
         date: data.date || prev.date,
+        emoji: data.emoji || prev.emoji,
         category_id: data.category_id || prev.category_id,
         recurrence: data.recurrence ? {
           ...prev.recurrence,
@@ -362,14 +363,14 @@ export default function AgendaPage() {
                       }}
                       className={cn(
                         "group flex items-center gap-6 p-6 bg-white/[0.03] border rounded-[32px] hover:bg-white/[0.05] transition-all cursor-pointer relative",
-                        selectedIds.includes(event.id) ? "border-blue-500 bg-blue-500/5" : "border-white/10"
+                        selectedIds.includes(event.id) ? "border-red-500 bg-red-500/5" : "border-white/10"
                       )}
                     >
                       {isSelectionMode && (
                         <div className="absolute top-4 right-4 z-20">
                           <div className={cn(
                             "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                            selectedIds.includes(event.id) ? "bg-blue-500 border-blue-500" : "border-white/20"
+                            selectedIds.includes(event.id) ? "bg-red-500 border-red-500" : "border-white/20"
                           )}>
                             {selectedIds.includes(event.id) && <Check size={14} className="text-white" />}
                           </div>
@@ -505,7 +506,7 @@ export default function AgendaPage() {
                       className={cn(
                         "absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all",
                         isParsing ? "bg-white/10 animate-pulse" : "bg-white/0 hover:bg-white/5",
-                        newEvent.title ? "text-purple-400 opacity-100" : "text-white/10 opacity-0 pointer-events-none"
+                        newEvent.title ? "text-red-400 opacity-100" : "text-white/10 opacity-0 pointer-events-none"
                       )}
                     >
                       {isParsing ? <RefreshCcw size={20} className="animate-spin" /> : <Sparkles size={20} className={cn(newEvent.title && "animate-pulse")} />}
@@ -519,7 +520,7 @@ export default function AgendaPage() {
                     <button 
                       type="button" 
                       onClick={() => setShowAddCategoryModal(true)}
-                      className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300"
+                      className="text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-red-300"
                     >
                       + Nova
                     </button>
@@ -724,7 +725,7 @@ export default function AgendaPage() {
                   <input 
                     value={newCategory.name}
                     onChange={e => setNewCategory({ ...newCategory, name: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 transition-all font-bold"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500/50 transition-all font-bold"
                     placeholder="Ex: Trabalho, Estudo..."
                   />
                 </div>
@@ -737,7 +738,7 @@ export default function AgendaPage() {
                       onChange={icon => setNewCategory({ ...newCategory, icon })} 
                     />
                     <div className="flex gap-2 flex-wrap flex-1">
-                      {['#FF453A', '#32D74B', '#0A84FF', '#FF9F0A', '#BF5AF2', '#64D2FF'].map(color => (
+                      {['#FF453A', '#32D74B', '#FF9F0A', '#BF5AF2', '#8E8E93', '#FFFFFF'].map(color => (
                         <button
                           key={color}
                           onClick={() => setNewCategory({ ...newCategory, color })}
@@ -761,12 +762,12 @@ export default function AgendaPage() {
                     }, {
                       onSuccess: () => {
                         setShowAddCategoryModal(false)
-                        setNewCategory({ name: '', icon: '📅', color: '#0A84FF' })
+                        setNewCategory({ name: '', icon: '📅', color: '#e02020' })
                       }
                     })
                   }}
                   disabled={addCategory.isPending || !newCategory.name}
-                  className="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-500 transition-all active:scale-95 disabled:opacity-50"
+                  className="w-full bg-red-600 text-white font-black py-4 rounded-xl hover:bg-red-500 transition-all active:scale-95 disabled:opacity-50"
                 >
                   {addCategory.isPending ? 'Salvando...' : 'Criar Categoria'}
                 </button>

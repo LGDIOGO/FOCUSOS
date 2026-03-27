@@ -90,7 +90,7 @@ export default function DashboardPage() {
     { id: 'partial', label: 'PARCIAL', icon: Minus, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
     { id: 'failed', label: 'FALHOU', icon: X, color: 'text-red-500', bg: 'hover:bg-red-500/10' },
     { id: 'todo', label: 'LIMPAR', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' },
-    { id: 'reschedule', label: 'REMARCAR', icon: RefreshCcw, color: 'text-blue-400', bg: 'hover:bg-blue-500/10' }
+    { id: 'reschedule', label: 'REMARCAR', icon: RefreshCcw, color: 'text-red-400', bg: 'hover:bg-red-500/10' }
   ];
 
   const TASK_OPTIONS = [
@@ -292,7 +292,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2.5">
             <button className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all group relative">
               <Bell size={20} className="text-white/60 group-hover:text-white transition-colors" />
-              <div className="absolute top-3 right-3 w-2 h-2 bg-blue-500 rounded-full border-2 border-black" />
+              <div className="absolute top-3 right-3 w-2 h-2 bg-red-600 rounded-full border-2 border-black" />
             </button>
           </div>
         </div>
@@ -384,9 +384,9 @@ export default function DashboardPage() {
                     {format(d, 'd')}
                   </span>
                   <div className={`w-1 h-1 rounded-full transition-opacity 
-                    ${isTodayActual ? 'bg-blue-500 opacity-100' : 
+                    ${isTodayActual ? 'bg-red-600 opacity-100' : 
                       (d < new Date() ? 'bg-white/20 opacity-100' : 'opacity-0')}
-                    ${isActive && isTodayActual ? 'bg-blue-600' : ''}
+                    ${isActive && isTodayActual ? 'bg-red-700' : ''}
                   `} />
                 </motion.div>
               )
@@ -601,7 +601,7 @@ export default function DashboardPage() {
                  <h2 className="text-2xl font-black tracking-tight mb-6">Performance & Metas</h2>
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
                     {[
-                      { label: 'Hábitos do Dia', val: score.habitPct, color: 'text-blue-500' },
+                      { label: 'Hábitos do Dia', val: score.habitPct, color: 'text-red-600' },
                       { label: 'Tarefas do Dia', val: score.taskPct, color: 'text-green-500' },
                       { label: 'Consistência Semanal', val: 88, color: 'text-amber-500' },
                       { label: 'Score Global', val: score.combined, color: 'text-white' },
@@ -618,7 +618,7 @@ export default function DashboardPage() {
                     {/* Aqui listamos abreviado para seleção em massa */}
                     <div className="flex flex-wrap gap-2">
                        <button onClick={() => handleSelectGroup('all')} className="px-6 py-3 bg-white/5 border border-white/5 rounded-2xl hover:bg-white hover:text-black text-[11px] font-black uppercase tracking-widest transition-all">Tudo</button>
-                       <button onClick={() => handleSelectGroup('positive')} className="px-6 py-3 bg-blue-500/10 border border-blue-500/10 rounded-2xl hover:bg-blue-500 text-white text-[11px] font-black uppercase tracking-widest transition-all">Hábitos 👍</button>
+                        <button onClick={() => handleSelectGroup('positive')} className="px-6 py-3 bg-red-600/10 border border-red-600/10 rounded-2xl hover:bg-red-600 text-white text-[11px] font-black uppercase tracking-widest transition-all">Hábitos 👍</button>
                        <button onClick={() => handleSelectGroup('negative')} className="px-6 py-3 bg-red-500/10 border border-red-500/10 rounded-2xl hover:bg-red-500 text-white text-[11px] font-black uppercase tracking-widest transition-all">Evitar 🛑</button>
                        <button onClick={() => handleSelectGroup('tasks')} className="px-6 py-3 bg-green-500/10 border border-green-500/10 rounded-2xl hover:bg-green-500 text-white text-[11px] font-black uppercase tracking-widest transition-all">Tarefas ⏺️</button>
                     </div>
