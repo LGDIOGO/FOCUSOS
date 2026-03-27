@@ -46,7 +46,7 @@ export function InsightActionCard({ type, title, body, action, onAction, onDiscu
       case 'achievement': return 'CONQUISTA'
       case 'rescue': return 'RESGATE'
       case 'tip': return 'DICA'
-      default: return type.toUpperCase()
+      default: return String(type).toUpperCase()
     }
   }
 

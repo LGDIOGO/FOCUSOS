@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Brain, Sparkles, Loader2, RefreshCw, MessageCircle, X } from 'lucide-react'
-import { useHabits } from '@/lib/hooks/useHabits'
+import { useHabits, useAddHabit } from '@/lib/hooks/useHabits'
 import { useTasks } from '@/lib/hooks/useTasks'
 import { useGoals } from '@/lib/hooks/useGoals'
 import { InsightActionCard } from '@/components/dashboard/InsightActionCard'
