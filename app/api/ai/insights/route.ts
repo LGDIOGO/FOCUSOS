@@ -16,7 +16,8 @@ Fale em Português do Brasil. Seja motivador mas profissional.`
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = process.env.GOOGLE_AI_API_KEY?.trim()
+    const apiKey = (process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY)?.trim()
+    
     if (!apiKey) {
       return NextResponse.json({ error: 'Configuração de IA ausente (API Key)' }, { status: 500 })
     }
@@ -27,22 +28,44 @@ export async function POST(req: NextRequest) {
     const context = userData || {}
     const userMessage = `Dados do Usuário:\n${JSON.stringify(context, null, 2)}\n\nTipo de insight esperado: ${type || 'auto'}`
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: userMessage,
-      config: {
-        systemInstruction: SYSTEM_PROMPT,
-        maxOutputTokens: 1024,
-        temperature: 0.7
+    // Tentativa com Gemini 3
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          maxOutputTokens: 1024,
+          temperature: 0.7
+        }
+      })
+      
+      if (response.text) {
+        const jsonStr = response.text.replace(/```json|```/g, '').trim()
+        const insight = JSON.parse(jsonStr)
+        return NextResponse.json(insight)
       }
-    })
-    
-    const text = response.text || ''
-    
-    const jsonStr = text.replace(/```json|```/g, '').trim()
-    const insight = JSON.parse(jsonStr)
+    } catch (modelErr: any) {
+      console.warn('Insights Gemini 3 failed, falling back to 1.5:', modelErr.message)
+      
+      const fallbackResponse = await ai.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          maxOutputTokens: 1024,
+          temperature: 0.7
+        }
+      })
 
-    return NextResponse.json(insight)
+      if (fallbackResponse.text) {
+        const jsonStr = fallbackResponse.text.replace(/```json|```/g, '').trim()
+        const insight = JSON.parse(jsonStr)
+        return NextResponse.json(insight)
+      }
+    }
+
+    return NextResponse.json({ error: 'Falha na geração de insight' }, { status: 500 })
   } catch (err: unknown) {
     const error = err as Error
     console.error('Insights API Error:', error.message)
