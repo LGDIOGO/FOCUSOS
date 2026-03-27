@@ -244,7 +244,7 @@ export default function DashboardPage() {
       <motion.div 
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12 px-6 pt-8 md:px-10 md:pt-10 lg:px-14 lg:pt-14"
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 px-6 pt-4 md:px-10 md:pt-6 lg:px-14"
       >
         <div className="flex items-center gap-6">
            <div>
@@ -265,7 +265,7 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      <main className="px-6 md:px-10 lg:px-14 space-y-10 pt-4 pb-12">
+      <main className="px-6 md:px-10 lg:px-14 space-y-6 pt-0 pb-12">
 
         {/* ─── Tab Switcher ─── */}
         <div className="flex gap-2 p-1.5 bg-white/5 rounded-2xl w-fit mx-auto md:mx-0">

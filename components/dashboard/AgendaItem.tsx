@@ -96,7 +96,7 @@ function AgendaItem({
         onContextMenu?.()
       }}
       className={cn(
-        "bg-white/[0.03] border rounded-[28px] p-4 flex items-center justify-between gap-4 hover:bg-white/[0.05] transition-all group relative overflow-hidden cursor-pointer",
+        "bg-white/[0.03] border rounded-[28px] p-4 flex items-center justify-between gap-4 hover:bg-white/[0.05] transition-all group relative overflow-hidden cursor-pointer w-full max-w-5xl mx-auto",
         cfg.border,
         isSelected && "border-blue-500/50 bg-blue-500/[0.08] ring-1 ring-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]"
       )}

@@ -112,7 +112,7 @@ export function HabitCard({
         onContextMenu?.()
       }}
       className={cn(
-        'flex items-center gap-3 rounded-[28px] border px-4 py-4 cursor-pointer select-none transition-all duration-300 relative overflow-hidden group',
+        'flex items-center gap-3 rounded-[28px] border px-4 py-4 cursor-pointer select-none transition-all duration-300 relative overflow-hidden group w-full max-w-5xl mx-auto',
         cfg.card,
         isSelected && "border-blue-500/50 bg-blue-500/[0.08] ring-1 ring-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]"
       )}
