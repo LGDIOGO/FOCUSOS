@@ -3,12 +3,12 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyCygZqrfMcMXZXAMoVEAKz30GWmCmsMi4I",
+  authDomain: "foco-os---produtividade-bfb58.firebaseapp.com",
+  projectId: "foco-os---produtividade-bfb58",
+  storageBucket: "foco-os---produtividade-bfb58.firebasestorage.app",
+  messagingSenderId: "569076440640",
+  appId: "1:569076440640:web:12f9becde69b651fcc09a5"
 };
 
 // Initialize Firebase with strict check to avoid build-time crashes on Vercel
