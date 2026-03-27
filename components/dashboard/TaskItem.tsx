@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { memo } from 'react'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Task, TaskPriority } from '@/types'
@@ -11,7 +12,7 @@ const PRIORITY_COLORS: Record<TaskPriority, string> = {
   low:      'bg-white/20',
 }
 
-export default function TaskItem({ 
+function TaskItem({ 
   task, 
   onToggle,
   isSelectionMode,
@@ -101,3 +102,5 @@ export default function TaskItem({
     </motion.div>
   )
 }
+
+export default memo(TaskItem)

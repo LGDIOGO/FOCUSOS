@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Minus, X, Zap, ShieldAlert, Circle } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -56,7 +56,7 @@ function StatusIcon({ status }: { status: HabitStatus }) {
   return null
 }
 
-export default function HabitCard({ 
+export function HabitCard({ 
   habit, 
   onStatusChange, 
   isNegative,
@@ -198,3 +198,5 @@ export default function HabitCard({
     </motion.div>
   )
 }
+
+export default memo(HabitCard)

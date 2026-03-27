@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Minus, X, Calendar, Clock, RefreshCcw, Circle } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -39,7 +39,7 @@ const STATUS_CONFIG = {
   }
 }
 
-export default function AgendaItem({ 
+function AgendaItem({ 
   event, 
   onStatusChange, 
   onReschedule,
@@ -179,3 +179,12 @@ export default function AgendaItem({
     </motion.div>
   )
 }
+
+function StatusIcon({ status }: { status: any }) {
+  if (status === 'done')    return <Check size={14} strokeWidth={3} className="text-white" />
+  if (status === 'partial') return <Minus size={14} strokeWidth={3} className="text-white" />
+  if (status === 'failed')  return <X     size={14} strokeWidth={3} className="text-white" />
+  return null
+}
+
+export default memo(AgendaItem)
