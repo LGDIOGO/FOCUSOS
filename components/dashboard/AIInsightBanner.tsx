@@ -87,7 +87,7 @@ export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps)
             <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">Gemini Insight</span>
           </div>
           <button 
-            onClick={fetchInsight}
+            onClick={() => fetchInsight(true)}
             disabled={loading}
             className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
           >
