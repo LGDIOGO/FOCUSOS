@@ -13,6 +13,11 @@ interface AIInsightBannerProps {
 export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps) {
   const [insight, setInsight] = useState<{ type: string; title: string; body: string } | null>(null)
   const [loading, setLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const fetchInsight = useCallback(async (force = false) => {
     if (habits.length === 0 && tasks.length === 0) return
@@ -54,13 +59,15 @@ export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps)
     fetchInsight()
   }, []) // Apenas no primeiro mount
 
-  if (!insight && !loading) return null
+  if (!mounted || (!insight && !loading)) return null
 
   const bgColors: Record<string, string> = {
     warning: 'bg-red-500/10 border-red-500/20',
     pattern: 'bg-red-500/10 border-red-500/20',
     tip: 'bg-amber-500/10 border-amber-500/20',
     achievement: 'bg-green-500/10 border-green-500/20',
+    rescue: 'bg-red-600/10 border-red-600/20',
+    performance: 'bg-white/5 border-white/10',
   }
 
   const icons: Record<string, any> = {
@@ -114,9 +121,11 @@ export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps)
               animate={{ opacity: 1 }}
               className="space-y-1.5"
             >
-              <h3 className="text-[17px] font-bold tracking-tight text-white">{insight?.title}</h3>
+              <h3 className="text-[17px] font-bold tracking-tight text-white">
+                {typeof insight?.title === 'string' ? insight.title : 'Focus Insight'}
+              </h3>
               <p className="text-[14px] leading-relaxed text-white/60 font-medium">
-                {insight?.body}
+                {typeof insight?.body === 'string' ? insight.body : 'Continue sua rotina para novos insights.'}
               </p>
             </motion.div>
           )}

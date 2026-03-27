@@ -50,8 +50,8 @@ export function StatusChoiceBubble({
             exit={{ opacity: 0, scale: 0.5, y: -20, x: -100 }}
             transition={{ type: "spring", bounce: 0.3, duration: 0.4 }}
             style={{ 
-              top: position.y - 120, // Aparecer acima do ponto de clique
-              left: position.x 
+              top: (position?.y || 0) - 120, 
+              left: position?.x || 0 
             }}
             className="fixed z-[1001] bg-black/60 backdrop-blur-3xl border border-white/10 rounded-[32px] p-2 flex items-center gap-1.5 shadow-2xl"
           >

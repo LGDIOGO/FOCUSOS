@@ -76,7 +76,7 @@ export default function ScoreWidget({ score, selectedDate = new Date() }: { scor
       >
         <span className="text-[12px] font-semibold uppercase tracking-widest text-white/50">Tarefas</span>
         <span className="text-2xl font-extrabold tracking-tighter text-white">{tasksDone}/{tasksTotal}</span>
-        <span className="text-[13px] text-white/60">{getDateLabel(selectedDate)}</span>
+        <span className="text-[13px] text-white/60 uppercase" suppressHydrationWarning>{getDateLabel(selectedDate)}</span>
         <div className="h-0.5 bg-white/10 rounded-full mt-1 overflow-hidden">
           <motion.div
             className="h-full bg-white/40 rounded-full"

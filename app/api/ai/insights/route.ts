@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenAI } from "@google/genai"
+import { GoogleGenerativeAI } from "@google/generative-ai"
 import OpenAI from "openai"
 
 const SYSTEM_PROMPT = `Você é o FocusOS Concierge, um coach de produtividade de elite inspirado no design da Apple.
@@ -67,19 +67,18 @@ export async function POST(req: NextRequest) {
     // 2. Tentar com GEMINI
     if (geminiKey) {
       try {
-        const ai = new GoogleGenAI({ apiKey: geminiKey })
-        const response = await ai.models.generateContent({
+        const genAI = new GoogleGenerativeAI(geminiKey)
+        const model = genAI.getGenerativeModel({ 
           model: "gemini-1.5-flash",
-          contents: [{ role: 'user', parts: [{ text: userContext }] }],
-          config: {
-            systemInstruction: SYSTEM_PROMPT,
-            maxOutputTokens: 1024,
-            temperature: 0.7
-          }
+          systemInstruction: SYSTEM_PROMPT
         })
 
-        if (response.text) {
-          const jsonStr = response.text.replace(/```json|```/g, '').trim()
+        const result = await model.generateContent(userContext)
+        const response = await result.response
+        const text = response.text()
+
+        if (text) {
+          const jsonStr = text.replace(/```json|```/g, '').trim()
           const parsed = JSON.parse(jsonStr)
           return NextResponse.json(parsed.insights || parsed)
         }

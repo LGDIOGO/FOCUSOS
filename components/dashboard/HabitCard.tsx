@@ -67,7 +67,7 @@ export function HabitCard({
   onContextMenu,
   onOpenBubble
 }: HabitCardProps) {
-  const cfg = STATUS_CONFIG[habit.status]
+  const cfg = STATUS_CONFIG[habit.status || 'none'] || STATUS_CONFIG.none
 
   const longPress = useLongPress(
     () => {

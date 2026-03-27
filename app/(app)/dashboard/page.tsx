@@ -331,7 +331,7 @@ export default function DashboardPage() {
         <section>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">
+              <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50" suppressHydrationWarning>
                 {weekOffset === 0 ? 'Semana atual' : weekOffset < 0 ? `${Math.abs(weekOffset)} semanas atrás` : `${weekOffset} semanas à frente`}
               </p>
               <div className="flex items-center gap-1">
@@ -413,7 +413,7 @@ export default function DashboardPage() {
             >
               {/* ─── Today's Agenda ─── */}
               <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                   <div className="flex items-center justify-between mb-3">
+                   <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
                       <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">{getSectionLabel('Compromissos', selectedDate)}</p>
                       <div className="flex items-center gap-3">
                         <Link href="/dashboard/agenda?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
@@ -539,7 +539,7 @@ export default function DashboardPage() {
 
               {/* ─── Tasks ─── */}
               <section>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
                   <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">{getSectionLabel('Rascunho', selectedDate)}</p>
                   <span className="text-[13px] text-white/50">{score.tasksDone}/{score.tasksTotal} concluídas</span>
                 </div>
@@ -607,7 +607,7 @@ export default function DashboardPage() {
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
                     {[
                       { label: 'Hábitos do Dia', val: score.habitPct, color: 'text-red-600' },
-                      { label: 'Tarefas do Dia', val: score.taskPct, color: 'text-green-500' },
+                      { label: 'Compromissos do Dia', val: score.taskPct, color: 'text-green-500' },
                       { label: 'Consistência Semanal', val: 88, color: 'text-amber-500' },
                       { label: 'Score Global', val: score.combined, color: 'text-white' },
                     ].map(stat => (

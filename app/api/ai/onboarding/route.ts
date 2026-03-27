@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenAI } from "@google/genai"
+import { GoogleGenerativeAI } from "@google/generative-ai"
 import OpenAI from "openai"
 
 const SYSTEM_PROMPT = `Você é o "FocusOS Concierge", um assistente de elite inspirado na estética e precisão da Apple. 
@@ -69,19 +69,18 @@ export async function POST(req: NextRequest) {
     // 2. Tentar com GEMINI (Sempre como fallback)
     if (geminiKey) {
       try {
-        const ai = new GoogleGenAI({ apiKey: geminiKey })
-        const response = await ai.models.generateContent({
+        const genAI = new GoogleGenerativeAI(geminiKey)
+        const model = genAI.getGenerativeModel({ 
           model: "gemini-1.5-flash",
-          contents: [{ role: 'user', parts: [{ text: lastUserMsg }] }],
-          config: {
-            systemInstruction: SYSTEM_PROMPT,
-            maxOutputTokens: 2048,
-            temperature: 0.7
-          }
+          systemInstruction: SYSTEM_PROMPT
         })
 
-        if (response.text) {
-          return NextResponse.json({ message: response.text, provider: 'gemini' })
+        const result = await model.generateContent(lastUserMsg)
+        const response = await result.response
+        const text = response.text()
+
+        if (text) {
+          return NextResponse.json({ message: text, provider: 'gemini' })
         }
       } catch (geminiErr: any) {
         console.error('Gemini fallback also failed:', geminiErr.message)

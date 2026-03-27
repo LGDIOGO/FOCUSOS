@@ -80,7 +80,7 @@ function TaskItem({
       }}
       className={cn(
         'flex items-center gap-3 px-4 py-4 rounded-[28px] border cursor-pointer transition-all duration-300 select-none relative group w-full',
-        task.status === 'done' || task.done ? 'bg-green-500/[0.03] border-green-500/20' : 
+        (task.status === 'done' || task.done) ? 'bg-green-500/[0.03] border-green-500/20' : 
         task.status === 'partial' ? 'bg-amber-400/[0.03] border-amber-400/20' :
         task.status === 'failed' ? 'bg-red-500/[0.03] border-red-500/20' :
         'bg-white/[0.04] border-white/[0.08]',
