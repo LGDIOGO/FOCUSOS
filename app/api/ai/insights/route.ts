@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI } from "@google/genai"
-import { auth, db } from '@/lib/firebase/config'
+
+const SYSTEM_PROMPT = `Você é um coach de produtividade especialista em design Apple (minimalista, elegante, direto). 
+Analise os dados de hábitos e tarefas fornecidos e gere um insight CONCISO (máximo 2 frases).
+
+Padrões a identificar:
+- Consistência (ou falta dela)
+- Correlações entre hábitos e conclusão de tarefas
+- Sugestões para o dia atual baseado no histórico
+
+Categorias de retorno (type): "warning", "pattern", "tip", "achievement"
+
+Responda APENAS em JSON no formato: { "type": "...", "title": "...", "body": "..." }
+Fale em Português do Brasil. Seja motivador mas profissional.`
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,29 +25,13 @@ export async function POST(req: NextRequest) {
     const { type, userData } = await req.json()
 
     const context = userData || {}
-
-    const systemPrompt = `
-      Você é um coach de produtividade especialista em design Apple (minimalista, elegante, direto). 
-      Analise os dados de hábitos e tarefas fornecidos e gere um insight CONCISO (máximo 2 frases).
-      
-      Padrões a identificar:
-      - Consistência (ou falta dela)
-      - Correlações entre hábitos e conclusão de tarefas
-      - Sugestões para o dia atual baseado no histórico
-      
-      Categorias de retorno (type): "warning", "pattern", "tip", "achievement"
-      
-      Responda APENAS em JSON no formato: { "type": "...", "title": "...", "body": "..." }
-      Fale em Português do Brasil. Seja motivador mas profissional.
-    `
+    const userMessage = `Dados do Usuário:\n${JSON.stringify(context, null, 2)}\n\nTipo de insight esperado: ${type || 'auto'}`
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: [
-        systemPrompt,
-        `Dados do Usuário:\n${JSON.stringify(context, null, 2)}\n\nTipo de insight esperado: ${type || 'auto'}`
-      ],
+      contents: userMessage,
       config: {
+        systemInstruction: SYSTEM_PROMPT,
         maxOutputTokens: 1024,
         temperature: 0.7
       }
@@ -43,16 +39,16 @@ export async function POST(req: NextRequest) {
     
     const text = response.text || ''
     
-    // Extract JSON from potential markdown formatting
     const jsonStr = text.replace(/```json|```/g, '').trim()
     const insight = JSON.parse(jsonStr)
 
     return NextResponse.json(insight)
-  } catch (err: any) {
-    console.error('Gemini 3 Error:', err)
+  } catch (err: unknown) {
+    const error = err as Error
+    console.error('Insights API Error:', error.message)
     return NextResponse.json({ 
       error: 'Falha na geração de insight',
-      details: err.message
+      details: error.message
     }, { status: 500 })
   }
 }

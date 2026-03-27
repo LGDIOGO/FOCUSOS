@@ -3,6 +3,34 @@ import { GoogleGenAI } from "@google/genai"
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
+function buildSystemPrompt(today: string, dayName: string, categories: unknown[]) {
+  return `Você é um motor de parsing de linguagem natural para o FocusOS.
+Sua tarefa é extrair informações de agendamento de uma frase curta.
+
+REFERÊNCIA TEMPORAL:
+Hoje é: ${today} (${dayName})
+
+JSON DE RESPOSTA (OBRIGATÓRIO):
+{
+  "title": "Apenas o nome limpo do evento/hábito",
+  "time": "HH:MM (24h) ou null",
+  "date": "YYYY-MM-DD ou null (resolva 'amanhã', 'próxima segunda', etc)",
+  "recurrence": {
+    "frequency": "none" | "daily" | "weekly" | "monthly" | "specific_days",
+    "days_of_week": [0-6] | null (0 é Domingo),
+    "interval": number | 1
+  },
+  "category_id": "ID da categoria mais próxima se fornecida, ou null"
+}
+
+REGRAS:
+- Se o usuário disser "segundas e quartas", use specific_days com [1, 3].
+- Se disser "todo dia", use daily.
+- Se disser um horário como "19h", use "19:00".
+- Tente mapear para as seguintes categorias disponíveis: ${JSON.stringify(categories || [])}
+- Retorne APENAS o JSON.`
+}
+
 export async function POST(req: NextRequest) {
   try {
     const apiKey = process.env.GOOGLE_AI_API_KEY?.trim()
@@ -16,43 +44,16 @@ export async function POST(req: NextRequest) {
     const today = currentDetails?.today || format(new Date(), 'yyyy-MM-dd')
     const dayName = currentDetails?.dayName || format(new Date(), 'EEEE', { locale: ptBR })
 
-    const systemPrompt = `
-      Você é um motor de parsing de linguagem natural para o FocusOS.
-      Sua tarefa é extrair informações de agendamento de uma frase curta.
-      
-      REFERÊNCIA TEMPORAL:
-      Hoje é: ${today} (${dayName})
-      
-      JSON DE RESPOSTA (OBRIGATÓRIO):
-      {
-        "title": "Apenas o nome limpo do evento/hábito",
-        "time": "HH:MM (24h) ou null",
-        "date": "YYYY-MM-DD ou null (resolva 'amanhã', 'próxima segunda', etc)",
-        "recurrence": {
-          "frequency": "none" | "daily" | "weekly" | "monthly" | "specific_days",
-          "days_of_week": [0-6] | null (0 é Domingo),
-          "interval": number | 1
-        },
-        "category_id": "ID da categoria mais próxima se fornecida, ou null"
-      }
-
-      REGRAS:
-      - Se o usuário disser "segundas e quartas", use specific_days com [1, 3].
-      - Se disser "todo dia", use daily.
-      - Se disser um horário como "19h", use "19:00".
-      - Tente mapear para as seguintes categorias disponíveis: ${JSON.stringify(categories || [])}
-      - Retorne APENAS o JSON.
-    `
+    const systemPrompt = buildSystemPrompt(today, dayName, categories)
+    const userMessage = `FRASE PARA PARSE: "${text}"\nTIPO: ${type} (habit ou agenda)`
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: [
-        systemPrompt,
-        `FRASE PARA PARSE: "${text}"\nTIPO: ${type} (habit ou agenda)`
-      ],
+      contents: userMessage,
       config: {
+        systemInstruction: systemPrompt,
         maxOutputTokens: 1024,
-        temperature: 0.1 // Low temperature for high precision parsing
+        temperature: 0.1
       }
     })
     
@@ -64,8 +65,9 @@ export async function POST(req: NextRequest) {
     const parsed = JSON.parse(jsonStr)
 
     return NextResponse.json(parsed)
-  } catch (err: any) {
-    console.error('Parse Error:', err)
+  } catch (err: unknown) {
+    const error = err as Error
+    console.error('Parse Error:', error.message)
     return NextResponse.json({ error: 'Falha no parse inteligente' }, { status: 500 })
   }
 }
