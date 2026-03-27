@@ -59,7 +59,7 @@ export default function ScoreWidget({ score, selectedDate = new Date() }: { scor
         <span className="text-[13px] text-white/60">+{partial} parciais</span>
         <div className="h-0.5 bg-white/10 rounded-full mt-1 overflow-hidden">
           <motion.div
-            className="h-full bg-blue-400 rounded-full"
+            className="h-full bg-red-600 rounded-full"
             initial={{ width: 0 }}
             animate={{ width: `${total > 0 ? (done / total) * 100 : 0}%` }}
             transition={{ duration: 0.5, delay: 0.1 }}
@@ -79,7 +79,7 @@ export default function ScoreWidget({ score, selectedDate = new Date() }: { scor
         <span className="text-[13px] text-white/60">{getDateLabel(selectedDate)}</span>
         <div className="h-0.5 bg-white/10 rounded-full mt-1 overflow-hidden">
           <motion.div
-            className="h-full bg-amber-400 rounded-full"
+            className="h-full bg-white/40 rounded-full"
             initial={{ width: 0 }}
             animate={{ width: `${tasksTotal > 0 ? (tasksDone / tasksTotal) * 100 : 0}%` }}
             transition={{ duration: 0.5, delay: 0.15 }}

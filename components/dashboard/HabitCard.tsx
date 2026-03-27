@@ -113,14 +113,14 @@ export function HabitCard({
       className={cn(
         'flex items-center gap-3 rounded-[28px] border px-4 py-4 cursor-pointer select-none transition-all duration-300 relative overflow-hidden group',
         cfg.card,
-        isSelected && "border-blue-500/50 bg-blue-500/[0.08] ring-1 ring-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]"
+        isSelected && "border-red-600/50 bg-red-600/[0.08] ring-1 ring-red-600/20 shadow-[0_0_20px_rgba(224,32,32,0.1)]"
       )}
     >
       {isSelected && (
         <motion.div 
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="absolute top-3 right-3 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center z-10 shadow-lg"
+          className="absolute top-3 right-3 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center z-10 shadow-lg"
         >
           <Check size={12} className="text-white" strokeWidth={4} />
         </motion.div>
@@ -141,10 +141,10 @@ export function HabitCard({
       )}
 
       {isSelectionMode && (
-         <div className={cn(
-            "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
-            isSelected ? "border-blue-500 bg-blue-500" : "border-white/10 bg-white/5"
-         )}>
+          <div className={cn(
+             "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
+             isSelected ? "border-red-600 bg-red-600" : "border-white/10 bg-white/5"
+          )}>
            {isSelected && <Check size={20} className="text-white" strokeWidth={3} />}
          </div>
       )}

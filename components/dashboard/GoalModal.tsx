@@ -301,7 +301,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
             </div>
             
             <div 
-              className="relative h-6 bg-white/5 rounded-full border border-white/10 cursor-pointer flex items-center group mb-2 overflow-visible"
+              className="relative h-4 bg-white/5 rounded-full border border-white/10 cursor-pointer flex items-center group mb-2 overflow-visible"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect()
                 const x = e.clientX - rect.left
@@ -320,9 +320,12 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
               
               {/* Interactive Handle (Thumb) */}
               <motion.div 
-                className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.8)] z-20 pointer-events-none"
+                className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.5)] z-20 pointer-events-none border-2 border-red-600"
                 initial={false}
-                animate={{ left: `${formData.progress_pct}%`, x: '-50%' }}
+                animate={{ 
+                  left: `calc(12px + (${formData.progress_pct}% * (100% - 24px) / 100))`,
+                  x: '-50%' 
+                }}
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               />
 
@@ -341,13 +344,13 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
           <div className="bg-white/5 border border-white/10 rounded-[24px] p-5 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sparkles size={14} className="text-blue-400" />
+                <Sparkles size={14} className="text-red-500" />
                 <span className="text-[11px] font-black uppercase tracking-widest text-white/50">Análise por IA</span>
               </div>
               <button 
                 type="button"
                 onClick={calculateMilestones}
-                className="text-[11px] font-black uppercase tracking-tighter text-blue-400 hover:text-blue-300 transition-colors"
+                className="text-[11px] font-black uppercase tracking-tighter text-red-500 hover:text-red-400 transition-colors"
               >
                 Gerar Sugestões
               </button>
@@ -361,8 +364,8 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
                   <span className="text-[10px] text-white/20 mb-1 font-black italic">{formData.unit}</span>
                 </div>
               </div>
-              <div className="bg-black/20 border border-white/5 p-3.5 rounded-xl space-y-1 ring-1 ring-blue-500/10">
-                <p className="text-[10px] font-black uppercase tracking-widest text-blue-400/40">Meta Elite</p>
+              <div className="bg-black/20 border border-white/5 p-3.5 rounded-xl space-y-1 ring-1 ring-red-500/10">
+                <p className="text-[10px] font-black uppercase tracking-widest text-red-500/40">Meta Elite</p>
                 <div className="flex items-end gap-1.5">
                   <span className="text-2xl font-black text-white">{formData.elite_goal_value || '--'}</span>
                   <span className="text-[10px] text-white/30 mb-1.5 font-black italic">{formData.unit}</span>

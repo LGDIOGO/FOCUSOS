@@ -87,7 +87,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
           <div className="mt-auto p-4 bg-white/5 rounded-[24px] border border-white/5">
              <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-2">Seu Plano</p>
-             <div className="flex items-center gap-2 text-blue-400">
+             <div className="flex items-center gap-2 text-red-500">
                <Sparkles size={14} />
                <span className="text-xs font-bold">FocusOS Pro Max</span>
              </div>
@@ -139,7 +139,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             <input 
                               value={newCat.name}
                               onChange={e => setNewCat({ ...newCat, name: e.target.value })}
-                              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-blue-500/50 transition-all"
+                              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-red-500/50 transition-all"
                               placeholder="Ex: Treino, Trabalho..."
                             />
                           </div>
@@ -185,9 +185,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </div>
                         </div>
 
-                        <button 
+                         <button 
                           onClick={handleAddCategory}
-                          className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl hover:bg-blue-500 transition-all active:scale-95 shadow-xl shadow-blue-500/10"
+                          className="w-full bg-red-600 text-white font-black py-4 rounded-2xl hover:bg-red-500 transition-all active:scale-95 shadow-xl shadow-red-500/10"
                         >
                           Salvar Categoria
                         </button>
@@ -242,15 +242,15 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <h4 className="text-xl font-bold">Ativar Notificações</h4>
                       <p className="text-sm text-white/40 font-medium">Receber avisos sonoros e visuais no FocusOS.</p>
                     </div>
-                    <button 
-                      onClick={() => updateSettings.mutate({ 
-                        notifications: { ...settings?.notifications!, enabled: !settings?.notifications?.enabled } 
-                      })}
-                      className={cn(
-                        "w-14 h-8 rounded-full p-1 transition-all duration-300",
-                        settings?.notifications?.enabled ? "bg-blue-600" : "bg-white/10"
-                      )}
-                    >
+                      <button 
+                        onClick={() => updateSettings.mutate({ 
+                          notifications: { ...settings?.notifications!, enabled: !settings?.notifications?.enabled } 
+                        })}
+                        className={cn(
+                          "w-14 h-8 rounded-full p-1 transition-all duration-300",
+                          settings?.notifications?.enabled ? "bg-red-600" : "bg-white/10"
+                        )}
+                      >
                       <motion.div 
                         animate={{ x: settings?.notifications?.enabled ? 24 : 0 }}
                         className="w-6 h-6 bg-white rounded-full shadow-lg" 
@@ -282,7 +282,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         >
                           <div className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center",
-                            (settings?.notifications as any)?.[item.id] ? "bg-blue-600/20 text-blue-400" : "bg-white/5 text-white/20"
+                            (settings?.notifications as any)?.[item.id] ? "bg-red-600/20 text-red-500" : "bg-white/5 text-white/20"
                           )}>
                              <Check size={14} className={cn("transition-opacity", (settings?.notifications as any)?.[item.id] ? "opacity-100" : "opacity-0")} />
                           </div>
@@ -343,12 +343,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </div>
                 </div>
 
-                <div className="bg-blue-500/5 border border-blue-500/10 rounded-[28px] p-6 flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                     <Info className="text-blue-400" size={20} />
+                <div className="bg-red-500/5 border border-red-500/10 rounded-[28px] p-6 flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                     <Info className="text-red-400" size={20} />
                   </div>
                   <div>
-                    <h5 className="font-bold text-blue-400">Dica de Notificações</h5>
+                    <h5 className="font-bold text-red-400">Dica de Notificações</h5>
                     <p className="text-sm text-white/50 leading-relaxed mt-1">
                       As notificações do FocusOS funcionam melhor quando o navegador está aberto. Certifique-se de permitir o envio de avisos quando solicitado.
                     </p>
@@ -406,7 +406,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                        <h4 className="font-black text-lg">Modo Escuro (Always On)</h4>
                        <p className="text-sm text-white/30 font-medium">O FocusOS foi projetado para ser dark para preservar seus olhos.</p>
                      </div>
-                     <div className="w-12 h-6 bg-white/10 rounded-full p-1 relative">
+                     <div className="w-12 h-6 bg-red-600 rounded-full p-1 relative">
                        <div className="w-4 h-4 bg-white rounded-full absolute right-1" />
                      </div>
                    </div>
@@ -418,7 +418,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                        <h4 className="font-black text-lg">Notificações Inteligentes</h4>
                        <p className="text-sm text-white/30 font-medium">Receba lembretes via navegador nos horários agendados.</p>
                      </div>
-                     <div className="w-12 h-6 bg-blue-600 rounded-full p-1 relative">
+                     <div className="w-12 h-6 bg-red-600 rounded-full p-1 relative">
                        <div className="w-4 h-4 bg-white rounded-full absolute right-1" />
                      </div>
                    </div>

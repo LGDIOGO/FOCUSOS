@@ -21,20 +21,20 @@ interface InsightActionCardProps {
 export function InsightActionCard({ type, title, body, action, onAction, onDiscuss }: InsightActionCardProps) {
   const getIcon = () => {
     switch (type) {
-      case 'performance': return <TrendingUp className="text-blue-400" size={20} />
-      case 'warning': return <AlertTriangle className="text-amber-400" size={20} />
-      case 'achievement': return <Target className="text-emerald-400" size={20} />
-      case 'rescue': return <RefreshCw className="text-purple-400" size={20} />
-      default: return <Sparkles className="text-blue-400" size={20} />
+      case 'performance': return <TrendingUp className="text-white" size={20} />
+      case 'warning': return <AlertTriangle className="text-red-500" size={20} />
+      case 'achievement': return <Target className="text-white" size={20} />
+      case 'rescue': return <RefreshCw className="text-red-600" size={20} />
+      default: return <Sparkles className="text-white" size={20} />
     }
   }
 
   const getTheme = () => {
     switch (type) {
-      case 'performance': return 'bg-blue-500/10 border-blue-500/20'
-      case 'warning': return 'bg-amber-500/10 border-amber-500/20'
-      case 'achievement': return 'bg-emerald-500/10 border-emerald-500/20'
-      case 'rescue': return 'bg-purple-500/10 border-purple-500/20'
+      case 'performance': return 'bg-white/5 border-white/10'
+      case 'warning': return 'bg-red-500/10 border-red-500/20'
+      case 'achievement': return 'bg-white/10 border-white/20'
+      case 'rescue': return 'bg-red-600/10 border-red-600/20'
       default: return 'bg-white/5 border-white/10'
     }
   }

@@ -58,7 +58,7 @@ export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps)
 
   const bgColors: Record<string, string> = {
     warning: 'bg-red-500/10 border-red-500/20',
-    pattern: 'bg-blue-500/10 border-blue-500/20',
+    pattern: 'bg-red-500/10 border-red-500/20',
     tip: 'bg-amber-500/10 border-amber-500/20',
     achievement: 'bg-green-500/10 border-green-500/20',
   }

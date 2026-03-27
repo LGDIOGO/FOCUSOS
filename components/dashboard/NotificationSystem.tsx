@@ -114,9 +114,9 @@ export function NotificationSystem() {
             
             <div className={cn(
               "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-              notif.type === 'agenda' ? "bg-blue-600/20 text-blue-400" :
+              notif.type === 'agenda' ? "bg-red-600/20 text-red-400" :
               notif.type === 'habits' ? "bg-orange-600/20 text-orange-400" :
-              "bg-purple-600/20 text-purple-400"
+              "bg-red-500/20 text-red-400"
             )}>
               {notif.type === 'agenda' && <Calendar size={20} />}
               {notif.type === 'habits' && <RefreshCcw size={20} />}

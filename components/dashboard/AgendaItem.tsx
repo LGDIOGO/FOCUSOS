@@ -75,7 +75,7 @@ function AgendaItem({
     { id: 'partial', label: 'Parcial', icon: Minus, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
     { id: 'failed', label: 'Falhou', icon: X, color: 'text-red-500', bg: 'hover:bg-red-500/10' },
     { id: 'todo', label: 'Limpar', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' },
-    { id: 'reschedule', label: 'Remarcar', icon: RefreshCcw, color: 'text-blue-400', bg: 'hover:bg-blue-500/10' }
+    { id: 'reschedule', label: 'Remarcar', icon: RefreshCcw, color: 'text-red-400', bg: 'hover:bg-red-500/10' }
   ]
 
   return (
@@ -97,14 +97,14 @@ function AgendaItem({
       className={cn(
         "bg-white/[0.03] border rounded-[28px] p-4 flex items-center justify-between gap-4 hover:bg-white/[0.05] transition-all group relative overflow-hidden cursor-pointer",
         cfg.border,
-        isSelected && "border-blue-500/50 bg-blue-500/[0.08] ring-1 ring-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]"
+        isSelected && "border-red-600/50 bg-red-600/[0.08] ring-1 ring-red-600/20 shadow-[0_0_20px_rgba(224,32,32,0.1)]"
       )}
     >
       {isSelected && (
         <motion.div 
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="absolute top-3 right-3 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center z-10 shadow-lg"
+          className="absolute top-3 right-3 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center z-10 shadow-lg"
         >
           <Check size={12} className="text-white" strokeWidth={4} />
         </motion.div>
@@ -131,7 +131,7 @@ function AgendaItem({
         {isSelectionMode && (
            <div className={cn(
               "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
-              isSelected ? "border-blue-500 bg-blue-500" : "border-white/10 bg-white/5"
+              isSelected ? "border-red-600 bg-red-600" : "border-white/10 bg-white/5"
            )}>
              {isSelected && <Check size={20} className="text-white" strokeWidth={3} />}
            </div>

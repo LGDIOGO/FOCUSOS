@@ -10,7 +10,7 @@ import { StatusChoiceBubble } from './StatusChoiceBubble'
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
   critical: 'bg-[#b80000]',
   high:     'bg-amber-400',
-  medium:   'bg-blue-400',
+  medium:   'bg-white/40',
   low:      'bg-white/20',
 }
 
@@ -84,14 +84,14 @@ function TaskItem({
         task.status === 'partial' ? 'bg-amber-400/[0.03] border-amber-400/20' :
         task.status === 'failed' ? 'bg-red-500/[0.03] border-red-500/20' :
         'bg-white/[0.04] border-white/[0.08]',
-        isSelected && 'border-blue-500/50 bg-blue-500/[0.08] ring-1 ring-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]'
+        isSelected && 'border-red-600/50 bg-red-600/[0.08] ring-1 ring-red-600/20 shadow-[0_0_20px_rgba(224,32,32,0.1)]'
       )}
     >
       {isSelected && (
         <motion.div 
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="absolute top-3 right-3 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center z-10 shadow-lg"
+          className="absolute top-3 right-3 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center z-10 shadow-lg"
         >
           <Check size={12} className="text-white" strokeWidth={4} />
         </motion.div>
