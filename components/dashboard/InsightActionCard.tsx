@@ -39,6 +39,17 @@ export function InsightActionCard({ type, title, body, action, onAction, onDiscu
     }
   }
 
+  const getLabel = () => {
+    switch (type) {
+      case 'performance': return 'DESEMPENHO'
+      case 'warning': return 'ALERTA'
+      case 'achievement': return 'CONQUISTA'
+      case 'rescue': return 'RESGATE'
+      case 'tip': return 'DICA'
+      default: return type.toUpperCase()
+    }
+  }
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -56,7 +67,7 @@ export function InsightActionCard({ type, title, body, action, onAction, onDiscu
         <div className="flex-1 space-y-2">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-lg tracking-tight">{title}</h3>
-            <span className="text-[10px] uppercase tracking-widest font-black opacity-30">{type}</span>
+            <span className="text-[10px] uppercase tracking-widest font-black opacity-30">{getLabel()}</span>
           </div>
           <p className="text-white/60 leading-relaxed text-sm md:text-base pr-4">
             {body}

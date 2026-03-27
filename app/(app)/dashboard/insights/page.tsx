@@ -49,9 +49,31 @@ export default function InsightsPage() {
     setIsChatOpen(true)
   }
 
-  const handleAction = (action: any) => {
+  const { mutate: addHabit } = useAddHabit()
+
+  const handleAction = async (action: any) => {
     console.log('Executando ação:', action)
-    // Aqui poderíamos abrir o modal de criação correspondente
+    
+    if (action.type === 'create_habit') {
+      try {
+        await addHabit({
+          ...action.payload,
+          color: action.payload.color || '#3b82f6',
+          emoji: action.payload.emoji || '✨',
+          type: 'positive',
+          is_archived: false,
+          sort_order: habits.length
+        })
+        // Feedback visual
+        setInitialChatMsg(`Show! Eu acabei de configurar o hábito "${action.payload.name}" para você. Quer ajustar mais algum detalhe?`)
+        setIsChatOpen(true)
+      } catch (err) {
+        console.error('Erro ao adicionar hábito sugerido:', err)
+      }
+      return
+    }
+
+    // Default fallback: Chat
     setInitialChatMsg(`Como posso configurar essa sugestão: "${action.label}"?`)
     setIsChatOpen(true)
   }
