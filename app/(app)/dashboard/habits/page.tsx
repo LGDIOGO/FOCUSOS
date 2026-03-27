@@ -10,6 +10,7 @@ import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
 import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicker'
 import { useHabits, useAddHabit, useDeleteHabit, useUpdateHabit } from '@/lib/hooks/useHabits'
 import { useCategories, useAddCategory } from '@/lib/hooks/useCategories'
+import { useGoals } from '@/lib/hooks/useGoals'
 import { Habit, RecurrenceFreq, RecurrenceRule } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import { format } from 'date-fns'
@@ -146,6 +147,7 @@ function HabitGridItem({
 export default function HabitsPage() {
   const { data: habits, isLoading } = useHabits()
   const { data: categories } = useCategories()
+  const { data: goals } = useGoals()
   const addHabit = useAddHabit()
   const updateHabit = useUpdateHabit()
   const deleteHabit = useDeleteHabit()
@@ -176,7 +178,9 @@ export default function HabitsPage() {
     },
     color: '#FF453A',
     emoji: '',
-    category_id: ''
+    category_id: '',
+    linked_goal_id: '',
+    goal_impact: 1
   })
 
   // Novo estado para criação de categoria
@@ -263,7 +267,9 @@ export default function HabitsPage() {
       recurrence: { frequency: 'daily', days_of_week: [0, 1, 2, 3, 4, 5, 6], interval: 1 },
       color: '#FF453A',
       emoji: '',
-      category_id: ''
+      category_id: '',
+      linked_goal_id: '',
+      goal_impact: 1
     })
   }
 
@@ -282,7 +288,9 @@ export default function HabitsPage() {
       },
       color: habit.color || '#FF453A',
       emoji: habit.emoji || '',
-      category_id: habit.category_id || ''
+      category_id: habit.category_id || '',
+      linked_goal_id: habit.linked_goal_id || '',
+      goal_impact: habit.goal_impact || 1
     })
     setEditingHabitId(habit.id)
     setShowAddModal(true)
@@ -525,32 +533,37 @@ export default function HabitsPage() {
                     </button>
                   </div>
                 </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pb-4 pt-1">
-                  <CustomDateTimePicker 
-                    label="Início" 
-                    type="date" 
-                    value={newHabit.start_date} 
-                    onChange={val => setNewHabit({ ...newHabit, start_date: val })} 
-                    direction="up"
-                  />
-                  <CustomDateTimePicker 
-                    label="Fim (Opcional)" 
-                    type="date" 
-                    value={newHabit.end_date || ''} 
-                    onChange={val => setNewHabit({ ...newHabit, end_date: val })} 
-                    align="right"
-                    direction="up"
-                  />
-                  <CustomDateTimePicker 
-                    label="Hora" 
-                    type="time" 
-                    value={newHabit.time} 
-                    onChange={val => setNewHabit({ ...newHabit, time: val })} 
-                    align="right"
-                    direction="up"
-                  />
+                <div className="space-y-1.5">
+                  <label className="text-[12px] font-black uppercase tracking-widest text-white/50 px-1">Vincular a Meta (Opcional)</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <select
+                      value={newHabit.linked_goal_id}
+                      onChange={e => setNewHabit({ ...newHabit, linked_goal_id: e.target.value })}
+                      className="bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-white/30 transition-all font-bold text-sm appearance-none cursor-pointer"
+                    >
+                      <option value="">Nenhuma Meta</option>
+                      {goals?.filter(g => g.status === 'active').map(goal => (
+                        <option key={goal.id} value={goal.id} className="bg-[#0A0A0A]">
+                          {goal.emoji} {goal.title}
+                        </option>
+                      ))}
+                    </select>
+                    
+                    <div className="relative">
+                      <input 
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        placeholder="Impacto (ex: 1)"
+                        value={newHabit.goal_impact}
+                        onChange={e => setNewHabit({ ...newHabit, goal_impact: parseFloat(e.target.value) || 0 })}
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-white/30 transition-all font-bold text-sm"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/30 uppercase tracking-widest pointer-events-none">Impacto</span>
+                    </div>
+                  </div>
+                </div>
                 </div>
 
                 <div className="space-y-1.5">
@@ -629,6 +642,32 @@ export default function HabitsPage() {
                       </div>
                     </motion.div>
                   )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pb-4 pt-1">
+                  <CustomDateTimePicker 
+                    label="Início" 
+                    type="date" 
+                    value={newHabit.start_date} 
+                    onChange={val => setNewHabit({ ...newHabit, start_date: val })} 
+                    direction="up"
+                  />
+                  <CustomDateTimePicker 
+                    label="Fim (Opcional)" 
+                    type="date" 
+                    value={newHabit.end_date || ''} 
+                    onChange={val => setNewHabit({ ...newHabit, end_date: val })} 
+                    align="right"
+                    direction="up"
+                  />
+                  <CustomDateTimePicker 
+                    label="Hora" 
+                    type="time" 
+                    value={newHabit.time} 
+                    onChange={val => setNewHabit({ ...newHabit, time: val })} 
+                    align="right"
+                    direction="up"
+                  />
                 </div>
 
                 <div className="space-y-1.5">

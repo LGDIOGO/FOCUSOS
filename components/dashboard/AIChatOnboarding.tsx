@@ -202,7 +202,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage }: AI
             unit: item.unit || 'vezes',
             emoji: item.emoji || '🎯',
             description: item.description || '',
-            color: item.color || '#0A84FF',
+            color: item.color || '#FF453A',
             priority: item.priority || 'medium',
             updated_at: new Date().toISOString()
           })
@@ -243,7 +243,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage }: AI
             user_id: user.uid,
             emoji: item.emoji || '🎯',
             description: item.description || '',
-            color: item.color || '#0A84FF',
+            color: item.color || '#FF453A',
             priority: item.priority || 'medium',
             status: 'active',
             current_value: 0,
@@ -546,7 +546,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage }: AI
                                     onClick={() => isApplied ? handleUnapplySuggestion('goal', i, idx) : handleApplySuggestion('goal', g, i, idx)}
                                     className={cn(
                                       "w-8 h-8 rounded-full flex items-center justify-center transition-all",
-                                      isApplied ? "bg-blue-500 text-white hover:bg-red-500" : "bg-white text-black hover:scale-110"
+                                      isApplied ? "bg-red-500 text-white hover:bg-neutral-800" : "bg-white text-black hover:scale-110"
                                     )}
                                   >
                                     {isApplied ? <Check size={16} /> : <Plus size={16} />}

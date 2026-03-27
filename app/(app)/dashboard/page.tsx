@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { format, startOfWeek, addDays, isToday, getDay, isSameDay } from 'date-fns'
+import { format, startOfWeek, addDays, isToday, getDay, isSameDay, isTomorrow, isYesterday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { auth } from '@/lib/firebase/config'
 import HabitCard from '@/components/dashboard/HabitCard'
@@ -13,7 +13,7 @@ import AIInsightBanner from '@/components/dashboard/AIInsightBanner'
 import { useHabitsToday, useLogHabit } from '@/lib/hooks/useHabits'
 import { useTasksToday, useUpdateTask, useAddTask, useDeleteTask } from '@/lib/hooks/useTasks'
 import { RealTimeClock } from '@/components/dashboard/RealTimeClock'
-import { useEvents, useUpdateEvent } from '@/lib/hooks/useEvents'
+import { useEventsToday, useLogEvent, useUpdateEvent } from '@/lib/hooks/useEvents'
 import { HabitStatus, Habit, Task, CalendarEvent, TaskStatus } from '@/types'
 import { generateLocalInsights } from '@/lib/services/aiService'
 import SeedData from '@/components/dashboard/SeedData'
@@ -53,6 +53,22 @@ function calcScore(habits: Habit[], tasks: Task[]) {
     tasksTotal: tasks.length 
   }
 }
+  
+function getDateLabel(date: Date) {
+  if (isToday(date)) return 'HOJE'
+  if (isTomorrow(date)) return 'AMANHÃ'
+  if (isYesterday(date)) return 'ONTEM'
+  return format(date, 'dd/MM/yyyy')
+}
+
+function getSectionLabel(baseTitle: string, date: Date) {
+  const label = getDateLabel(date)
+  const upperBase = baseTitle.toUpperCase()
+  if (['HOJE', 'AMANHÃ', 'ONTEM'].includes(label)) {
+    return `${upperBase} DE ${label}`
+  }
+  return `${upperBase} DO DIA ${label}`
+}
 
 export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -60,8 +76,9 @@ export default function DashboardPage() {
   
   const { data: habitsData, isLoading: loadingHabits } = useHabitsToday(selectedDate)
   const { data: tasksData, isLoading: loadingTasks } = useTasksToday(selectedDate)
-  const { data: eventsData, isLoading: loadingEvents } = useEvents()
+  const { data: eventsToday, isLoading: loadingEvents } = useEventsToday(selectedDate)
   const { mutate: logHabit } = useLogHabit()
+  const { mutate: logEvent } = useLogEvent()
   const { mutate: updateTask } = useUpdateTask()
   const { mutate: addTask } = useAddTask()
   const { mutate: updateEvent } = useUpdateEvent()
@@ -146,22 +163,7 @@ export default function DashboardPage() {
 
   const habits = useMemo(() => habitsData || [], [habitsData])
   const tasks = useMemo(() => tasksData || [], [tasksData])
-  const todayEvents = useMemo(() => 
-    (eventsData || []).filter((e: CalendarEvent) => {
-      // 1. Data específica correspondente
-      if (e.date === todayStr) return true
-      
-      // 2. Recorrência
-      if (e.recurrence) {
-        if (e.recurrence.frequency === 'daily') return true
-        if (e.recurrence.frequency === 'specific_days') {
-          return e.recurrence.days_of_week?.includes(todayDay)
-        }
-      }
-      return false
-    }),
-    [eventsData, todayStr, todayDay]
-  )
+  const todayEvents = useMemo(() => eventsToday || [], [eventsToday])
 
   // Gera strip de 7 dias com base no offset
   const weekStart = useMemo(() => {
@@ -180,7 +182,7 @@ export default function DashboardPage() {
   }, [toast])
 
   function setEventStatus(id: string, status: any) {
-    updateEvent({ id, status })
+    logEvent({ eventId: id, status, logDate: todayStr })
     
     if (status === 'partial') {
       const ev = todayEvents.find(e => e.id === id)
@@ -205,10 +207,13 @@ export default function DashboardPage() {
 
   // Set habit status directly: none, done, partial, failed
   function setHabitStatus(id: string, nextStatus: HabitStatus) {
+    const habit = habits.find(h => h.id === id)
     logHabit({ 
       habitId: id, 
       status: nextStatus,
-      logDate: todayStr 
+      logDate: todayStr,
+      linkedGoalId: habit?.linked_goal_id,
+      goalImpact: habit?.goal_impact
     })
     
     const labels: Record<HabitStatus, string> = { 
@@ -309,7 +314,7 @@ export default function DashboardPage() {
               view === 'today' ? "bg-white text-black shadow-lg" : "text-white/40 hover:text-white"
             )}
           >
-            Foco Hoje
+            Foco
           </button>
           <button 
             onClick={() => setView('summary')}
@@ -395,7 +400,7 @@ export default function DashboardPage() {
         </section>
 
         {/* ─── Score Cards ─── */}
-        <ScoreWidget score={score} />
+        <ScoreWidget score={score} selectedDate={selectedDate} />
 
         <AnimatePresence mode="wait">
           {view === 'today' ? (
@@ -409,7 +414,7 @@ export default function DashboardPage() {
               {/* ─── Today's Agenda ─── */}
               <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Compromissos de hoje</p>
+                      <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">{getSectionLabel('Compromissos', selectedDate)}</p>
                       <div className="flex items-center gap-3">
                         <Link href="/dashboard/agenda?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
                           <Plus size={14} />
@@ -453,7 +458,7 @@ export default function DashboardPage() {
                         />
                       ))}
                        {todayEvents.length === 0 && (
-                         <p className="text-sm text-white/30 italic px-4 py-2">Nenhum compromisso para hoje.</p>
+                         <p className="text-sm text-white/30 italic px-4 py-2">Nenhum compromisso para {getDateLabel(selectedDate).toLowerCase()}.</p>
                        )}
                     </div>
                  </section>
@@ -535,7 +540,7 @@ export default function DashboardPage() {
               {/* ─── Tasks ─── */}
               <section>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Rascunho de hoje</p>
+                  <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">{getSectionLabel('Rascunho', selectedDate)}</p>
                   <span className="text-[13px] text-white/50">{score.tasksDone}/{score.tasksTotal} concluídas</span>
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -618,9 +623,9 @@ export default function DashboardPage() {
                     {/* Aqui listamos abreviado para seleção em massa */}
                     <div className="flex flex-wrap gap-2">
                        <button onClick={() => handleSelectGroup('all')} className="px-6 py-3 bg-white/5 border border-white/5 rounded-2xl hover:bg-white hover:text-black text-[11px] font-black uppercase tracking-widest transition-all">Tudo</button>
-                        <button onClick={() => handleSelectGroup('positive')} className="px-6 py-3 bg-red-600/10 border border-red-600/10 rounded-2xl hover:bg-red-600 text-white text-[11px] font-black uppercase tracking-widest transition-all">Hábitos 👍</button>
-                       <button onClick={() => handleSelectGroup('negative')} className="px-6 py-3 bg-red-500/10 border border-red-500/10 rounded-2xl hover:bg-red-500 text-white text-[11px] font-black uppercase tracking-widest transition-all">Evitar 🛑</button>
-                       <button onClick={() => handleSelectGroup('tasks')} className="px-6 py-3 bg-green-500/10 border border-green-500/10 rounded-2xl hover:bg-green-500 text-white text-[11px] font-black uppercase tracking-widest transition-all">Tarefas ⏺️</button>
+                       <button onClick={() => handleSelectGroup('positive')} className="px-6 py-3 bg-red-600/10 border border-red-600/10 rounded-2xl hover:bg-red-600 text-white text-[11px] font-black uppercase tracking-widest transition-all">Hábitos 👆</button>
+                       <button onClick={() => handleSelectGroup('negative')} className="px-6 py-3 bg-red-500/20 border border-red-500/20 rounded-2xl hover:bg-red-500 text-white text-[11px] font-black uppercase tracking-widest transition-all">Evitar 🔴</button>
+                       <button onClick={() => handleSelectGroup('events')} className="px-6 py-3 bg-red-400/20 border border-red-400/20 rounded-2xl hover:bg-red-400 text-white text-[11px] font-black uppercase tracking-widest transition-all">Compromissos 📅</button>
                     </div>
 
                     <div className="mt-6 space-y-3">

@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { isToday, isTomorrow, isYesterday, format } from 'date-fns'
 
 interface ScoreData {
   combined: number
@@ -13,7 +14,14 @@ interface ScoreData {
   tasksTotal: number
 }
 
-export default function ScoreWidget({ score }: { score: ScoreData }) {
+function getDateLabel(date: Date) {
+  if (isToday(date)) return 'HOJE'
+  if (isTomorrow(date)) return 'AMANHÃ'
+  if (isYesterday(date)) return 'ONTEM'
+  return format(date, 'dd/MM/yyyy')
+}
+
+export default function ScoreWidget({ score, selectedDate = new Date() }: { score: ScoreData, selectedDate?: Date }) {
   const { combined, done, partial, total, tasksDone, tasksTotal } = score
 
   return (
@@ -68,7 +76,7 @@ export default function ScoreWidget({ score }: { score: ScoreData }) {
       >
         <span className="text-[12px] font-semibold uppercase tracking-widest text-white/50">Tarefas</span>
         <span className="text-2xl font-extrabold tracking-tighter text-white">{tasksDone}/{tasksTotal}</span>
-        <span className="text-[13px] text-white/60">hoje</span>
+        <span className="text-[13px] text-white/60">{getDateLabel(selectedDate)}</span>
         <div className="h-0.5 bg-white/10 rounded-full mt-1 overflow-hidden">
           <motion.div
             className="h-full bg-amber-400 rounded-full"

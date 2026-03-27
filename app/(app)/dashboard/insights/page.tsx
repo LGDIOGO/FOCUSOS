@@ -58,8 +58,8 @@ export default function InsightsPage() {
       try {
         await addHabit({
           ...action.payload,
-          color: action.payload.color || '#3b82f6',
-          emoji: action.payload.emoji || '✨',
+          color: action.payload.color || '#e02020',
+          emoji: action.payload.emoji || '🎯',
           type: 'positive',
           is_archived: false,
           sort_order: habits.length
@@ -112,7 +112,7 @@ export default function InsightsPage() {
           <div className="py-20 flex flex-col items-center justify-center space-y-4">
             <div className="relative">
               <Brain className="w-12 h-12 text-white/20 animate-pulse" />
-              <Sparkles className="absolute -top-2 -right-2 text-blue-400 animate-bounce" size={20} />
+              <Sparkles className="absolute -top-2 -right-2 text-white/40 animate-bounce" size={20} />
             </div>
             <p className="text-white/40 font-medium animate-pulse text-center max-w-xs">
               O FocusOS Concierge está analisando seus padrões de produtividade...

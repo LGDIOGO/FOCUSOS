@@ -585,10 +585,6 @@ export default function AgendaPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <CustomDateTimePicker label="Data" type="date" value={newEvent.date} onChange={val => setNewEvent({ ...newEvent, date: val })} direction="up" />
-                  <CustomDateTimePicker label="Hora" type="time" value={newEvent.time} onChange={val => setNewEvent({ ...newEvent, time: val })} align="right" direction="up" />
-                </div>
 
                 <div className="space-y-1.5">
                   <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-white/50 px-1">Repetir</label>
@@ -668,6 +664,11 @@ export default function AgendaPage() {
                       </div>
                     </motion.div>
                   )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <CustomDateTimePicker label="Data" type="date" value={newEvent.date} onChange={val => setNewEvent({ ...newEvent, date: val })} direction="up" />
+                  <CustomDateTimePicker label="Hora" type="time" value={newEvent.time} onChange={val => setNewEvent({ ...newEvent, time: val })} align="right" direction="up" />
                 </div>
 
                 <div className="space-y-1.5">

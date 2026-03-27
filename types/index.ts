@@ -30,6 +30,8 @@ export interface Habit {
   color?: string;      // Curated Apple hex or tailwind class
   emoji?: string;      // Optional emoji
   meta?: string;       // Goal metadata like "2L/dia"
+  linked_goal_id?: string; // ID of the goal this habit contributes to
+  goal_impact?: number;    // How much each completion adds to the goal (default: 1)
   created_at: string;
 }
 

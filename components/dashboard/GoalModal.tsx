@@ -147,7 +147,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-xl bg-[#0A0A0A] border border-white/10 rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]"
+        className="relative w-full max-w-xl bg-[#0A0A0A] border border-white/10 rounded-[32px] md:rounded-[40px] shadow-2xl overflow-visible flex flex-col max-h-[95vh]"
       >
         <div className="p-6 pb-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -293,7 +293,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
                       max="100"
                       value={formData.progress_pct ?? 0}
                       onChange={e => handlePercentageInputChange(e.target.value)}
-                      className="bg-transparent border-none text-right text-2xl font-black text-white italic w-16 focus:outline-none group-hover/pct:text-blue-400 transition-colors leading-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="bg-transparent border-none text-right text-3xl font-black text-white italic w-20 focus:outline-none group-hover/pct:text-red-500 transition-colors leading-[0.8] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <span className="text-xl font-black text-white/40 italic ml-1">%</span>
                   </div>
@@ -301,19 +301,18 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
             </div>
             
             <div 
-              className="relative h-6 bg-white/5 rounded-full border border-white/10 cursor-pointer flex items-center group mb-2 overflow-visible px-2"
+              className="relative h-6 bg-white/5 rounded-full border border-white/10 cursor-pointer flex items-center group mb-2 overflow-visible"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect()
-                // Compensar padding de 8px (px-2)
-                const x = e.clientX - rect.left - 8
-                const width = rect.width - 16
+                const x = e.clientX - rect.left
+                const width = rect.width
                 const pct = Math.round((x / width) * 100)
                 handleSliderChange(pct)
               }}
             >
               {/* Fill layer */}
               <motion.div 
-                className="absolute top-0 left-0 h-full bg-white/20"
+                className="absolute top-0 left-0 h-full bg-white/10 rounded-full"
                 initial={false}
                 animate={{ width: `${formData.progress_pct}%` }}
                 transition={{ type: "spring", bounce: 0, duration: 0.5 }}
@@ -321,9 +320,9 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
               
               {/* Interactive Handle (Thumb) */}
               <motion.div 
-                className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.8)] z-20 pointer-events-none"
+                className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.8)] z-20 pointer-events-none"
                 initial={false}
-                animate={{ left: `calc(${(formData.progress_pct ?? 0)}% - ${(formData.progress_pct ?? 0) * 0.2}px + 8px)`, x: '-50%' }}
+                animate={{ left: `${formData.progress_pct}%`, x: '-50%' }}
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               />
 

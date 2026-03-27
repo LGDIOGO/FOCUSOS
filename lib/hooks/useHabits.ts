@@ -8,12 +8,14 @@ import {
   where, 
   getDocs, 
   setDoc,
+  getDoc,
   addDoc,
   updateDoc,
   deleteDoc,
   doc, 
   orderBy, 
-  Timestamp 
+  Timestamp,
+  increment 
 } from 'firebase/firestore'
 import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks } from 'date-fns'
 import { Habit } from '@/types'
@@ -170,21 +172,26 @@ export function useLogHabit() {
   const user = auth.currentUser
 
   return useMutation({
-    mutationFn: async ({ habitId, status, logDate, note }: { 
+    mutationFn: async ({ habitId, status, logDate, note, linkedGoalId, goalImpact = 1 }: { 
       habitId: string; 
       status: string; 
       logDate?: string;
       note?: string;
-      emoji?: string;
-      category_id?: string;
-      color?: string;
+      linkedGoalId?: string;
+      goalImpact?: number;
     }) => {
       if (!user) throw new Error('Not authenticated')
       
       const targetDate = logDate || format(new Date(), 'yyyy-MM-dd')
       const logId = `${habitId}_${targetDate}`
+      const logRef = doc(db, 'habit_logs', logId)
       
-      await setDoc(doc(db, 'habit_logs', logId), {
+      // 1. Get previous status to calculate progress change
+      const prevDoc = await getDoc(logRef)
+      const prevStatus = prevDoc.exists() ? prevDoc.data().status : 'none'
+      
+      // 2. Perform log update
+      await setDoc(logRef, {
         user_id: user.uid,
         habit_id: habitId,
         log_date: targetDate,
@@ -192,6 +199,28 @@ export function useLogHabit() {
         note: note || null,
         logged_at: Timestamp.now()
       }, { merge: true })
+
+      // 3. Update linked goal if applicable
+      if (linkedGoalId && status !== prevStatus) {
+        let delta = 0
+        
+        // If transitioning TO 'done', add impact
+        if (status === 'done' && prevStatus !== 'done') {
+          delta = goalImpact
+        } 
+        // If transitioning FROM 'done', subtract impact
+        else if (status !== 'done' && prevStatus === 'done') {
+          delta = -goalImpact
+        }
+
+        if (delta !== 0) {
+          const goalRef = doc(db, 'goals', linkedGoalId)
+          await updateDoc(goalRef, {
+            current_value: increment(delta),
+            updated_at: new Date().toISOString()
+          })
+        }
+      }
     },
     onSuccess: (_, variables) => {
       const targetDate = variables.logDate || format(new Date(), 'yyyy-MM-dd')
