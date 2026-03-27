@@ -85,10 +85,8 @@ export default function AIChatOnboarding({ isOpen, onClose }: { isOpen: boolean;
       setMessages(prev => [...prev, { role: 'ai', content: cleanText || 'Desculpe, não entendi muito bem. Pode repetir?', suggestions: suggestions || undefined }])
     } catch (err: any) {
       console.error('AIChatOnboarding Error:', err)
-      const errorMsg = err.message?.includes('API Key') 
-        ? 'Chave de API não configurada corretamente.' 
-        : 'Desculpe, tive um problema técnico. Vamos tentar novamente?'
-      setMessages(prev => [...prev, { role: 'ai', content: errorMsg }])
+      const errorMsg = data.details || err.message || 'Desculpe, tive um problema técnico. Vamos tentar novamente?'
+      setMessages(prev => [...prev, { role: 'ai', content: `Erro técnico: ${errorMsg}` }])
     } finally {
       setLoading(false)
     }
