@@ -72,7 +72,7 @@ function AgendaItem({
   }
 
   const STATUS_OPTIONS = [
-    { id: 'done', label: 'Feito', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
+    { id: 'done', label: 'Concluído', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
     { id: 'partial', label: 'Parcial', icon: Minus, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
     { id: 'failed', label: 'Falhou', icon: X, color: 'text-red-500', bg: 'hover:bg-red-500/10' },
     { id: 'todo', label: 'Limpar', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' },
@@ -81,7 +81,6 @@ function AgendaItem({
 
   return (
     <motion.div 
-      layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       {...longPress}
@@ -148,18 +147,20 @@ function AgendaItem({
       </div>
 
       {!isSelectionMode && event.status !== 'todo' && (
-        <motion.div
-           initial={{ opacity: 0, scale: 0.8 }}
-           animate={{ opacity: 1, scale: 1 }}
-           className={cn(
-             "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border",
-             event.status === 'done' && "text-green-400 border-green-400/20 bg-green-400/5",
-             event.status === 'partial' && "text-amber-400 border-amber-400/20 bg-amber-400/5",
-             event.status === 'failed' && "text-red-400 border-red-400/20 bg-red-400/5"
-           )}
-        >
-          {event.status}
-        </motion.div>
+         <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={cn(
+              "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border",
+              event.status === 'done' && "text-green-400 border-green-400/20 bg-green-400/5",
+              event.status === 'partial' && "text-amber-400 border-amber-400/20 bg-amber-400/5",
+              event.status === 'failed' && "text-red-400 border-red-400/20 bg-red-400/5"
+            )}
+         >
+           {event.status === 'done' ? 'Concluído' : 
+            event.status === 'partial' ? 'Parcial' : 
+            event.status === 'failed' ? 'Falhou' : 'Pendente'}
+         </motion.div>
       )}
 
       {/* Choice Bubble Popover */}

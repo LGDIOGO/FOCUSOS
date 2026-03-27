@@ -29,21 +29,21 @@ const STATUS_CONFIG = {
     card:   'bg-green-500/[0.06] border-green-500/25',
     icon:   'bg-green-500/15',
     btn:    'bg-green-500 border-green-500',
-    text:   'line-through text-white/60',
-    label:  'Feito',
+    text:   'line-through text-white/60 text-emerald-400/80',
+    label:  'Concluído',
   },
   partial: {
     card:   'bg-amber-400/[0.06] border-amber-400/25',
     icon:   'bg-amber-400/15',
     btn:    'bg-amber-400 border-amber-400',
-    text:   '',
+    text:   'text-amber-200/90',
     label:  'Parcial',
   },
   failed: {
     card:   'bg-[#b80000]/[0.07] border-[#b80000]/25',
     icon:   'bg-[#b80000]/15',
     btn:    'bg-[#b80000] border-[#b80000]',
-    text:   '',
+    text:   'text-red-300/80',
     label:  'Falhou',
   },
 } as const
@@ -89,14 +89,13 @@ export function HabitCard({
   }
 
   const STATUS_OPTIONS = [
-    { id: 'done', label: 'Feito', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
+    { id: 'done', label: 'Concluído', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
     { id: 'partial', label: 'Parcial', icon: Minus, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
     { id: 'failed', label: 'Falhou', icon: X, color: 'text-[#e02020]', bg: 'hover:bg-[#e02020]/10' },
     { id: 'none', label: 'Limpar', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' }
   ]
   return (
     <motion.div
-      layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       whileTap={{ scale: 0.98 }}

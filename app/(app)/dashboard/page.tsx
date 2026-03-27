@@ -231,7 +231,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-6">
            <div>
               <p className="text-[12px] font-black uppercase tracking-[0.3em] text-white/50 mb-1">FocusOS Dashboard</p>
-              <h1 className="text-4xl font-black tracking-tighter">Olá, {auth.currentUser?.displayName?.split(' ')[0] || 'Usuário'} <span className="text-blue-500 text-sm ml-2 font-black">APPLE STYLE V2</span></h1>
+              <h1 className="text-4xl font-black tracking-tighter">Olá, {auth.currentUser?.displayName?.split(' ')[0] || 'Usuário'}</h1>
            </div>
         </div>
         
