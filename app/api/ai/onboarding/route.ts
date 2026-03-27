@@ -30,30 +30,56 @@ Você DEVE incluir as sugestões estruturadas no formato JSON exato dentro das t
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = process.env.GOOGLE_AI_API_KEY?.trim()
+    const apiKey = (process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY)?.trim()
+    
     if (!apiKey) {
-      return NextResponse.json({ error: 'Configuração de IA ausente (API Key)' }, { status: 500 })
+      console.error('Gemini API Key missing')
+      return NextResponse.json({ 
+        error: 'Configuração de IA ausente', 
+        details: 'Nenhuma chave de API (GOOGLE_AI_API_KEY, GOOGLE_API_KEY ou GEMINI_API_KEY) foi encontrada nas variáveis de ambiente.' 
+      }, { status: 500 })
     }
 
     const ai = new GoogleGenAI({ apiKey })
 
     const { messages } = await req.json()
-    const userMessage = messages[messages.length - 1]?.content || ''
+    const lastUserMsg = messages[messages.length - 1]?.content || ''
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: userMessage,
-      config: {
-        systemInstruction: SYSTEM_PROMPT,
-        maxOutputTokens: 2048,
-        temperature: 0.7
+    // Tentativa com o modelo solicitado no SKILL.md
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [{ role: 'user', parts: [{ text: lastUserMsg }] }],
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          maxOutputTokens: 2048,
+          temperature: 0.7
+        }
+      })
+
+      if (response.text) {
+        return NextResponse.json({ message: response.text })
       }
-    })
+    } catch (modelErr: any) {
+      console.warn('Gemini 3 Flash failed, falling back to 1.5 Flash:', modelErr.message)
+      
+      // Fallback para modelo estável caso o gemini-3-flash-preview (beta/interno) falhe
+      const fallbackResponse = await ai.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: [{ role: 'user', parts: [{ text: lastUserMsg }] }],
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          maxOutputTokens: 2048,
+          temperature: 0.7
+        }
+      })
 
-    const text = response.text
-
-    if (text) {
-      return NextResponse.json({ message: text })
+      if (fallbackResponse.text) {
+        return NextResponse.json({ 
+          message: fallbackResponse.text,
+          warning: 'Modelo fallback utilizado'
+        })
+      }
     }
 
     return NextResponse.json({ error: 'Falha na geração de conteúdo' }, { status: 500 })
