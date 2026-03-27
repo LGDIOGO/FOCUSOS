@@ -71,15 +71,13 @@ export function PerformanceHeader() {
       </div>
 
       {/* Pareto Message */}
-      {(daily < 80 || weekly < 80) && (
-        <motion.p 
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-[13px] font-black text-white/80 italic max-w-none text-right leading-none tracking-tightest bg-white/5 px-4 py-2 rounded-full border border-white/10 shadow-xl inline-block mt-2"
-        >
-          {paretoMessage}
-        </motion.p>
-      )}
+      <motion.p 
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-[13px] font-black text-white/80 italic max-w-none text-right leading-none tracking-tightest bg-white/5 px-4 py-2 rounded-full border border-white/10 shadow-xl inline-block mt-2"
+      >
+        {paretoMessage}
+      </motion.p>
     </div>
   )
 }
