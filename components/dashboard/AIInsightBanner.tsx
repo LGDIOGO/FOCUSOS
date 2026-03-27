@@ -14,9 +14,22 @@ export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps)
   const [insight, setInsight] = useState<{ type: string; title: string; body: string } | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const fetchInsight = useCallback(async () => {
+  const fetchInsight = useCallback(async (force = false) => {
     if (habits.length === 0 && tasks.length === 0) return
     
+    // Tentar carregar do cache se não for um "force refresh"
+    if (!force) {
+      const cached = sessionStorage.getItem('focusos_last_insight')
+      if (cached) {
+        try {
+          setInsight(JSON.parse(cached))
+          return
+        } catch (e) {
+          sessionStorage.removeItem('focusos_last_insight')
+        }
+      }
+    }
+
     setLoading(true)
     try {
       const resp = await fetch('/api/ai/insights', {
@@ -29,6 +42,7 @@ export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps)
       })
       const data = await resp.json()
       setInsight(data)
+      sessionStorage.setItem('focusos_last_insight', JSON.stringify(data))
     } catch (err) {
       console.error('Failed to fetch insight:', err)
     } finally {
@@ -38,7 +52,7 @@ export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps)
 
   useEffect(() => {
     fetchInsight()
-  }, [fetchInsight]) // Initial fetch
+  }, []) // Apenas no primeiro mount
 
   if (!insight && !loading) return null
 
