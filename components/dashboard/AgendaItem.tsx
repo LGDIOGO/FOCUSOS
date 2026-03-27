@@ -157,9 +157,9 @@ function AgendaItem({
               event.status === 'failed' && "text-red-400 border-red-400/20 bg-red-400/5"
             )}
          >
-           {event.status === 'done' ? 'Concluído' : 
-            event.status === 'partial' ? 'Parcial' : 
-            event.status === 'failed' ? 'Falhou' : 'Pendente'}
+           {event.status === 'done' ? 'CONCLUÍDO' : 
+            event.status === 'partial' ? 'PARCIAL' : 
+            event.status === 'failed' ? 'FALHOU' : 'PENDENTE'}
          </motion.div>
       )}
 

@@ -1,4 +1,5 @@
 'use client'
+// Force build v2.1 (Localization polish)
 
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
