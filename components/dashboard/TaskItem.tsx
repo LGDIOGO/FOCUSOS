@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion'
 import { memo } from 'react'
-import { Check } from 'lucide-react'
+import { Check, Minus, X, Circle, Zap, Target } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
-import { Task, TaskPriority } from '@/types'
+import { Task, TaskPriority, TaskStatus } from '@/types'
 import { useLongPress } from '@/lib/hooks/useLongPress'
+import { useState } from 'react'
+import { StatusChoiceBubble } from './StatusChoiceBubble'
 
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
   critical: 'bg-[#b80000]',
@@ -15,19 +17,38 @@ const PRIORITY_COLORS: Record<TaskPriority, string> = {
 function TaskItem({ 
   task, 
   onToggle,
+  onStatusChange,
   isSelectionMode,
   isSelected,
   onSelect,
   onContextMenu
 }: { 
   task: Task; 
-  onToggle: () => void;
+  onToggle?: () => void;
+  onStatusChange?: (status: TaskStatus) => void;
   isSelectionMode?: boolean;
   isSelected?: boolean;
   onSelect?: () => void;
   onContextMenu?: () => void;
 }) {
+  const [bubbleOpen, setBubbleOpen] = useState(false)
+  const [bubblePos, setBubblePos] = useState({ x: 0, y: 0 })
+  
   const dueLabel = task.due || (task.due_time ? `Hoje · ${task.due_time}` : 'Hoje')
+
+  const handleStatusClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (isSelectionMode) return
+    setBubblePos({ x: e.clientX, y: e.clientY })
+    setBubbleOpen(true)
+  }
+
+  const STATUS_OPTIONS = [
+    { id: 'done', label: 'CONCLUÍDO', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
+    { id: 'partial', label: 'PARCIAL', icon: Minus, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
+    { id: 'failed', label: 'FALHOU', icon: X, color: 'text-[#e02020]', bg: 'hover:bg-[#e02020]/10' },
+    { id: 'todo', label: 'LIMPAR', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' }
+  ]
 
   const longPress = useLongPress(
     () => {
@@ -36,8 +57,6 @@ function TaskItem({
     () => {
       if (isSelectionMode && onSelect) {
         onSelect()
-      } else {
-        onToggle()
       }
     },
     { delay: 500 }
@@ -45,9 +64,15 @@ function TaskItem({
 
   return (
     <motion.div
-      layout
       whileTap={{ scale: 0.98 }}
       {...longPress}
+      onClick={(e) => {
+        if (!isSelectionMode) {
+          handleStatusClick(e)
+        } else {
+          onSelect?.()
+        }
+      }}
       onContextMenu={(e) => {
         if (onContextMenu) {
           e.preventDefault()
@@ -55,8 +80,11 @@ function TaskItem({
         }
       }}
       className={cn(
-        'flex items-center gap-3 px-4 py-4 rounded-[28px] border cursor-pointer transition-all duration-300 select-none relative',
-        task.done ? 'bg-white/[0.02] border-white/[0.05] opacity-50' : 'bg-white/[0.04] border-white/[0.08]',
+        'flex items-center gap-3 px-4 py-4 rounded-[28px] border cursor-pointer transition-all duration-300 select-none relative group',
+        task.status === 'done' || task.done ? 'bg-green-500/[0.03] border-green-500/20' : 
+        task.status === 'partial' ? 'bg-amber-400/[0.03] border-amber-400/20' :
+        task.status === 'failed' ? 'bg-red-500/[0.03] border-red-500/20' :
+        'bg-white/[0.04] border-white/[0.08]',
         isSelected && 'border-blue-500/50 bg-blue-500/[0.08] ring-1 ring-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]'
       )}
     >
@@ -69,36 +97,63 @@ function TaskItem({
           <Check size={12} className="text-white" strokeWidth={4} />
         </motion.div>
       )}
-      {/* Check circle */}
-      <div className={cn(
-        'w-5 h-5 rounded-full border flex-shrink-0 flex items-center justify-center transition-all duration-200',
-        task.done ? 'bg-green-500 border-green-500' : 'border-white/25'
-      )}>
-        {task.done && (
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        )}
-      </div>
+      {!isSelectionMode && (
+        <motion.div
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          className={cn(
+            'w-10 h-10 rounded-full border flex-shrink-0 flex items-center justify-center transition-all duration-200',
+            (task.status === 'done' || task.done) ? 'bg-green-500 border-green-500' : 
+            task.status === 'partial' ? 'bg-amber-400 border-amber-400 text-black' :
+            task.status === 'failed' ? 'bg-red-500 border-red-500' :
+            'border-white/25 bg-white/5'
+          )}
+        >
+          {(task.status === 'done' || task.done) ? (
+            <Check size={16} strokeWidth={4} className="text-white" />
+          ) : task.status === 'partial' ? (
+            <Minus size={16} strokeWidth={4} />
+          ) : task.status === 'failed' ? (
+            <X size={16} strokeWidth={4} />
+          ) : (
+            <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+          )}
+        </motion.div>
+      )}
 
       {/* Info */}
       <div className="flex-1 min-w-0 flex items-center gap-2">
         {task.emoji && <span className="text-lg flex-shrink-0">{task.emoji}</span>}
         <div className="min-w-0 flex-1">
-          <p className={cn('text-base font-medium text-white truncate', task.done && 'line-through text-white/60')}>
+          <p className={cn('text-base font-bold text-white truncate transition-all', (task.done || task.status === 'done') && 'line-through text-white/40')}>
             {task.title}
           </p>
-          <p className="text-[13px] text-white/50 mt-0.5 truncate">{dueLabel}</p>
+          <p className="text-[12px] text-white/40 mt-0.5 truncate font-medium uppercase tracking-widest">{dueLabel}</p>
         </div>
       </div>
 
-      {/* Priority */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        {task.priority === 'critical' && (
-          <span className="text-[12px] font-bold text-[#e02020] uppercase tracking-wider">Crítico</span>
-        )}
-        <div className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', PRIORITY_COLORS[task.priority])} />
-      </div>
+      {/* Status Badge */}
+      {!isSelectionMode && task.status && task.status !== 'todo' && (
+        <div className={cn(
+          "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
+          (task.status === 'done' || task.done) && "text-green-400 border-green-400/20 bg-green-400/5",
+          task.status === 'partial' && "text-amber-400 border-amber-400/20 bg-amber-400/5",
+          task.status === 'failed' && "text-red-400 border-red-400/20 bg-red-400/5"
+        )}>
+           {task.status === 'done' || task.done ? 'CONCLUÍDO' : 
+            task.status === 'partial' ? 'PARCIAL' : 
+            task.status === 'failed' ? 'FALHOU' : ''}
+        </div>
+      )}
+
+      {/* Choice Bubble Popover */}
+      <StatusChoiceBubble
+        isOpen={bubbleOpen}
+        onClose={() => setBubbleOpen(false)}
+        onSelect={(status) => onStatusChange?.(status)}
+        options={STATUS_OPTIONS}
+        position={bubblePos}
+      />
     </motion.div>
   )
 }

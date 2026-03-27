@@ -1,7 +1,7 @@
 export type HabitStatus = 'none' | 'done' | 'partial' | 'failed';
 export type HabitType = 'positive' | 'negative';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'critical';
-export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled';
+export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled' | 'partial' | 'failed';
 
 export type RecurrenceFreq = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'specific_days';
 

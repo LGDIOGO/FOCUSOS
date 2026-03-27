@@ -14,7 +14,7 @@ import { useHabitsToday, useLogHabit } from '@/lib/hooks/useHabits'
 import { useTasksToday, useUpdateTask, useAddTask, useDeleteTask } from '@/lib/hooks/useTasks'
 import { RealTimeClock } from '@/components/dashboard/RealTimeClock'
 import { useEvents, useUpdateEvent } from '@/lib/hooks/useEvents'
-import { HabitStatus, Habit, Task, CalendarEvent } from '@/types'
+import { HabitStatus, Habit, Task, CalendarEvent, TaskStatus } from '@/types'
 import { generateLocalInsights } from '@/lib/services/aiService'
 import SeedData from '@/components/dashboard/SeedData'
 import { Zap, Search, Bell, TrendingUp, Calendar, Target, Award, MoreHorizontal, RefreshCcw, Clock, ChevronRight, Plus, Trash2, Check, ArrowLeft, Minus, X } from 'lucide-react'
@@ -206,6 +206,23 @@ export default function DashboardPage() {
     const nextStatus = isDone ? 'todo' : 'done'
     updateTask({ id, status: nextStatus, completed_at: nextStatus === 'done' ? new Date().toISOString() : undefined })
     setToast(isDone ? 'Marcado como pendente.' : '✓ Tarefa concluída!')
+  }
+  // Update task status: done, todo, partial, failed
+  function updateTaskStatus(id: string, nextStatus: TaskStatus) {
+    updateTask({ 
+      id, 
+      status: nextStatus, 
+      completed_at: nextStatus === 'done' ? new Date().toISOString() : undefined,
+      done: nextStatus === 'done'
+    })
+    
+    const labels: Partial<Record<TaskStatus, string>> = { 
+      done: '✓ Tarefa concluída!', 
+      partial: '½ Tarefa marcada como parcial.', 
+      failed: '✗ Tarefa marcada como falha.', 
+      todo: 'Tarefa pendente.' 
+    }
+    if (labels[nextStatus]) setToast(labels[nextStatus])
   }
 
   const positive = habits.filter((h: Habit) => h.type === 'positive')
@@ -472,11 +489,18 @@ export default function DashboardPage() {
                       <Plus size={16} />
                     </button>
                   </form>
-                  {tasks.map((t: Task) => (
+                   {tasks.map((t: Task) => (
                     <TaskItem 
                       key={t.id} 
                       task={t} 
                       onToggle={() => toggleTask(t.id, t.done)}
+                      onStatusChange={(status) => {
+                        // Se o status for 'done', toggleTask(true). Se for todo, toggleTask(false).
+                        // Se for partial/failed, atualizamos o status no firebase.
+                        if (status === 'done') toggleTask(t.id, false)
+                        else if (status === 'todo') toggleTask(t.id, true)
+                        else updateTaskStatus(t.id, status)
+                      }}
                       isSelectionMode={isSelectionMode}
                       isSelected={selectedIds.includes(t.id)}
                       onSelect={() => toggleSelection(t.id)}
@@ -523,23 +547,23 @@ export default function DashboardPage() {
                        <button onClick={() => handleSelectGroup('tasks')} className="px-6 py-3 bg-green-500/10 border border-green-500/10 rounded-2xl hover:bg-green-500 text-white text-[11px] font-black uppercase tracking-widest transition-all">Tarefas ⏺️</button>
                     </div>
 
-                    <div className="mt-6 space-y-2">
-                       {habits.map(h => (
-                         <div 
-                           key={h.id} 
-                           onClick={() => { setIsSelectionMode(true); toggleSelection(h.id); }}
-                           className={cn(
-                             "flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer",
-                             selectedIds.includes(h.id) ? "bg-blue-500/20 border-blue-500/50" : "bg-white/5 border-white/10"
-                           )}
-                         >
-                            <span className="font-bold flex items-center gap-2">
-                              {h.emoji} {h.name}
-                            </span>
-                            {selectedIds.includes(h.id) && <Check size={16} className="text-blue-500" />}
-                         </div>
-                       ))}
-                    </div>
+                    <div className="mt-6 space-y-3">
+                        {habits.map(h => (
+                          <HabitCard 
+                            key={h.id}
+                            habit={h}
+                            onStatusChange={(status) => setHabitStatus(h.id, status)}
+                            isNegative={h.type === 'negative'}
+                            isSelectionMode={isSelectionMode}
+                            isSelected={selectedIds.includes(h.id)}
+                            onSelect={() => toggleSelection(h.id)}
+                            onContextMenu={() => {
+                              setIsSelectionMode(true)
+                              toggleSelection(h.id)
+                            }}
+                          />
+                        ))}
+                     </div>
                  </div>
               </div>
             </motion.div>
