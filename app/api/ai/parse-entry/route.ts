@@ -4,17 +4,18 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 function buildSystemPrompt(today: string, dayName: string, categories: unknown[]) {
-  return `Você é um motor de parsing de linguagem natural para o FocusOS.
-Sua tarefa é extrair informações de agendamento de uma frase curta.
+  return `Você é um motor de parsing de linguagem natural de elite para o FocusOS.
+Sua tarefa é extrair informações de agendamento de uma frase e transformá-las em um JSON estruturado.
 
 REFERÊNCIA TEMPORAL:
 Hoje é: ${today} (${dayName})
 
 JSON DE RESPOSTA (OBRIGATÓRIO):
 {
-  "title": "Apenas o nome limpo do evento/hábito",
+  "title": "Nome da tarefa LIMPO (remova horários, datas e emojis da frase original. Ex: 'Jogar futebol')",
   "time": "HH:MM (24h) ou null",
-  "date": "YYYY-MM-DD ou null (resolva 'amanhã', 'próxima segunda', etc)",
+  "date": "YYYY-MM-DD ou null (resolva 'amanhã', 'hoje', 'terça que vem', etc)",
+  "emoji": "Um ÚNICO emoji que melhor represente a atividade (Ex: ⚽ para futebol, 🏃 para corrida)",
   "recurrence": {
     "frequency": "none" | "daily" | "weekly" | "monthly" | "specific_days",
     "days_of_week": [0-6] | null (0 é Domingo),
@@ -23,12 +24,15 @@ JSON DE RESPOSTA (OBRIGATÓRIO):
   "category_id": "ID da categoria mais próxima se fornecida, ou null"
 }
 
-REGRAS:
-- Se o usuário disser "segundas e quartas", use specific_days com [1, 3].
-- Se disser "todo dia", use daily.
-- Se disser um horário como "19h", use "19:00".
-- Tente mapear para as seguintes categorias disponíveis: ${JSON.stringify(categories || [])}
-- Retorne APENAS o JSON.`
+REGRAS CRÍTICAS:
+1. TÍTULO LIMPO: "Corrida amanhã as 10h" -> title: "Corrida". Nunca inclua a data/hora no título.
+2. EMOJI: Escolha um emoji vibrante e contextual.
+3. RECORRÊNCIA: 
+   - "Todo dia" ou "diariamente" -> frequency: "daily"
+   - "Segundas e quartas" -> frequency: "specific_days", days_of_week: [1, 3]
+   - "Toda semana" -> frequency: "weekly"
+4. CATEGORIAS: Mapeie para uma dessas se fizer sentido: ${JSON.stringify(categories || [])}
+5. Responda APENAS o JSON, sem markdown.`
 }
 
 export async function POST(req: NextRequest) {
