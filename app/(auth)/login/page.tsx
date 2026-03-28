@@ -28,10 +28,17 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password)
       router.push('/dashboard')
     } catch (err: any) {
+      console.error('Login Error Code:', err.code)
+      console.error('Login Error Message:', err.message)
+      
       if (err.message.includes('API key')) {
         setError('Erro de Configuração: Verifique suas chaves do Firebase no .env.local')
+      } else if (err.code === 'auth/user-not-found') {
+        setError('Usuário não encontrado. Verifique o e-mail ou cadastre-se.')
+      } else if (err.code === 'auth/wrong-password') {
+        setError('Senha incorreta. Tente novamente.')
       } else {
-        setError('Login inválido. Verifique seu e-mail e senha.')
+        setError(`Erro de acesso (${err.code || 'unkn'}). Verifique seus dados.`)
       }
     } finally {
       setLoading(false)
