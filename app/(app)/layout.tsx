@@ -18,16 +18,26 @@ export default function AppLayout({
   const router = useRouter()
 
   useEffect(() => {
+    // 1. Defina um timeout de segurança (5s) para o spinner caso o Firebase trave
+    const timer = setTimeout(() => {
+      if (loading) setLoading(false)
+    }, 5000)
+
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       if (!u) {
+        setLoading(false) // Saia do spinner ANTES de redirecionar
         router.push('/login')
       } else {
         setUser(u)
         setLoading(false)
       }
     })
-    return () => unsubscribe()
-  }, [router])
+    
+    return () => {
+      unsubscribe()
+      clearTimeout(timer)
+    }
+  }, [router, loading])
 
   if (loading) {
     return (

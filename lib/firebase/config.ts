@@ -12,13 +12,28 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase with strict check to avoid build-time crashes on Vercel
-const isConfigValid = firebaseConfig.apiKey && firebaseConfig.apiKey.startsWith('AIza');
-const app = getApps().length > 0 ? getApp() : (isConfigValid ? initializeApp(firebaseConfig) : null);
-const auth = app ? getAuth(app) : null as any;
-const db = app ? getFirestore(app) : null as any;
+const isConfigValid = !!(firebaseConfig.apiKey && firebaseConfig.apiKey.startsWith('AIza'));
 
-if (typeof window !== 'undefined') {
-  console.log('Firebase Connected! Project:', firebaseConfig.projectId);
+let app: any;
+let auth: any;
+let db: any;
+
+try {
+  if (getApps().length > 0) {
+    app = getApp();
+  } else if (isConfigValid) {
+    app = initializeApp(firebaseConfig);
+    if (typeof window !== 'undefined') {
+      console.log('Firebase Connected! Project:', firebaseConfig.projectId);
+    }
+  }
+  
+  if (app) {
+    auth = getAuth(app);
+    db = getFirestore(app);
+  }
+} catch (error) {
+  console.error('Firebase initialization error:', error);
 }
 
 export { auth, db, app };

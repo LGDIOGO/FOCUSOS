@@ -19,13 +19,20 @@ interface Notification {
 }
 
 export function NotificationSystem() {
+  const [mounted, setMounted] = useState(false)
   const { data: settings } = useSettings()
   const { data: events } = useEvents()
-  const { data: habits } = useHabitsToday(new Date())
-  const { data: tasks } = useTasksToday(new Date())
+  
+  // Hooks de dados baseados em data (Client-only para evitar hydration mismatch)
+  const { data: habits } = useHabitsToday(mounted ? new Date() : null as any)
+  const { data: tasks } = useTasksToday(mounted ? new Date() : null as any)
   
   const [activeNotifications, setActiveNotifications] = useState<Notification[]>([])
   const [notifiedIds, setNotifiedIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const playSound = useCallback(() => {
     if (settings?.notifications?.sound === 'apple') {

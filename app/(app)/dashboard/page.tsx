@@ -71,8 +71,13 @@ function getSectionLabel(baseTitle: string, date: Date) {
 }
 
 export default function DashboardPage() {
-  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date())
   const [view, setView] = useState<'today' | 'summary'>('today')
+
+  // Evitar hydration mismatch forçando a data a ser recalculada no cliente
+  useEffect(() => {
+    setSelectedDate(new Date())
+  }, [])
   
   const { data: habitsData, isLoading: loadingHabits } = useHabitsToday(selectedDate)
   const { data: tasksData, isLoading: loadingTasks } = useTasksToday(selectedDate)
