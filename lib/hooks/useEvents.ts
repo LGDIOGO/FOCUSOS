@@ -63,6 +63,7 @@ export function useAddEvent() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['events', user?.uid] })
+      qc.invalidateQueries({ queryKey: ['eventsToday'] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
@@ -84,6 +85,7 @@ export function useUpdateEvent() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['events', user?.uid] })
+      qc.invalidateQueries({ queryKey: ['eventsToday'] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })

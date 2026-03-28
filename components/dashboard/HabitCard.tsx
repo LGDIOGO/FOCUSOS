@@ -67,7 +67,8 @@ export function HabitCard({
   onContextMenu,
   onOpenBubble
 }: HabitCardProps) {
-  const cfg = STATUS_CONFIG[habit.status || 'none'] || STATUS_CONFIG.none
+  const currentStatus = habit.status || 'none'
+  const cfg = (STATUS_CONFIG as any)[currentStatus] || STATUS_CONFIG.none
 
   const longPress = useLongPress(
     () => {
@@ -100,14 +101,17 @@ export function HabitCard({
       whileTap={{ scale: 0.98 }}
       {...longPress}
       onClick={(e) => {
-        if (!isSelectionMode) {
-          handleStatusClick(e)
-        } else {
+        if (isSelectionMode) {
+          e.preventDefault()
+          e.stopPropagation()
           onSelect?.()
+        } else {
+          handleStatusClick(e)
         }
       }}
       onContextMenu={(e) => {
         e.preventDefault()
+        e.stopPropagation()
         onContextMenu?.()
       }}
       className={cn(
@@ -120,6 +124,7 @@ export function HabitCard({
         <motion.div 
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
+          onClick={e => e.stopPropagation()}
           className="absolute top-3 right-3 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center z-10 shadow-lg"
         >
           <Check size={12} className="text-white" strokeWidth={4} />
@@ -133,7 +138,7 @@ export function HabitCard({
           whileTap={{ scale: 0.9 }}
           className={cn(
             "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
-            habit.status === 'none' ? "border-white/10 bg-white/5" : cfg.btn
+            currentStatus === 'none' ? "border-white/10 bg-white/5" : cfg.btn
           )}
         >
           <StatusIcon status={habit.status} />

@@ -61,8 +61,8 @@ export default function LandingPage() {
             whileHover={{ y: -5 }}
             className="md:col-span-8 h-[400px] bg-white/[0.03] border border-white/10 rounded-[32px] p-10 flex flex-col justify-end overflow-hidden group relative"
           >
-            <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-blue-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Brain className="w-12 h-12 text-blue-400 mb-6" />
+            <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-red-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Brain className="w-12 h-12 text-red-400 mb-6" />
             <h3 className="text-3xl font-bold mb-3 tracking-tight">IA Insight Engine</h3>
             <p className="text-white/40 text-lg max-w-md">Analise seus padrões de foco e receba sugestões inteligentes para otimizar seu dia.</p>
           </motion.div>

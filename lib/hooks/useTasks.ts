@@ -61,7 +61,7 @@ export function useAddTask() {
       })
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tasks', 'today', user?.uid] })
+      qc.invalidateQueries({ queryKey: ['tasks'] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
@@ -83,7 +83,7 @@ export function useUpdateTask() {
       })
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tasks', 'today', user?.uid] })
+      qc.invalidateQueries({ queryKey: ['tasks'] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })

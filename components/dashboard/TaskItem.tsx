@@ -66,17 +66,18 @@ function TaskItem({
       whileTap={{ scale: 0.98 }}
       {...longPress}
       onClick={(e) => {
-        if (!isSelectionMode) {
-          handleStatusClick(e)
-        } else {
+        if (isSelectionMode) {
+          e.preventDefault()
+          e.stopPropagation()
           onSelect?.()
+        } else {
+          handleStatusClick(e)
         }
       }}
       onContextMenu={(e) => {
-        if (onContextMenu) {
-          e.preventDefault()
-          onContextMenu()
-        }
+        e.preventDefault()
+        e.stopPropagation()
+        onContextMenu?.()
       }}
       className={cn(
         'flex items-center gap-3 px-4 py-4 rounded-[28px] border cursor-pointer transition-all duration-300 select-none relative group w-full',

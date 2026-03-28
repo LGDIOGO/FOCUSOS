@@ -21,8 +21,8 @@ const PRIORITIES: { id: TaskPriority; label: string; color: string }[] = [
   { id: 'low', label: 'Baixa', color: '#8E8E93' },
   { id: 'medium', label: 'Média', color: '#FFD60A' },
   { id: 'high', label: 'Alta', color: '#FF9F0A' },
-  { id: 'critical', label: 'Crítica', color: '#FF453A' },
-]
+      { id: 'critical', label: 'Crítica', color: '#FF453A' },
+    ]
 
 export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
   const { data: categories } = useCategories()
@@ -33,7 +33,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
     title: '',
     description: '',
     emoji: '🎯',
-    color: '#0A84FF',
+    color: '#FF453A',
     priority: 'medium',
     status: 'active',
     current_value: 0,
@@ -54,7 +54,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
         title: '',
         description: '',
         emoji: '🎯',
-        color: '#0A84FF',
+        color: '#FF453A',
         priority: 'medium',
         status: 'active',
         current_value: 0,
@@ -293,9 +293,9 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
                       max="100"
                       value={formData.progress_pct ?? 0}
                       onChange={e => handlePercentageInputChange(e.target.value)}
-                      className="bg-transparent border-none text-right text-3xl font-black text-white italic w-20 focus:outline-none group-hover/pct:text-red-500 transition-colors leading-[0.8] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="bg-transparent border-none text-right text-4xl font-black text-white italic w-24 focus:outline-none group-hover/pct:text-red-500 transition-colors leading-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
-                    <span className="text-xl font-black text-white/40 italic ml-1">%</span>
+                    <span className="text-xl font-black text-white/40 italic ml-2">%</span>
                   </div>
               </div>
             </div>
@@ -312,7 +312,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
             >
               {/* Fill layer */}
               <motion.div 
-                className="absolute top-0 left-0 h-full bg-white/10 rounded-full"
+                className="absolute top-0 left-0 h-full bg-white/20 rounded-full"
                 initial={false}
                 animate={{ width: `${formData.progress_pct}%` }}
                 transition={{ type: "spring", bounce: 0, duration: 0.5 }}
@@ -320,13 +320,14 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
               
               {/* Interactive Handle (Thumb) */}
               <motion.div 
-                className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.5)] z-20 pointer-events-none border-2 border-red-600"
+                className="absolute top-1/2 w-7 h-7 bg-white rounded-full shadow-[0_0_20px_rgba(255,69,58,0.4)] z-20 pointer-events-none border-2 border-red-500"
                 initial={false}
                 animate={{ 
-                  left: `calc(12px + (${formData.progress_pct}% * (100% - 24px) / 100))`,
+                  left: `${formData.progress_pct}%`,
+                  y: '-50%',
                   x: '-50%' 
                 }}
-                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
               />
 
               <input 

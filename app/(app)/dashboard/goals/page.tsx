@@ -59,6 +59,13 @@ function GoalGridItem({
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ delay: idx * 0.05 }}
       {...longPress}
+      onClick={() => {
+        if (isSelectionMode) {
+          onToggleSelection(goal.id)
+        } else {
+          onOpenEdit(goal)
+        }
+      }}
       onContextMenu={(e) => {
         e.preventDefault()
         setIsSelectionMode(true)
@@ -66,13 +73,13 @@ function GoalGridItem({
       }}
       className={cn(
         "group relative bg-white/[0.02] border rounded-[48px] p-10 hover:bg-white/[0.04] transition-all flex flex-col justify-between overflow-hidden cursor-pointer",
-        isSelected ? "border-blue-500/50 bg-blue-500/[0.08] ring-1 ring-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]" : 
+        isSelected ? "border-red-500/50 bg-red-500/[0.08] ring-1 ring-red-500/20 shadow-[0_0_20px_rgba(255,69,58,0.1)]" : 
         (goal.priority === 'high' || goal.priority === 'critical' ? "ring-1 ring-white/5 border-white/10" : "border-white/10")
       )}
     >
       {isSelected && (
         <div className="absolute top-8 right-8 z-20">
-          <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
+          <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-lg">
             <Check size={14} className="text-white" strokeWidth={4} />
           </div>
         </div>
@@ -145,7 +152,7 @@ function GoalGridItem({
              <span>Início: {goal.initial_value}</span>
              <div className="flex gap-4">
                 {goal.min_goal_value && <span className="text-white/40">Mínimo: {goal.min_goal_value}</span>}
-                {goal.elite_goal_value && <span className="text-blue-400/60">Elite: {goal.elite_goal_value}</span>}
+                {goal.elite_goal_value && <span className="text-red-400/60">Elite: {goal.elite_goal_value}</span>}
              </div>
              <span>Alvo: {goal.target_value}</span>
           </div>

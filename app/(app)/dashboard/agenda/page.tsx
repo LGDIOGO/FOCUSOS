@@ -367,7 +367,7 @@ export default function AgendaPage() {
                       )}
                     >
                       {isSelectionMode && (
-                        <div className="absolute top-4 right-4 z-20">
+                        <div className="absolute top-4 right-4 z-20" onClick={e => e.stopPropagation()}>
                           <div className={cn(
                             "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
                             selectedIds.includes(event.id) ? "bg-red-500 border-red-500" : "border-white/20"
@@ -785,30 +785,46 @@ export default function AgendaPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-[#121212]/80 backdrop-blur-3xl border border-white/10 rounded-[32px] px-8 py-5 flex items-center gap-8 shadow-2xl"
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[32px] px-8 py-5 flex items-center gap-8 shadow-2xl"
           >
-            <div className="text-sm font-black uppercase tracking-widest text-white/60 text-center">
-              {selectedIds.length} <br /> Selecionados
+            <div className="text-sm font-black uppercase tracking-widest text-white/60 text-center flex flex-col items-center">
+              <span className="text-2xl text-white">{selectedIds.length}</span>
+              <span className="text-[9px]">Selecionados</span>
             </div>
-            <div className="h-10 w-px bg-white/10" />
-            <div className="flex items-center gap-6">
-              <button 
-                onClick={handleSelectAll}
-                className="flex flex-col items-center gap-1 text-white/60 hover:text-white transition-colors"
-              >
-                <div className="w-5 h-5 border-2 border-white/20 rounded-md flex items-center justify-center">
-                   <div className="w-2 h-2 bg-white rounded-sm" />
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-widest">Tudo</span>
-              </button>
 
+            <div className="h-10 w-px bg-white/10" />
+
+            <div className="flex items-center gap-4">
+              {[
+                { label: 'Tudo', icon: Zap, onClick: handleSelectAll },
+              ].map(btn => (
+                <button 
+                  key={btn.label}
+                  onClick={btn.onClick}
+                  className="flex flex-col items-center gap-1.5 text-white/40 hover:text-white transition-all group/sel"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all">
+                    <btn.icon size={18} />
+                  </div>
+                  <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/sel:opacity-60 transition-opacity">
+                    {btn.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="h-10 w-px bg-white/10" />
+
+            <div className="flex items-center gap-4">
               <button 
                 onClick={handleBulkDelete}
                 disabled={selectedIds.length === 0}
-                className="flex flex-col items-center gap-1 text-red-400 hover:text-red-300 transition-colors disabled:opacity-20"
+                className="flex flex-col items-center gap-1.5 text-red-500/40 hover:text-red-500 transition-all disabled:opacity-5 group/del"
               >
-                <Trash2 size={20} />
-                <span className="text-[9px] font-black uppercase tracking-widest">Excluir</span>
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all">
+                  <Trash2 size={18} />
+                </div>
+                <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/del:opacity-60 transition-opacity">Excluir</span>
               </button>
               
               <button 
@@ -816,7 +832,7 @@ export default function AgendaPage() {
                   setIsSelectionMode(false)
                   setSelectedIds([])
                 }}
-                className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all"
+                className="bg-white/10 hover:bg-white text-white hover:text-black px-8 py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all"
               >
                 Cancelar
               </button>

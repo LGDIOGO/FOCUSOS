@@ -60,6 +60,13 @@ function HabitGridItem({
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ delay: idx * 0.05 }}
       {...longPress}
+      onClick={() => {
+        if (isSelectionMode) {
+          onToggleSelection(habit.id)
+        } else {
+          onOpenEdit(habit)
+        }
+      }}
       onContextMenu={(e) => {
         e.preventDefault()
         setIsSelectionMode(true)
@@ -71,7 +78,7 @@ function HabitGridItem({
       )}
     >
       {isSelected && (
-        <div className="absolute top-6 right-6 z-20">
+        <div className="absolute top-6 right-6 z-20" onClick={e => e.stopPropagation()}>
           <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center shadow-lg">
             <Check size={14} className="text-white" strokeWidth={4} />
           </div>
@@ -725,7 +732,7 @@ export default function HabitsPage() {
                   <input 
                     value={newCategory.name}
                     onChange={e => setNewCategory({ ...newCategory, name: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 transition-all font-bold"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500/50 transition-all font-bold"
                     placeholder="Ex: Saúde, Trabalho..."
                   />
                 </div>
@@ -796,7 +803,7 @@ export default function HabitsPage() {
               {[
                 { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
                 { label: 'Positivos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
-                { label: 'A Evitar', icon: Target, onClick: () => handleSelectGroup('negative') },
+                { label: 'A Evitar', icon: ShieldAlert, onClick: () => handleSelectGroup('negative') },
               ].map(btn => (
                 <button 
                   key={btn.label}

@@ -10,10 +10,10 @@ import HabitCard from '@/components/dashboard/HabitCard'
 import TaskItem from '@/components/dashboard/TaskItem'
 import ScoreWidget from '@/components/dashboard/ScoreWidget'
 import AIInsightBanner from '@/components/dashboard/AIInsightBanner'
-import { useHabitsToday, useLogHabit } from '@/lib/hooks/useHabits'
+import { useHabitsToday, useLogHabit, useDeleteHabit } from '@/lib/hooks/useHabits'
 import { useTasksToday, useUpdateTask, useAddTask, useDeleteTask } from '@/lib/hooks/useTasks'
 import { RealTimeClock } from '@/components/dashboard/RealTimeClock'
-import { useEventsToday, useLogEvent, useUpdateEvent } from '@/lib/hooks/useEvents'
+import { useEventsToday, useLogEvent, useUpdateEvent, useDeleteEvent } from '@/lib/hooks/useEvents'
 import { HabitStatus, Habit, Task, CalendarEvent, TaskStatus } from '@/types'
 import { generateLocalInsights } from '@/lib/services/aiService'
 import SeedData from '@/components/dashboard/SeedData'
@@ -87,11 +87,15 @@ export default function DashboardPage() {
   const { mutate: updateTask } = useUpdateTask()
   const { mutate: addTask } = useAddTask()
   const { mutate: updateEvent } = useUpdateEvent()
-  const { mutate: deleteTask } = useDeleteTask()
+  const { mutateAsync: deleteTask } = useDeleteTask()
+  const { mutateAsync: deleteHabit } = useDeleteHabit()
+  const { mutateAsync: deleteEvent } = useDeleteEvent()
+  
+  const [loading, setLoading] = useState(false)
   
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [weekOffset, setWeekOffset] = useState(0)
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [selectedItems, setSelectedItems] = useState<{ id: string; type: 'habit' | 'task' | 'event' }[]>([])
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [activeBubble, setActiveBubble] = useState<{
     id: string;
@@ -122,38 +126,57 @@ export default function DashboardPage() {
     { id: 'todo', label: 'LIMPAR', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' }
   ];
 
-  const toggleSelection = (id: string) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+  const toggleSelection = (id: string, type: 'habit' | 'task' | 'event') => {
+    setSelectedItems(prev => 
+      prev.some(item => item.id === id) 
+        ? prev.filter(item => item.id !== id) 
+        : [...prev, { id, type }]
     )
   }
 
   const handleSelectGroup = (type: 'all' | 'positive' | 'negative' | 'events' | 'tasks') => {
-    let ids: string[] = []
+    let items: { id: string; type: 'habit' | 'task' | 'event' }[] = []
     if (type === 'all') {
-      ids = [
-        ...(habits.map(h => h.id)),
-        ...(tasks.map(t => t.id)),
-        ...(todayEvents.map(e => e.id))
+      items = [
+        ...(habits.map(h => ({ id: h.id, type: 'habit' as const }))),
+        ...(tasks.map(t => ({ id: t.id, type: 'task' as const }))),
+        ...(todayEvents.map(e => ({ id: e.id, type: 'event' as const })))
       ]
     } else if (type === 'positive') {
-      ids = habits.filter(h => h.type === 'positive').map(h => h.id)
+      items = habits.filter(h => h.type === 'positive').map(h => ({ id: h.id, type: 'habit' as const }))
     } else if (type === 'negative') {
-      ids = habits.filter(h => h.type === 'negative').map(h => h.id)
+      items = habits.filter(h => h.type === 'negative').map(h => ({ id: h.id, type: 'habit' as const }))
     } else if (type === 'events') {
-      ids = todayEvents.map(e => e.id)
+      items = todayEvents.map(e => ({ id: e.id, type: 'event' as const }))
     } else if (type === 'tasks') {
-      ids = tasks.map(t => t.id)
+      items = tasks.map(t => ({ id: t.id, type: 'task' as const }))
     }
-    setSelectedIds(ids)
-    if (ids.length > 0) setIsSelectionMode(true)
+    setSelectedItems(items)
+    if (items.length > 0) setIsSelectionMode(true)
   }
 
-  const handleBulkDelete = () => {
-    if (confirm(`Excluir ${selectedIds.length} tarefas?`)) {
-      selectedIds.forEach(id => deleteTask(id))
-      setSelectedIds([])
-      setIsSelectionMode(false)
+  const handleBulkDelete = async () => {
+    if (confirm(`Excluir ${selectedItems.length} itens selecionados?`)) {
+      setLoading(true)
+      try {
+        const promises = selectedItems.map(item => {
+          if (item.type === 'task') return deleteTask(item.id)
+          if (item.type === 'habit') return deleteHabit(item.id)
+          if (item.type === 'event') return deleteEvent(item.id)
+          return Promise.resolve()
+        })
+        
+        await Promise.all(promises)
+        
+        setSelectedItems([])
+        setIsSelectionMode(false)
+        setToast('Itens excluídos com sucesso!')
+      } catch (err) {
+        console.error('Bulk delete error:', err)
+        setToast('Erro ao excluir itens.')
+      } finally {
+        setLoading(false)
+      }
     }
   }
 
@@ -440,11 +463,11 @@ export default function DashboardPage() {
                             setIsRescheduleOpen(true)
                           }}
                           isSelectionMode={isSelectionMode}
-                          isSelected={selectedIds.includes(event.id)}
-                          onSelect={() => toggleSelection(event.id)}
+                          isSelected={selectedItems.some(item => item.id === event.id)}
+                          onSelect={() => toggleSelection(event.id, 'event')}
                           onContextMenu={() => {
                             setIsSelectionMode(true)
-                            toggleSelection(event.id)
+                            toggleSelection(event.id, 'event')
                           }}
                           onOpenBubble={(position) => setActiveBubble({
                             id: event.id,
@@ -488,11 +511,11 @@ export default function DashboardPage() {
                         habit={h} 
                         onStatusChange={status => setHabitStatus(h.id, status)}
                         isSelectionMode={isSelectionMode}
-                        isSelected={selectedIds.includes(h.id)}
-                        onSelect={() => toggleSelection(h.id)}
+                        isSelected={selectedItems.some(item => item.id === h.id)}
+                        onSelect={() => toggleSelection(h.id, 'habit')}
                         onContextMenu={() => {
                           setIsSelectionMode(true)
-                          toggleSelection(h.id)
+                          toggleSelection(h.id, 'habit')
                         }}
                         onOpenBubble={(position) => setActiveBubble({
                           id: h.id,
@@ -522,11 +545,11 @@ export default function DashboardPage() {
                       onStatusChange={status => setHabitStatus(h.id, status)} 
                       isNegative 
                       isSelectionMode={isSelectionMode}
-                      isSelected={selectedIds.includes(h.id)}
-                      onSelect={() => toggleSelection(h.id)}
+                      isSelected={selectedItems.some(item => item.id === h.id)}
+                      onSelect={() => toggleSelection(h.id, 'habit')}
                       onContextMenu={() => {
                         setIsSelectionMode(true)
-                        toggleSelection(h.id)
+                        toggleSelection(h.id, 'habit')
                       }}
                       onOpenBubble={(position) => setActiveBubble({
                         id: h.id,
@@ -577,11 +600,11 @@ export default function DashboardPage() {
                         else updateTaskStatus(t.id, status)
                       }}
                       isSelectionMode={isSelectionMode}
-                      isSelected={selectedIds.includes(t.id)}
-                      onSelect={() => toggleSelection(t.id)}
+                      isSelected={selectedItems.some(item => item.id === t.id)}
+                      onSelect={() => toggleSelection(t.id, 'task')}
                       onContextMenu={() => {
                         setIsSelectionMode(true)
-                        toggleSelection(t.id)
+                        toggleSelection(t.id, 'task')
                       }}
                       onOpenBubble={(position) => setActiveBubble({
                         id: t.id,
@@ -633,32 +656,124 @@ export default function DashboardPage() {
                        <button onClick={() => handleSelectGroup('events')} className="px-6 py-3 bg-red-400/20 border border-red-400/20 rounded-2xl hover:bg-red-400 text-white text-[11px] font-black uppercase tracking-widest transition-all">Compromissos 📅</button>
                     </div>
 
-                    <div className="mt-6 space-y-3">
-                        {habits.map(h => (
-                          <HabitCard 
-                            key={h.id}
-                            habit={h}
-                            onStatusChange={(status) => setHabitStatus(h.id, status)}
-                            isNegative={h.type === 'negative'}
-                            isSelectionMode={isSelectionMode}
-                            isSelected={selectedIds.includes(h.id)}
-                            onSelect={() => toggleSelection(h.id)}
-                            onContextMenu={() => {
-                              setIsSelectionMode(true)
-                              toggleSelection(h.id)
-                            }}
-                            onOpenBubble={(position) => setActiveBubble({
-                              id: h.id,
-                              position,
-                              options: HABIT_OPTIONS,
-                              onSelect: (status) => {
-                                setHabitStatus(h.id, status)
-                                setActiveBubble(null)
-                              }
-                            })}
-                          />
-                        ))}
-                     </div>
+                    <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-8 pb-10">
+                        {/* Lista de Hábitos */}
+                        <div className="space-y-4">
+                           <div className="flex items-center justify-between px-4">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Meus Hábitos</p>
+                              <span className="text-[10px] font-black text-white/10 uppercase tracking-widest">{habits.length} Itens</span>
+                           </div>
+                           <div className="space-y-3">
+                              {habits.map(h => (
+                                <HabitCard 
+                                  key={h.id}
+                                  habit={h}
+                                  onStatusChange={(status) => setHabitStatus(h.id, status)}
+                                  isNegative={h.type === 'negative'}
+                                  isSelectionMode={isSelectionMode}
+                                  isSelected={selectedItems.some(item => item.id === h.id)}
+                                  onSelect={() => toggleSelection(h.id, 'habit')}
+                                  onContextMenu={() => {
+                                    setIsSelectionMode(true)
+                                    toggleSelection(h.id, 'habit')
+                                  }}
+                                  onOpenBubble={(position) => setActiveBubble({
+                                    id: h.id,
+                                    position,
+                                    options: HABIT_OPTIONS,
+                                    onSelect: (status) => {
+                                      setHabitStatus(h.id, status)
+                                      setActiveBubble(null)
+                                    }
+                                  })}
+                                />
+                              ))}
+                           </div>
+                        </div>
+
+                        {/* Agenda e Tarefas lateral */}
+                        <div className="space-y-12">
+                           <div className="space-y-4">
+                              <div className="flex items-center justify-between px-4">
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Agenda do Dia</p>
+                                 <span className="text-[10px] font-black text-white/10 uppercase tracking-widest">{todayEvents.length} Eventos</span>
+                              </div>
+                              <div className="space-y-3">
+                                 {todayEvents.map(event => (
+                                   <AgendaItem 
+                                     key={event.id}
+                                     event={event} 
+                                     onStatusChange={status => setEventStatus(event.id, status)}
+                                     onReschedule={() => {
+                                       setEventToReschedule(event)
+                                       setIsRescheduleOpen(true)
+                                     }}
+                                     isSelectionMode={isSelectionMode}
+                                     isSelected={selectedItems.some(item => item.id === event.id)}
+                                     onSelect={() => toggleSelection(event.id, 'event')}
+                                     onContextMenu={() => {
+                                       setIsSelectionMode(true)
+                                       toggleSelection(event.id, 'event')
+                                     }}
+                                      onOpenBubble={(position) => setActiveBubble({
+                                        id: event.id,
+                                        position,
+                                        options: AGENDA_OPTIONS,
+                                        onSelect: (status) => {
+                                          if (status === 'reschedule') {
+                                            setEventToReschedule(event)
+                                            setIsRescheduleOpen(true)
+                                          } else {
+                                            setEventStatus(event.id, status as any)
+                                          }
+                                          setActiveBubble(null)
+                                        }
+                                      })}
+                                   />
+                                 ))}
+                              </div>
+                           </div>
+
+                           <div className="space-y-4">
+                              <div className="flex items-center justify-between px-4">
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Rascunhos (Tarefas)</p>
+                                 <span className="text-[10px] font-black text-white/10 uppercase tracking-widest">{tasks.length} Notas</span>
+                              </div>
+                              <div className="space-y-3">
+                                 {tasks.map(t => (
+                                   <TaskItem 
+                                     key={t.id}
+                                     task={t} 
+                                     onToggle={() => toggleTask(t.id, t.done)}
+                                     onStatusChange={(status) => {
+                                       if (status === 'done') toggleTask(t.id, false)
+                                       else if (status === 'todo') toggleTask(t.id, true)
+                                       else updateTaskStatus(t.id, status)
+                                     }}
+                                     isSelectionMode={isSelectionMode}
+                                     isSelected={selectedItems.some(item => item.id === t.id)}
+                                     onSelect={() => toggleSelection(t.id, 'task')}
+                                     onContextMenu={() => {
+                                       setIsSelectionMode(true)
+                                       toggleSelection(t.id, 'task')
+                                     }}
+                                      onOpenBubble={(position) => setActiveBubble({
+                                        id: t.id,
+                                        position,
+                                        options: TASK_OPTIONS,
+                                        onSelect: (status) => {
+                                          if (status === 'done') toggleTask(t.id, false)
+                                          else if (status === 'todo') toggleTask(t.id, true)
+                                          else updateTaskStatus(t.id, status)
+                                          setActiveBubble(null)
+                                        }
+                                      })}
+                                   />
+                                 ))}
+                              </div>
+                           </div>
+                        </div>
+                    </div>
                  </div>
               </div>
             </motion.div>
@@ -681,7 +796,7 @@ export default function DashboardPage() {
             className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[32px] px-8 py-5 flex items-center gap-8 shadow-2xl"
           >
             <div className="text-sm font-black uppercase tracking-widest text-white/60 text-center flex flex-col items-center">
-              <span className="text-2xl text-white">{selectedIds.length}</span>
+              <span className="text-2xl text-white">{selectedItems.length}</span>
               <span className="text-[9px]">Selecionados</span>
             </div>
 
@@ -715,11 +830,11 @@ export default function DashboardPage() {
             <div className="flex items-center gap-4">
               <button 
                 onClick={handleBulkDelete}
-                disabled={selectedIds.length === 0}
+                disabled={selectedItems.length === 0 || loading}
                 className="flex flex-col items-center gap-1.5 text-red-500/40 hover:text-red-500 transition-all disabled:opacity-5 group/del"
               >
                 <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all">
-                  <Trash2 size={18} />
+                  {loading ? <div className="w-4 h-4 border-2 border-red-500 border-t-white rounded-full animate-spin" /> : <Trash2 size={18} />}
                 </div>
                 <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/del:opacity-60 transition-opacity">Excluir</span>
               </button>
@@ -727,7 +842,7 @@ export default function DashboardPage() {
               <button 
                 onClick={() => {
                   setIsSelectionMode(false)
-                  setSelectedIds([])
+                  setSelectedItems([])
                 }}
                 className="bg-white/10 hover:bg-white text-white hover:text-black px-8 py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all"
               >

@@ -88,17 +88,17 @@ export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps)
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-              <Icon className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center">
+              <Icon className="w-4 h-4 text-red-400" />
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">FocusOS Insight</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-red-400/60">FocusOS Insight</span>
           </div>
           <button 
             onClick={() => fetchInsight(true)}
             disabled={loading}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
+            className="p-2 hover:bg-red-500/10 rounded-full transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-white/60 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-red-400/60 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
 
@@ -111,8 +111,8 @@ export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps)
               exit={{ opacity: 0 }}
               className="space-y-2 py-2"
             >
-              <div className="h-4 w-3/4 bg-white/5 rounded animate-pulse" />
-              <div className="h-3 w-1/2 bg-white/5 rounded animate-pulse" />
+              <div className="h-4 w-3/4 bg-red-500/5 rounded animate-pulse" />
+              <div className="h-3 w-1/2 bg-red-500/5 rounded animate-pulse" />
             </motion.div>
           ) : (
             <motion.div
@@ -124,20 +124,20 @@ export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps)
               <h3 className="text-[17px] font-bold tracking-tight text-white">
                 {typeof insight?.title === 'string' ? insight.title : 'Focus Insight'}
               </h3>
-              <p className="text-[14px] leading-relaxed text-white/60 font-medium">
+              <p className="text-[14px] leading-relaxed text-white/70 font-medium">
                 {typeof insight?.body === 'string' ? insight.body : 'Continue sua rotina para novos insights.'}
               </p>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="mt-4 flex items-center gap-1.5 text-[11px] font-bold text-white/40 group-hover:text-white transition-colors cursor-pointer">
+        <div className="mt-4 flex items-center gap-1.5 text-[11px] font-bold text-red-500/40 group-hover:text-red-400 transition-colors cursor-pointer">
           Ver análise detalhada <ArrowRight className="w-3 h-3" />
         </div>
       </div>
 
       {/* Glossy Effect */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-white/10 transition-colors" />
+      <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-red-500/10 transition-colors" />
     </motion.div>
   )
 }

@@ -17,6 +17,12 @@ interface AgendaItemProps {
   onOpenBubble?: (pos: { x: number; y: number }) => void
 }
 
+const DEFAULT_STATUS_CONFIG = {
+  icon: 'bg-white/5 text-white/40',
+  border: 'border-white/10',
+  text: 'text-white'
+}
+
 const STATUS_CONFIG = {
   todo: {
     icon: 'bg-white/5 text-white/40',
@@ -37,7 +43,8 @@ const STATUS_CONFIG = {
     icon: 'bg-red-500 text-white',
     border: 'border-red-500/30 bg-red-500/[0.03]',
     text: 'text-white/40'
-  }
+  },
+  none: DEFAULT_STATUS_CONFIG
 }
 
 function AgendaItem({ 
@@ -50,7 +57,8 @@ function AgendaItem({
   onContextMenu,
   onOpenBubble
 }: AgendaItemProps) {
-  const cfg = STATUS_CONFIG[event.status || 'todo']
+  const currentStatus = event.status || 'none'
+  const cfg = (STATUS_CONFIG as any)[currentStatus] || STATUS_CONFIG.none || DEFAULT_STATUS_CONFIG
 
   const longPress = useLongPress(
     () => {
@@ -84,14 +92,17 @@ function AgendaItem({
       animate={{ opacity: 1, y: 0 }}
       {...longPress}
       onClick={(e) => {
-        if (!isSelectionMode) {
-          handleStatusClick(e)
-        } else {
+        if (isSelectionMode) {
+          e.preventDefault()
+          e.stopPropagation()
           onSelect?.()
+        } else {
+          handleStatusClick(e)
         }
       }}
       onContextMenu={(e) => {
         e.preventDefault()
+        e.stopPropagation()
         onContextMenu?.()
       }}
       className={cn(
@@ -104,6 +115,7 @@ function AgendaItem({
         <motion.div 
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
+          onClick={e => e.stopPropagation()}
           className="absolute top-3 right-3 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center z-10 shadow-lg"
         >
           <Check size={12} className="text-white" strokeWidth={4} />
