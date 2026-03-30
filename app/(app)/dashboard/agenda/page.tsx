@@ -415,8 +415,10 @@ export default function AgendaPage() {
                           deleteEvent.mutate(event.id)
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
+                        onMouseUp={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
                         onTouchStart={(e) => e.stopPropagation()}
+                        onTouchEnd={(e) => e.stopPropagation()}
                         className={cn(
                           "p-3 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100",
                           isSelectionMode ? "hidden" : "text-white/5"

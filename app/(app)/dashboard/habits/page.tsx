@@ -99,8 +99,10 @@ function HabitGridItem({
               onDelete(habit.id)
             }}
             onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
             className="p-2 text-white/5 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
           >
             <Trash2 size={18} />
