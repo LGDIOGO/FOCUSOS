@@ -139,9 +139,9 @@ function HabitGridItem({
         </div>
         
         <div className="flex flex-col items-end">
-           <span className="text-sm font-black uppercase text-white/60 tracking-widest mb-1">Streak</span>
+           <span className="text-sm font-black uppercase text-white/60 tracking-widest mb-1">Ofensiva</span>
            <div className="flex items-center gap-2">
-              <Zap size={16} className="text-yellow-400 fill-yellow-400" />
+              <span className="text-xl">🔥</span>
               <span className="text-2xl font-black italic">{habit.streak}</span>
            </div>
         </div>

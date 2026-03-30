@@ -20,6 +20,7 @@ export interface Habit {
   type: HabitType;
   status: HabitStatus;
   streak: number;
+  last_completed_date?: string | null;
   is_archived: boolean;
   sort_order: number;
   recurrence?: RecurrenceRule;

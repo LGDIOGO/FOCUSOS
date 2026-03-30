@@ -237,6 +237,49 @@ export function useLogHabit() {
           })
         }
       }
+
+      // 4. Update Habit Streak (Ofensiva)
+      const habitRef = doc(db, 'habits', habitId)
+      const habitDoc = await getDoc(habitRef)
+      if (habitDoc.exists()) {
+        const habitData = habitDoc.data()
+        let currentStreak = habitData.streak || 0
+        const lastDate = habitData.last_completed_date
+        
+        let newStreak = currentStreak
+        let newLastDate = lastDate
+
+        const { differenceInDays, parseISO } = await import('date-fns')
+
+        if (status === 'done' && prevStatus !== 'done') {
+           if (!lastDate) {
+             newStreak = 1
+             newLastDate = targetDate
+           } else {
+             const diff = differenceInDays(parseISO(targetDate), parseISO(lastDate))
+             if (diff === 1) {
+               newStreak += 1
+               newLastDate = targetDate
+             } else if (diff > 1) {
+               newStreak = 1
+               newLastDate = targetDate
+             } else if (diff === 0) {
+               if (newStreak === 0) newStreak = 1
+             }
+           }
+        } else if (status !== 'done' && prevStatus === 'done') {
+           if (lastDate === targetDate) {
+             newStreak = Math.max(0, newStreak - 1)
+             if (newStreak === 0) newLastDate = null
+           }
+        } else if (status === 'failed') {
+           newStreak = 0
+        }
+        
+        if (newStreak !== currentStreak || newLastDate !== lastDate) {
+           await updateDoc(habitRef, { streak: newStreak, last_completed_date: newLastDate })
+        }
+      }
     },
     onSuccess: (_, variables) => {
       const targetDate = variables.logDate || format(new Date(), 'yyyy-MM-dd')
