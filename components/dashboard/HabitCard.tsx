@@ -3,6 +3,8 @@ import { motion } from 'framer-motion'
 import { Check, Minus, X, Zap, ShieldAlert, Circle, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Habit, HabitStatus } from '@/types'
+import { format } from 'date-fns'
+import { getEffectiveStreak } from '@/lib/utils/scoring'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { StatusChoiceBubble } from './StatusChoiceBubble'
 
@@ -71,6 +73,9 @@ export function HabitCard({
 }: HabitCardProps) {
   const currentStatus = habit.status || 'none'
   const cfg = (STATUS_CONFIG as any)[currentStatus] || STATUS_CONFIG.none
+  
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+  const activeStreak = getEffectiveStreak(habit.streak || 0, habit.last_completed_date, currentStatus, todayStr)
 
   const longPress = useLongPress(
     () => {
@@ -167,8 +172,8 @@ export function HabitCard({
             <span className="text-[10px] font-black uppercase tracking-widest text-[#e02020] bg-[#e02020]/10 px-1.5 py-0.5 rounded-md">Evitar</span>
           )}
           <span className="text-xs font-medium text-white/30 truncate uppercase tracking-widest">{habit.meta}</span>
-          {habit.streak > 0 && habit.status !== 'failed' && (
-            <span className="text-[12px] font-black text-amber-400 ml-1 flex-shrink-0 bg-amber-400/10 px-2 py-0.5 rounded-lg border border-amber-400/20">🔥 {habit.streak}</span>
+          {activeStreak > 0 && currentStatus !== 'failed' && (
+            <span className="text-[12px] font-black text-amber-400 ml-1 flex-shrink-0 bg-amber-400/10 px-2 py-0.5 rounded-lg border border-amber-400/20">🔥 {activeStreak}</span>
           )}
         </div>
       </div>

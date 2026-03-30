@@ -15,6 +15,7 @@ import { Habit, RecurrenceFreq, RecurrenceRule } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { getEffectiveStreak } from '@/lib/utils/scoring'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
@@ -38,6 +39,9 @@ function HabitGridItem({
   onDelete: (id: string) => void
   setIsSelectionMode: (val: boolean) => void
 }) {
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+  const activeStreak = getEffectiveStreak(habit.streak || 0, habit.last_completed_date, habit.status, todayStr)
+
   const longPress = useLongPress(
     () => {
       setIsSelectionMode(true)
@@ -142,7 +146,7 @@ function HabitGridItem({
            <span className="text-sm font-black uppercase text-white/60 tracking-widest mb-1">Ofensiva</span>
            <div className="flex items-center gap-2">
               <span className="text-xl">🔥</span>
-              <span className="text-2xl font-black italic">{habit.streak}</span>
+              <span className="text-2xl font-black italic">{activeStreak}</span>
            </div>
         </div>
       </div>
