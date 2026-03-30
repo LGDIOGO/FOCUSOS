@@ -95,10 +95,10 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
               onClick={() => setIsOpen(false)} 
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 10, x: -20 }}
-              animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 10, x: -20 }}
-              className="absolute bottom-full left-0 mb-6 z-[1001] bg-[#1A1A1A] border border-white/10 rounded-[32px] overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] w-[320px]"
+              initial={{ opacity: 0, scale: 0.9, y: 10, x: '-50%' }}
+              animate={{ opacity: 1, scale: 1, y: '-50%', x: '-50%' }}
+              exit={{ opacity: 0, scale: 0.9, y: 10, x: '-50%' }}
+              className="fixed top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 z-[1002] bg-[#1A1A1A] border border-white/10 rounded-[32px] overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] w-[320px]"
             >
               {/* Tabs Header */}
               <div className="flex bg-white/2 p-2 gap-1 overflow-x-auto scrollbar-none border-b border-white/5 no-scrollbar">

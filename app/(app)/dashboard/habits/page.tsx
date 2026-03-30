@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Plus, Trash2, Zap, ShieldAlert, Sparkles, X, RefreshCcw, Check, Square, TrendingUp, Target, Clock, Calendar
+  Plus, Trash2, Zap, ShieldAlert, Sparkles, X, RefreshCcw, Check, Square, TrendingUp, Target, Clock, Calendar, ChevronDown
 } from 'lucide-react'
 import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
 import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicker'
@@ -164,6 +164,7 @@ export default function HabitsPage() {
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [isGoalSelectOpen, setIsGoalSelectOpen] = useState(false)
 
   useEffect(() => {
     if (searchParams.get('add') === 'true') {
@@ -549,18 +550,62 @@ export default function HabitsPage() {
                 <div className="space-y-1.5">
                   <label className="text-[12px] font-black uppercase tracking-widest text-white/50 px-1">Vincular a Meta (Opcional)</label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <select
-                      value={newHabit.linked_goal_id}
-                      onChange={e => setNewHabit({ ...newHabit, linked_goal_id: e.target.value })}
-                      className="bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-white/30 transition-all font-bold text-sm appearance-none cursor-pointer"
-                    >
-                      <option value="">Nenhuma Meta</option>
-                      {goals?.filter(g => g.status === 'active').map(goal => (
-                        <option key={goal.id} value={goal.id} className="bg-[#0A0A0A]">
-                          {goal.emoji} {goal.title}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative z-50">
+                      <button
+                        type="button"
+                        onClick={() => setIsGoalSelectOpen(!isGoalSelectOpen)}
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-white/30 transition-all font-bold text-sm flex items-center justify-between group"
+                      >
+                        <span className="flex items-center gap-2">
+                          {newHabit.linked_goal_id ? (
+                            <>
+                              <span className="text-lg">{goals?.find(g => g.id === newHabit.linked_goal_id)?.emoji}</span>
+                              <span className="truncate max-w-[150px]">{goals?.find(g => g.id === newHabit.linked_goal_id)?.title}</span>
+                            </>
+                          ) : (
+                            <span className="text-white/40">Nenhuma Meta</span>
+                          )}
+                        </span>
+                        <ChevronDown size={16} className={cn("text-white/40 group-hover:text-white transition-all transform", isGoalSelectOpen && "rotate-180")} />
+                      </button>
+
+                      <AnimatePresence>
+                        {isGoalSelectOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="absolute top-full mt-2 left-0 w-full z-[100] bg-[#1A1A1A] border border-white/10 rounded-2xl overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] max-h-48 overflow-y-auto custom-scrollbar"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => { setNewHabit({ ...newHabit, linked_goal_id: '' }); setIsGoalSelectOpen(false); }}
+                              className={cn(
+                                "w-full text-left px-5 py-3 text-sm font-bold transition-colors flex items-center gap-3 border-b border-white/5",
+                                !newHabit.linked_goal_id ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white"
+                              )}
+                            >
+                              <div className="w-5 h-5 flex items-center justify-center rounded-full bg-white/10"><X size={12}/></div>
+                              <span>Nenhuma Meta</span>
+                            </button>
+                            {goals?.filter(g => g.status === 'active').map(goal => (
+                              <button
+                                key={goal.id}
+                                type="button"
+                                onClick={() => { setNewHabit({ ...newHabit, linked_goal_id: goal.id }); setIsGoalSelectOpen(false); }}
+                                className={cn(
+                                  "w-full text-left px-5 py-3 text-sm font-bold transition-colors flex items-center gap-3",
+                                  newHabit.linked_goal_id === goal.id ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white"
+                                )}
+                              >
+                                <span className="text-lg">{goal.emoji}</span>
+                                <span className="truncate">{goal.title}</span>
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                     
                     <div className="relative">
                       <input 
