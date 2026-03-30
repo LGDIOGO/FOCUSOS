@@ -38,7 +38,10 @@ export function useEvents() {
       return events.sort((a, b) => {
         const dateCompare = (a.date || '').localeCompare(b.date || '')
         if (dateCompare !== 0) return dateCompare
-        return (a.time || '').localeCompare(b.time || '')
+        if (a.time && b.time) return a.time.localeCompare(b.time)
+        if (a.time) return -1
+        if (b.time) return 1
+        return 0
       })
     },
     enabled: !!user,
@@ -192,7 +195,12 @@ export function useEventsToday(selectedDate: Date = new Date()) {
       return occurringEvents.map(e => ({
         ...e,
         status: logsMap.get(e.id) || 'none'
-      })).sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+      })).sort((a, b) => {
+        if (a.time && b.time) return a.time.localeCompare(b.time)
+        if (a.time) return -1
+        if (b.time) return 1
+        return 0
+      })
     },
     enabled: !!user,
     staleTime: 5_000,

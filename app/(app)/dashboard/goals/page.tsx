@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Target, Plus, Trash2, Calendar, TrendingUp, Check, ChevronRight, Sparkles, Zap } from 'lucide-react'
 import { useGoals, useDeleteGoal } from '@/lib/hooks/useGoals'
@@ -251,6 +251,36 @@ export default function GoalsPage() {
     }
   }
 
+  const groupedGoals = useMemo(() => {
+    if (!goals) return []
+    const MAP = new Map<string, Goal[]>()
+    
+    // Sort goals by end_date ascending
+    const sortedGoals = [...goals].sort((a, b) => {
+      const dateA = a.end_date || '9999-12-31'
+      const dateB = b.end_date || '9999-12-31'
+      return dateA.localeCompare(dateB)
+    })
+
+    sortedGoals.forEach(g => {
+      const cid = g.category_id || 'UNCATEGORIZED'
+      if (!MAP.has(cid)) MAP.set(cid, [])
+      MAP.get(cid)?.push(g)
+    })
+    
+    return Array.from(MAP.entries()).map(([categoryId, items]) => {
+      return {
+        categoryId,
+        category: categories?.find(c => c.id === categoryId),
+        items
+      }
+    }).sort((a, b) => {
+      if (a.categoryId === 'UNCATEGORIZED') return 1
+      if (b.categoryId === 'UNCATEGORIZED') return -1
+      return (a.category?.name || '').localeCompare(b.category?.name || '')
+    })
+  }, [goals, categories])
+
   return (
     <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display',sans-serif]">
       {/* Header */}
@@ -282,33 +312,55 @@ export default function GoalsPage() {
         </button>
       </motion.div>
 
-      {/* Goals Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+      {/* Goals Grid by Categories */}
+      <div className="space-y-16">
         <AnimatePresence mode="popLayout">
           {isLoading ? (
-            [1, 2].map(i => (
-              <div key={i} className="h-64 rounded-[40px] bg-white/[0.02] border border-white/10 animate-pulse" />
-            ))
-          ) : goals?.map((goal: Goal, idx: number) => {
-            const daysLeft = getRemainingDays(goal.end_date)
-            const category = categories?.find(c => c.id === goal.category_id)
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+               {[1, 2].map(i => (
+                 <div key={i} className="h-64 rounded-[40px] bg-white/[0.02] border border-white/10 animate-pulse" />
+               ))}
+            </div>
+          ) : groupedGoals.map((group, groupIdx) => {
+             const categoryName = group.category ? group.category.name : 'Sem Categoria'
+             const categoryColor = group.category ? group.category.color : '#FFFFFF'
 
-            return (
-              <GoalGridItem
-                key={goal.id}
-                goal={goal}
-                idx={idx}
-                category={category}
-                daysLeft={daysLeft}
-                isSelectionMode={isSelectionMode}
-                isSelected={selectedIds.includes(goal.id)}
-                onToggleSelection={toggleSelection}
-                onOpenEdit={handleOpenEdit}
-                onDelete={handleDelete}
-                setIsSelectionMode={setIsSelectionMode}
-                formatDateSafely={formatDateSafely}
-              />
-            )
+             return (
+               <motion.div 
+                 key={group.categoryId}
+                 initial={{ opacity: 0, y: 20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 className="space-y-6"
+               >
+                 <div className="flex items-center gap-3 px-2">
+                   <div className="w-2 h-2 rounded-full shadow-[0_0_10px_currentColor]" style={{ backgroundColor: categoryColor, color: categoryColor }} />
+                   <h2 className="text-xl font-bold tracking-tight text-white/80">{categoryName}</h2>
+                   <span className="text-white/20 text-xs font-black uppercase tracking-widest">{group.items.length} {group.items.length === 1 ? 'Meta' : 'Metas'}</span>
+                 </div>
+                 
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+                   {group.items.map((goal: Goal, idx: number) => {
+                     const daysLeft = getRemainingDays(goal.end_date)
+                     return (
+                       <GoalGridItem
+                         key={goal.id}
+                         goal={goal}
+                         idx={idx}
+                         category={group.category}
+                         daysLeft={daysLeft}
+                         isSelectionMode={isSelectionMode}
+                         isSelected={selectedIds.includes(goal.id)}
+                         onToggleSelection={toggleSelection}
+                         onOpenEdit={handleOpenEdit}
+                         onDelete={handleDelete}
+                         setIsSelectionMode={setIsSelectionMode}
+                         formatDateSafely={formatDateSafely}
+                       />
+                     )
+                   })}
+                 </div>
+               </motion.div>
+             )
           })}
         </AnimatePresence>
       </div>

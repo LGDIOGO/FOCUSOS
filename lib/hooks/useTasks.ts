@@ -37,7 +37,15 @@ export function useTasksToday(selectedDate: Date = new Date()) {
       })) as any[]
 
       // Filter by due_date in memory (Firestore OR is complex)
-      return tasks.filter(t => !t.due_date || t.due_date === targetDay) as Task[]
+      const filtered = tasks.filter(t => !t.due_date || t.due_date === targetDay) as Task[]
+      
+      // Sort chronologically by due_time. Items without time go to the end.
+      return filtered.sort((a, b) => {
+        if (a.due_time && b.due_time) return a.due_time.localeCompare(b.due_time)
+        if (a.due_time) return -1
+        if (b.due_time) return 1
+        return 0
+      })
     },
     enabled: !!user,
     staleTime: 5_000,

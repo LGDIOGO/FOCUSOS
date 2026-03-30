@@ -36,7 +36,15 @@ export function useHabits() {
       )
       const snap = await getDocs(q)
       const habits = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Habit[]
-      return habits.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+      return habits.sort((a, b) => {
+        if (a.time && b.time) {
+          const tCmp = a.time.localeCompare(b.time)
+          if (tCmp !== 0) return tCmp
+        }
+        if (a.time && !b.time) return -1
+        if (!a.time && b.time) return 1
+        return (a.sort_order || 0) - (b.sort_order || 0)
+      })
     },
     staleTime: 5_000,
   })
@@ -62,7 +70,15 @@ export function useHabitsToday(selectedDate: Date = new Date()) {
       const allHabits = habitsSnap.docs
         .map(d => ({ id: d.id, ...d.data() })) as Habit[]
       
-      const sortedHabits = allHabits.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+      const sortedHabits = allHabits.sort((a, b) => {
+        if (a.time && b.time) {
+          const tCmp = a.time.localeCompare(b.time)
+          if (tCmp !== 0) return tCmp
+        }
+        if (a.time && !b.time) return -1
+        if (!a.time && b.time) return 1
+        return (a.sort_order || 0) - (b.sort_order || 0)
+      })
 
       const filteredHabits = sortedHabits.filter(h => {
         if (h.start_date && todayStr < h.start_date) return false
