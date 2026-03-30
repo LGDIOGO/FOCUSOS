@@ -8,9 +8,12 @@ import { Habit, Task } from '@/types'
 interface AIInsightBannerProps {
   habits: Habit[]
   tasks: Task[]
+  goals?: any[] // Optional to not break old uses, but passed from Dashboard
+  events?: any[]
+  score?: any
 }
 
-export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps) {
+export default function AIInsightBanner({ habits, tasks, goals = [], events = [], score = null }: AIInsightBannerProps) {
   const [insight, setInsight] = useState<{ type: string; title: string; body: string } | null>(null)
   const [loading, setLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -42,7 +45,7 @@ export default function AIInsightBanner({ habits, tasks }: AIInsightBannerProps)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           type: 'auto',
-          userData: { habits, tasks } 
+          userData: { habits, tasks, goals, events, score } 
         })
       })
       const data = await resp.json()

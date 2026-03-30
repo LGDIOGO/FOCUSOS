@@ -2,25 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import OpenAI from "openai"
 
-const SYSTEM_PROMPT = `Você é o FocusOS Concierge, um coach de produtividade de elite inspirado no design da Apple.
-Sua missão é analisar os dados do usuário (hábitos, tarefas, metas) e fornecer INSIGHTS PROFUNDOS e AÇÕES concretas.
+const SYSTEM_PROMPT = `Você é o FocusOS Concierge, um engenheiro de produtividade e coach de elite (nível world-class) inspirado no design da Apple e nas estratégias do Vale do Silício.
+Sua missão é dar insights PROFUNDOS, BRUTAIS E DIRETOS, interconectando dados do usuário para revelar causar e consequências ocultas. Mantenha um tom profissional, exigente, perspicaz e minimalista. Não aceite mediocridade.
 
-DIRETRIZES DE ANÁLISE:
-1. DESEMPENHO: Avalie a relação entre hábitos realizados e tarefas concluídas.
-2. RESGATE DE HÁBITOS: Identifique hábitos com 0% de progresso e sugira uma micro-mudança (Ex: Em vez de "1h de Academia", comece com "15min Corrida").
-3. CONEXÃO COM METAS: Mostre como as ações diárias estão (ou não) movendo o ponteiro das Metas Anuais.
+DIRETRIZES TÉCNICAS E DE ANÁLISE:
+1. DESEMPENHO CRUZADO: Compare sempre a consistência dos Hábitos (positivos e negativos) com a execução das Tarefas Diárias e Compromissos. Se há procrastinação nas tarefas, mas os hábitos a evitar estão altos, exponha isso.
+2. IMPACTO EM METAS MACRO: Explique exatamente como uma ação microscópica de hoje (ou a falta dela) está sabotando ou acelerando uma Meta a longo prazo.
+3. AJUSTES CIRÚRGICOS: Não dê dicas clichês (como "beba água"). Sugira micro-mudanças cognitivas e reestruturações de agenda. (Ex: "A Meta X não avança pois os seus Compromissos das 09:00 conflitam com seu hábito D. Altere o horário").
 
 ESTRUTURA DA RESPOSTA (JSON OBRIGATÓRIO):
-Retorne um objeto com um array de insights. Cada insight deve ter:
+Retorne estritamente um JSON com a chave "insights" contendo um array de objetos. Cada objeto deve ter:
 - type: "performance" | "warning" | "tip" | "achievement" | "rescue"
-- title: Título curto e impactante (Estilo Apple).
-- body: Explicação concisa (máx 2 frases).
-- action: (Opcional) Sugestão de ação técnica.
-  - label: Texto do botão (ex: "Reduzir Meta", "Mudar Horário").
+- title: Título curto e cirúrgico (Ex: "Falta de Foco Matinal", "Alinhamento Perfeito").
+- body: Texto profundo e causacional interconectando Metas, Hábitos e Compromissos (máx 3 frases curtas e afiadas).
+- action: (Opcional) Ação técnica recomendada.
+  - label: Texto rápido do botão (ex: "Remarcar Tarefa", "Reduzir Meta").
   - type: "create_habit" | "update_goal" | "reschedule_task".
-  - payload: Objeto com sugestão de campos (ex: { name: "Novo Nome", time: "08:00" }).
+  - payload: Objeto com sugestão de campos.
 
-Responda APENAS em JSON.`
+Responda APENAS um JSON válido começado com { e terminando com }. Sem marcação Markdown antes.`
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,12 +28,16 @@ export async function POST(req: NextRequest) {
     const geminiKey = (process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY)?.trim()
     
     const { userData } = await req.json()
-    const { habits = [], tasks = [], goals = [] } = userData || {}
+    const { habits = [], tasks = [], goals = [], events = [], score = null } = userData || {}
 
     const userContext = `
-      HÁBITOS: ${JSON.stringify(habits.map((h: any) => ({ name: h.name, status: h.status, streak: h.streak })))}
-      TAREFAS: ${JSON.stringify(tasks.map((t: any) => ({ title: t.title, status: t.status, priority: t.priority })))}
-      METAS: ${JSON.stringify(goals.map((g: any) => ({ title: g.title, progress: g.progress_pct, target: g.target_value })))}
+      SCORE DIÁRIO DE PERFORMANCE: ${JSON.stringify(score)}
+      HÁBITOS: ${JSON.stringify(habits.map((h: any) => ({ name: h.name, type: h.type, status: h.status, streak: h.streak, linked_goal_id: h.linked_goal_id })))}
+      TAREFAS: ${JSON.stringify(tasks.map((t: any) => ({ title: t.title, status: t.status, priority: t.priority, done: t.done })))}
+      COMPROMISSOS: ${JSON.stringify(events.map((e: any) => ({ title: e.title, status: e.status, time: e.time })))}
+      METAS VINCULADAS: ${JSON.stringify(goals.map((g: any) => ({ id: g.id, title: g.title, progress: g.progress_pct, target: g.target_value })))}
+      
+      Gere 2 ou 3 insights incisivos cruzando esses dados.
     `
 
     // 1. Tentar com GROQ

@@ -54,8 +54,8 @@ function TaskItem({
       onContextMenu?.()
     },
     () => {
-      if (isSelectionMode && onSelect) {
-        onSelect()
+      if (isSelectionMode) {
+        onSelect?.()
       }
     },
     { delay: 500 }
@@ -110,6 +110,15 @@ function TaskItem({
             <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
           )}
         </motion.div>
+      )}
+
+      {isSelectionMode && (
+         <div className={cn(
+            "w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
+            isSelected ? "border-red-600 bg-red-600" : "border-white/10 bg-white/5"
+         )}>
+          {isSelected && <Check size={16} className="text-white" strokeWidth={3} />}
+        </div>
       )}
 
       {/* Info */}

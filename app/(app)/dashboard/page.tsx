@@ -12,6 +12,7 @@ import ScoreWidget from '@/components/dashboard/ScoreWidget'
 import AIInsightBanner from '@/components/dashboard/AIInsightBanner'
 import { useHabitsToday, useLogHabit, useDeleteHabit } from '@/lib/hooks/useHabits'
 import { useTasksToday, useUpdateTask, useAddTask, useDeleteTask } from '@/lib/hooks/useTasks'
+import { useGoals } from '@/lib/hooks/useGoals'
 import { RealTimeClock } from '@/components/dashboard/RealTimeClock'
 import { useEventsToday, useLogEvent, useUpdateEvent, useDeleteEvent } from '@/lib/hooks/useEvents'
 import { HabitStatus, Habit, Task, CalendarEvent, TaskStatus } from '@/types'
@@ -163,28 +164,35 @@ export default function DashboardPage() {
     if (items.length > 0) setIsSelectionMode(true)
   }
 
-  const handleBulkDelete = async () => {
-    if (confirm(`Excluir ${selectedItems.length} itens selecionados?`)) {
-      setLoading(true)
-      try {
-        const promises = selectedItems.map(item => {
-          if (item.type === 'task') return deleteTask(item.id)
-          if (item.type === 'habit') return deleteHabit(item.id)
-          if (item.type === 'event') return deleteEvent(item.id)
-          return Promise.resolve()
-        })
-        
-        await Promise.all(promises)
-        
-        setSelectedItems([])
-        setIsSelectionMode(false)
-        setToast('Itens excluídos com sucesso!')
-      } catch (err) {
-        console.error('Bulk delete error:', err)
-        setToast('Erro ao excluir itens.')
-      } finally {
-        setLoading(false)
-      }
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false)
+
+  const confirmBulkDelete = async () => {
+    setIsBulkDeleteModalOpen(false)
+    setLoading(true)
+    try {
+      const promises = selectedItems.map(item => {
+        if (item.type === 'task') return deleteTask(item.id)
+        if (item.type === 'habit') return deleteHabit(item.id)
+        if (item.type === 'event') return deleteEvent(item.id)
+        return Promise.resolve()
+      })
+      
+      await Promise.all(promises)
+      
+      setSelectedItems([])
+      setIsSelectionMode(false)
+      setToast('Itens excluídos com sucesso!')
+    } catch (err) {
+      console.error('Bulk delete error:', err)
+      setToast('Erro ao excluir itens.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedItems.length > 0) {
+      setIsBulkDeleteModalOpen(true)
     }
   }
 
@@ -200,6 +208,9 @@ export default function DashboardPage() {
   const habits = useMemo(() => habitsData || [], [habitsData])
   const tasks = useMemo(() => tasksData || [], [tasksData])
   const todayEvents = useMemo(() => eventsToday || [], [eventsToday])
+  
+  const { data: allGoals, isLoading: loadingGoals } = useGoals()
+  const goals = useMemo(() => allGoals || [], [allGoals])
 
   // Gera strip de 7 dias com base no offset
   const weekStart = useMemo(() => {
@@ -608,7 +619,13 @@ export default function DashboardPage() {
 
         <SeedData />
 
-        <AIInsightBanner habits={habits} tasks={tasks} />
+        <AIInsightBanner 
+          habits={habits} 
+          tasks={tasks} 
+          events={todayEvents} 
+          goals={goals} 
+          score={score} 
+        />
       </main>
 
       <AnimatePresence>
@@ -702,6 +719,46 @@ export default function DashboardPage() {
             options={activeBubble.options}
             position={activeBubble.position}
           />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {isBulkDeleteModalOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsBulkDeleteModalOpen(false)}
+              className="fixed inset-0 z-[1001] bg-black/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1002] w-full max-w-sm bg-[#111] border border-white/10 rounded-[32px] p-8 shadow-2xl"
+            >
+              <div className="w-16 h-16 rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-6 mx-auto text-red-500">
+                <Trash2 size={24} />
+              </div>
+              <h3 className="text-xl font-black text-white text-center mb-2 tracking-tight">Excluir {selectedItems.length} itens?</h3>
+              <p className="text-sm font-medium text-white/40 text-center mb-8">Essa ação não pode ser desfeita. Todos os dados associados a essas tarefas ou hábitos serão apagados permanentemente.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsBulkDeleteModalOpen(false)}
+                  className="flex-1 px-4 py-3 rounded-2xl bg-white/5 border border-white/5 text-white/70 hover:bg-white/10 hover:text-white text-sm font-bold transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmBulkDelete}
+                  disabled={loading}
+                  className="flex-1 px-4 py-3 rounded-2xl bg-red-600 border border-red-500 text-white hover:bg-red-500 text-sm font-bold transition-all flex items-center justify-center gap-2"
+                >
+                  {loading ? <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : 'Confirmar'}
+                </button>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
