@@ -77,13 +77,7 @@ function HabitGridItem({
         isSelected ? "border-red-500/50 bg-red-500/[0.08] ring-1 ring-red-500/20 shadow-[0_0_20px_rgba(224,32,32,0.1)]" : "border-white/10"
       )}
     >
-      {isSelected && (
-        <div className="absolute top-6 right-6 z-20" onClick={e => e.stopPropagation()}>
-          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center shadow-lg">
-            <Check size={14} className="text-white" strokeWidth={4} />
-          </div>
-        </div>
-      )}
+
 
       <div className="relative z-10 flex justify-between items-start">
         <div className="flex items-center gap-4">
@@ -104,6 +98,9 @@ function HabitGridItem({
               e.stopPropagation()
               onDelete(habit.id)
             }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
             className="p-2 text-white/5 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
           >
             <Trash2 size={18} />
@@ -304,9 +301,15 @@ export default function HabitsPage() {
   }
 
   const toggleSelection = (id: string) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    )
+    setSelectedIds(prev => {
+      const isSelected = prev.includes(id)
+      const next = isSelected 
+        ? prev.filter(i => i !== id) 
+        : [...prev, id]
+      
+      if (next.length === 0) setIsSelectionMode(false)
+      return next
+    })
   }
 
   const handleBulkDelete = () => {

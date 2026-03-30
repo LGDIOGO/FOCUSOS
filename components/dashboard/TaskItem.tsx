@@ -88,15 +88,6 @@ function TaskItem({
         isSelected && 'border-red-600/50 bg-red-600/[0.08] ring-1 ring-red-600/20 shadow-[0_0_20px_rgba(224,32,32,0.1)]'
       )}
     >
-      {isSelected && (
-        <motion.div 
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          className="absolute top-3 right-3 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center z-10 shadow-lg"
-        >
-          <Check size={12} className="text-white" strokeWidth={4} />
-        </motion.div>
-      )}
       {!isSelectionMode && (
         <motion.div
           whileHover={{ scale: 1.1 }}

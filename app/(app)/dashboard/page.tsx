@@ -32,7 +32,7 @@ import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
 // ─── Utilidades ─────────────────────────────────────────────
 const CYCLE: HabitStatus[] = ['none', 'done', 'partial', 'failed']
 
-function calcScore(habits: Habit[], tasks: Task[]) {
+function calcScore(habits: Habit[], tasks: Task[], events: CalendarEvent[]) {
   const done    = habits.filter((h: Habit) => h.status === 'done').length
   const partial = habits.filter((h: Habit) => h.status === 'partial').length
   const total   = habits.length
@@ -41,11 +41,16 @@ function calcScore(habits: Habit[], tasks: Task[]) {
   
   const tasksDone = tasks.filter(t => t.done).length
   const taskPct   = tasks.length > 0 ? Math.round(tasksDone / tasks.length * 100) : 0
+
+  const eventsDone = events.filter(e => e.status === 'done').length
+  const eventsPartial = events.filter(e => e.status === 'partial').length
+  const eventPct  = events.length > 0 ? Math.round((eventsDone + eventsPartial * 0.5) / events.length * 100) : 0
   
   return { 
     habitPct, 
-    taskPct, 
-    combined: Math.round((habitPct + taskPct) / 2), 
+    taskPct,
+    eventPct,
+    combined: Math.round((habitPct + taskPct + eventPct) / ( (total > 0 ? 1 : 0) + (tasks.length > 0 ? 1 : 0) + (events.length > 0 ? 1 : 0) || 1 )), 
     done, 
     partial, 
     total, 
@@ -72,7 +77,6 @@ function getSectionLabel(baseTitle: string, date: Date) {
 
 export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date())
-  const [view, setView] = useState<'today' | 'summary'>('today')
 
   // Evitar hydration mismatch forçando a data a ser recalculada no cliente
   useEffect(() => {
@@ -127,11 +131,15 @@ export default function DashboardPage() {
   ];
 
   const toggleSelection = (id: string, type: 'habit' | 'task' | 'event') => {
-    setSelectedItems(prev => 
-      prev.some(item => item.id === id) 
+    setSelectedItems(prev => {
+      const isSelected = prev.some(item => item.id === id)
+      const next = isSelected 
         ? prev.filter(item => item.id !== id) 
         : [...prev, { id, type }]
-    )
+      
+      if (next.length === 0) setIsSelectionMode(false)
+      return next
+    })
   }
 
   const handleSelectGroup = (type: 'all' | 'positive' | 'negative' | 'events' | 'tasks') => {
@@ -200,7 +208,7 @@ export default function DashboardPage() {
   }, [weekOffset])
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
-  const score = useMemo(() => calcScore(habits, tasks), [habits, tasks])
+  const score = useMemo(() => calcScore(habits, tasks, todayEvents), [habits, tasks, todayEvents])
 
   // Toast com auto-dismiss
   useEffect(() => {
@@ -333,27 +341,7 @@ export default function DashboardPage() {
 
       <main className="px-6 md:px-10 lg:px-14 space-y-6 pt-0 pb-12 max-w-[1600px] mx-auto">
 
-        {/* ─── Tab Switcher ─── */}
-        <div className="flex gap-2 p-1.5 bg-white/5 rounded-2xl w-fit mx-auto md:mx-0">
-          <button 
-            onClick={() => setView('today')}
-            className={cn(
-              "px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all",
-              view === 'today' ? "bg-white text-black shadow-lg" : "text-white/40 hover:text-white"
-            )}
-          >
-            Foco
-          </button>
-          <button 
-            onClick={() => setView('summary')}
-            className={cn(
-              "px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all",
-              view === 'summary' ? "bg-white text-black shadow-lg" : "text-white/40 hover:text-white"
-            )}
-          >
-            Resumo & Metas
-          </button>
-        </div>
+
 
         {/* ─── Week Strip ─── */}
         <section>
@@ -430,123 +418,83 @@ export default function DashboardPage() {
         {/* ─── Score Cards ─── */}
         <ScoreWidget score={score} selectedDate={selectedDate} />
 
-        <AnimatePresence mode="wait">
-          {view === 'today' ? (
-            <motion.div 
-              key="today"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              className="space-y-10 max-w-[1600px] mx-auto w-full"
-            >
-              {/* ─── Today's Agenda ─── */}
-              <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                   <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
-                      <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">{getSectionLabel('Compromissos', selectedDate)}</p>
-                      <div className="flex items-center gap-3">
-                        <Link href="/dashboard/agenda?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
-                          <Plus size={14} />
-                        </Link>
-                        <Link href="/dashboard/agenda" className="text-sm text-white/60 hover:text-white flex items-center gap-0.5 transition-colors">
-                          Ver todos <ChevronRight size={12} />
-                        </Link>
-                      </div>
-                   </div>
-                   <div className="flex flex-col gap-2">
-                      {todayEvents.map(event => (
-                        <AgendaItem 
-                          key={event.id} 
-                          event={event} 
-                          onStatusChange={status => setEventStatus(event.id, status)}
-                          onReschedule={() => {
-                            setEventToReschedule(event)
-                            setIsRescheduleOpen(true)
-                          }}
-                          isSelectionMode={isSelectionMode}
-                          isSelected={selectedItems.some(item => item.id === event.id)}
-                          onSelect={() => toggleSelection(event.id, 'event')}
-                          onContextMenu={() => {
-                            setIsSelectionMode(true)
-                            toggleSelection(event.id, 'event')
-                          }}
-                          onOpenBubble={(position) => setActiveBubble({
-                            id: event.id,
-                            position,
-                            options: AGENDA_OPTIONS,
-                            onSelect: (status) => {
-                              if (status === 'reschedule') {
-                                setEventToReschedule(event)
-                                setIsRescheduleOpen(true)
-                              } else {
-                                setEventStatus(event.id, status)
-                              }
-                              setActiveBubble(null)
-                            }
-                          })}
-                        />
-                      ))}
-                       {todayEvents.length === 0 && (
-                         <p className="text-sm text-white/30 italic px-4 py-2">Nenhum compromisso para {getDateLabel(selectedDate).toLowerCase()}.</p>
-                       )}
+          <div className="space-y-10 max-w-[1600px] mx-auto w-full">
+            {/* ─── Today's Agenda ─── */}
+            <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                 <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
+                    <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">{getSectionLabel('Compromissos', selectedDate)}</p>
+                    <div className="flex items-center gap-3">
+                      <Link href="/dashboard/agenda?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
+                        <Plus size={14} />
+                      </Link>
+                      <Link href="/dashboard/agenda" className="text-sm text-white/60 hover:text-white flex items-center gap-0.5 transition-colors">
+                        Ver todos <ChevronRight size={12} />
+                      </Link>
                     </div>
-                 </section>
-
-              {/* ─── Positive Habits ─── */}
-              <section>
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Hábitos positivos</p>
-                  <div className="flex items-center gap-3">
-                    <Link href="/dashboard/habits?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
-                      <Plus size={14} />
-                    </Link>
-                    <Link href="/dashboard/habits" className="text-sm text-white/60 hover:text-white flex items-center gap-0.5 transition-colors">
-                      Ver todos <ChevronRight size={12} />
-                    </Link>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                    {positive.map((h: Habit) => (
-                      <HabitCard 
-                        key={h.id} 
-                        habit={h} 
-                        onStatusChange={status => setHabitStatus(h.id, status)}
+                 </div>
+                 <div className="flex flex-col gap-2">
+                    {todayEvents.map(event => (
+                      <AgendaItem 
+                        key={event.id} 
+                        event={event} 
+                        onStatusChange={status => setEventStatus(event.id, status)}
+                        onReschedule={() => {
+                          setEventToReschedule(event)
+                          setIsRescheduleOpen(true)
+                        }}
                         isSelectionMode={isSelectionMode}
-                        isSelected={selectedItems.some(item => item.id === h.id)}
-                        onSelect={() => toggleSelection(h.id, 'habit')}
+                        isSelected={selectedItems.some(item => item.id === event.id)}
+                        onSelect={() => toggleSelection(event.id, 'event')}
+                        onEdit={() => window.location.href = `/dashboard/agenda?edit=${event.id}`}
                         onContextMenu={() => {
                           setIsSelectionMode(true)
-                          toggleSelection(h.id, 'habit')
+                          toggleSelection(event.id, 'event')
                         }}
                         onOpenBubble={(position) => setActiveBubble({
-                          id: h.id,
+                          id: event.id,
                           position,
-                          options: HABIT_OPTIONS,
+                          options: AGENDA_OPTIONS,
                           onSelect: (status) => {
-                            setHabitStatus(h.id, status)
+                            if (status === 'reschedule') {
+                              setEventToReschedule(event)
+                              setIsRescheduleOpen(true)
+                            } else {
+                              setEventStatus(event.id, status)
+                            }
                             setActiveBubble(null)
                           }
                         })}
                       />
                     ))}
-                </div>
-              </section>
+                     {todayEvents.length === 0 && (
+                       <p className="text-sm text-white/30 italic px-4 py-2">Nenhum compromisso para {getDateLabel(selectedDate).toLowerCase()}.</p>
+                     )}
+                  </div>
+               </section>
 
-              {/* ─── Negative Habits ─── */}
-              <section>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#b80000]" />
-                  <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[#b80000]">Hábitos a evitar</p>
+            {/* ─── Positive Habits ─── */}
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Hábitos positivos</p>
+                <div className="flex items-center gap-3">
+                  <Link href="/dashboard/habits?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
+                    <Plus size={14} />
+                  </Link>
+                  <Link href="/dashboard/habits" className="text-sm text-white/60 hover:text-white flex items-center gap-0.5 transition-colors">
+                    Ver todos <ChevronRight size={12} />
+                  </Link>
                 </div>
-                <div className="flex flex-col gap-2">
-                  {negative.map((h: Habit) => (
+              </div>
+              <div className="flex flex-col gap-2">
+                  {positive.map((h: Habit) => (
                     <HabitCard 
                       key={h.id} 
                       habit={h} 
-                      onStatusChange={status => setHabitStatus(h.id, status)} 
-                      isNegative 
+                      onStatusChange={status => setHabitStatus(h.id, status)}
                       isSelectionMode={isSelectionMode}
                       isSelected={selectedItems.some(item => item.id === h.id)}
                       onSelect={() => toggleSelection(h.id, 'habit')}
+                      onEdit={() => window.location.href = `/dashboard/habits?edit=${h.id}`}
                       onContextMenu={() => {
                         setIsSelectionMode(true)
                         toggleSelection(h.id, 'habit')
@@ -562,223 +510,99 @@ export default function DashboardPage() {
                       })}
                     />
                   ))}
-                </div>
-              </section>
+              </div>
+            </section>
 
-              {/* ─── Tasks ─── */}
-              <section>
-                <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
-                  <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">{getSectionLabel('Rascunho', selectedDate)}</p>
-                  <span className="text-[13px] text-white/50">{score.tasksDone}/{score.tasksTotal} concluídas</span>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <form onSubmit={handleQuickAddTask} className="mb-2 relative group">
-                    <input 
-                      type="text"
-                      placeholder="Adicionar tarefa rápida..."
-                      value={newTaskTitle}
-                      onChange={(e) => setNewTaskTitle(e.target.value)}
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-white/20 focus:bg-white/[0.05] transition-all placeholder:text-white/20 pr-12 group-hover:border-white/10"
-                    />
-                    <button 
-                      type="submit"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white text-white hover:text-black transition-all active:scale-90"
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </form>
-                   {tasks.map((t: Task) => (
-                    <TaskItem 
-                      key={t.id} 
-                      task={t} 
-                      onToggle={() => toggleTask(t.id, t.done)}
-                      onStatusChange={(status) => {
-                        // Se o status for 'done', toggleTask(true). Se for todo, toggleTask(false).
-                        // Se for partial/failed, atualizamos o status no firebase.
+            {/* ─── Negative Habits ─── */}
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#b80000]" />
+                <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[#b80000]">Hábitos a evitar</p>
+              </div>
+              <div className="flex flex-col gap-2">
+                {negative.map((h: Habit) => (
+                  <HabitCard 
+                    key={h.id} 
+                    habit={h} 
+                    onStatusChange={status => setHabitStatus(h.id, status)} 
+                    isNegative 
+                    isSelectionMode={isSelectionMode}
+                    isSelected={selectedItems.some(item => item.id === h.id)}
+                    onSelect={() => toggleSelection(h.id, 'habit')}
+                    onEdit={() => window.location.href = `/dashboard/habits?edit=${h.id}`}
+                    onContextMenu={() => {
+                      setIsSelectionMode(true)
+                      toggleSelection(h.id, 'habit')
+                    }}
+                    onOpenBubble={(position) => setActiveBubble({
+                      id: h.id,
+                      position,
+                      options: HABIT_OPTIONS,
+                      onSelect: (status) => {
+                        setHabitStatus(h.id, status)
+                        setActiveBubble(null)
+                      }
+                    })}
+                  />
+                ))}
+              </div>
+            </section>
+
+            {/* ─── Tasks ─── */}
+            <section>
+              <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
+                <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">{getSectionLabel('Rascunho', selectedDate)}</p>
+                <span className="text-[13px] text-white/50">{score.tasksDone}/{score.tasksTotal} concluídas</span>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <form onSubmit={handleQuickAddTask} className="mb-2 relative group">
+                  <input 
+                    type="text"
+                    placeholder="Adicionar tarefa rápida..."
+                    value={newTaskTitle}
+                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-white/20 focus:bg-white/[0.05] transition-all placeholder:text-white/20 pr-12 group-hover:border-white/10"
+                  />
+                  <button 
+                    type="submit"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white text-white hover:text-black transition-all active:scale-90"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </form>
+                 {tasks.map((t: Task) => (
+                  <TaskItem 
+                    key={t.id} 
+                    task={t} 
+                    onToggle={() => toggleTask(t.id, t.done)}
+                    onStatusChange={(status) => {
+                      if (status === 'done') toggleTask(t.id, false)
+                      else if (status === 'todo') toggleTask(t.id, true)
+                      else updateTaskStatus(t.id, status)
+                    }}
+                    isSelectionMode={isSelectionMode}
+                    isSelected={selectedItems.some(item => item.id === t.id)}
+                    onSelect={() => toggleSelection(t.id, 'task')}
+                    onContextMenu={() => {
+                      setIsSelectionMode(true)
+                      toggleSelection(t.id, 'task')
+                    }}
+                    onOpenBubble={(position) => setActiveBubble({
+                      id: t.id,
+                      position,
+                      options: TASK_OPTIONS,
+                      onSelect: (status) => {
                         if (status === 'done') toggleTask(t.id, false)
                         else if (status === 'todo') toggleTask(t.id, true)
                         else updateTaskStatus(t.id, status)
-                      }}
-                      isSelectionMode={isSelectionMode}
-                      isSelected={selectedItems.some(item => item.id === t.id)}
-                      onSelect={() => toggleSelection(t.id, 'task')}
-                      onContextMenu={() => {
-                        setIsSelectionMode(true)
-                        toggleSelection(t.id, 'task')
-                      }}
-                      onOpenBubble={(position) => setActiveBubble({
-                        id: t.id,
-                        position,
-                        options: TASK_OPTIONS,
-                        onSelect: (status) => {
-                          if (status === 'done') toggleTask(t.id, false)
-                          else if (status === 'todo') toggleTask(t.id, true)
-                          else updateTaskStatus(t.id, status)
-                          setActiveBubble(null)
-                        }
-                      })}
-                    />
-                  ))}
-                </div>
-              </section>
-            </motion.div>
-          ) : (
-            <motion.div 
-              key="summary"
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              className="space-y-10 max-w-[1600px] mx-auto w-full"
-            >
-              <div className="bg-white/[0.02] border border-white/[0.05] rounded-[32px] p-8">
-                 <h2 className="text-2xl font-black tracking-tight mb-6">Performance & Metas</h2>
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-                    {[
-                      { label: 'Hábitos do Dia', val: score.habitPct, color: 'text-red-600' },
-                      { label: 'Compromissos do Dia', val: score.taskPct, color: 'text-green-500' },
-                      { label: 'Consistência Semanal', val: 88, color: 'text-amber-500' },
-                      { label: 'Score Global', val: score.combined, color: 'text-white' },
-                    ].map(stat => (
-                      <div key={stat.label} className="bg-white/5 border border-white/5 p-6 rounded-3xl">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">{stat.label}</p>
-                        <p className={cn("text-3xl font-black", stat.color)}>{stat.val}%</p>
-                      </div>
-                    ))}
-                 </div>
-                 
-                 <div className="flex flex-col gap-4">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-white/40">Gerenciamento Rápido (Resumo)</p>
-                    {/* Aqui listamos abreviado para seleção em massa */}
-                    <div className="flex flex-wrap gap-2">
-                       <button onClick={() => handleSelectGroup('all')} className="px-6 py-3 bg-white/5 border border-white/5 rounded-2xl hover:bg-white hover:text-black text-[11px] font-black uppercase tracking-widest transition-all">Tudo</button>
-                       <button onClick={() => handleSelectGroup('positive')} className="px-6 py-3 bg-red-600/10 border border-red-600/10 rounded-2xl hover:bg-red-600 text-white text-[11px] font-black uppercase tracking-widest transition-all">Hábitos 👆</button>
-                       <button onClick={() => handleSelectGroup('negative')} className="px-6 py-3 bg-red-500/20 border border-red-500/20 rounded-2xl hover:bg-red-500 text-white text-[11px] font-black uppercase tracking-widest transition-all">Evitar 🔴</button>
-                       <button onClick={() => handleSelectGroup('events')} className="px-6 py-3 bg-red-400/20 border border-red-400/20 rounded-2xl hover:bg-red-400 text-white text-[11px] font-black uppercase tracking-widest transition-all">Compromissos 📅</button>
-                    </div>
-
-                    <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-8 pb-10">
-                        {/* Lista de Hábitos */}
-                        <div className="space-y-4">
-                           <div className="flex items-center justify-between px-4">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Meus Hábitos</p>
-                              <span className="text-[10px] font-black text-white/10 uppercase tracking-widest">{habits.length} Itens</span>
-                           </div>
-                           <div className="space-y-3">
-                              {habits.map(h => (
-                                <HabitCard 
-                                  key={h.id}
-                                  habit={h}
-                                  onStatusChange={(status) => setHabitStatus(h.id, status)}
-                                  isNegative={h.type === 'negative'}
-                                  isSelectionMode={isSelectionMode}
-                                  isSelected={selectedItems.some(item => item.id === h.id)}
-                                  onSelect={() => toggleSelection(h.id, 'habit')}
-                                  onContextMenu={() => {
-                                    setIsSelectionMode(true)
-                                    toggleSelection(h.id, 'habit')
-                                  }}
-                                  onOpenBubble={(position) => setActiveBubble({
-                                    id: h.id,
-                                    position,
-                                    options: HABIT_OPTIONS,
-                                    onSelect: (status) => {
-                                      setHabitStatus(h.id, status)
-                                      setActiveBubble(null)
-                                    }
-                                  })}
-                                />
-                              ))}
-                           </div>
-                        </div>
-
-                        {/* Agenda e Tarefas lateral */}
-                        <div className="space-y-12">
-                           <div className="space-y-4">
-                              <div className="flex items-center justify-between px-4">
-                                 <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Agenda do Dia</p>
-                                 <span className="text-[10px] font-black text-white/10 uppercase tracking-widest">{todayEvents.length} Eventos</span>
-                              </div>
-                              <div className="space-y-3">
-                                 {todayEvents.map(event => (
-                                   <AgendaItem 
-                                     key={event.id}
-                                     event={event} 
-                                     onStatusChange={status => setEventStatus(event.id, status)}
-                                     onReschedule={() => {
-                                       setEventToReschedule(event)
-                                       setIsRescheduleOpen(true)
-                                     }}
-                                     isSelectionMode={isSelectionMode}
-                                     isSelected={selectedItems.some(item => item.id === event.id)}
-                                     onSelect={() => toggleSelection(event.id, 'event')}
-                                     onContextMenu={() => {
-                                       setIsSelectionMode(true)
-                                       toggleSelection(event.id, 'event')
-                                     }}
-                                      onOpenBubble={(position) => setActiveBubble({
-                                        id: event.id,
-                                        position,
-                                        options: AGENDA_OPTIONS,
-                                        onSelect: (status) => {
-                                          if (status === 'reschedule') {
-                                            setEventToReschedule(event)
-                                            setIsRescheduleOpen(true)
-                                          } else {
-                                            setEventStatus(event.id, status as any)
-                                          }
-                                          setActiveBubble(null)
-                                        }
-                                      })}
-                                   />
-                                 ))}
-                              </div>
-                           </div>
-
-                           <div className="space-y-4">
-                              <div className="flex items-center justify-between px-4">
-                                 <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Rascunhos (Tarefas)</p>
-                                 <span className="text-[10px] font-black text-white/10 uppercase tracking-widest">{tasks.length} Notas</span>
-                              </div>
-                              <div className="space-y-3">
-                                 {tasks.map(t => (
-                                   <TaskItem 
-                                     key={t.id}
-                                     task={t} 
-                                     onToggle={() => toggleTask(t.id, t.done)}
-                                     onStatusChange={(status) => {
-                                       if (status === 'done') toggleTask(t.id, false)
-                                       else if (status === 'todo') toggleTask(t.id, true)
-                                       else updateTaskStatus(t.id, status)
-                                     }}
-                                     isSelectionMode={isSelectionMode}
-                                     isSelected={selectedItems.some(item => item.id === t.id)}
-                                     onSelect={() => toggleSelection(t.id, 'task')}
-                                     onContextMenu={() => {
-                                       setIsSelectionMode(true)
-                                       toggleSelection(t.id, 'task')
-                                     }}
-                                      onOpenBubble={(position) => setActiveBubble({
-                                        id: t.id,
-                                        position,
-                                        options: TASK_OPTIONS,
-                                        onSelect: (status) => {
-                                          if (status === 'done') toggleTask(t.id, false)
-                                          else if (status === 'todo') toggleTask(t.id, true)
-                                          else updateTaskStatus(t.id, status)
-                                          setActiveBubble(null)
-                                        }
-                                      })}
-                                   />
-                                 ))}
-                              </div>
-                           </div>
-                        </div>
-                    </div>
-                 </div>
+                        setActiveBubble(null)
+                      }
+                    })}
+                  />
+                ))}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </section>
+          </div>
 
         {/* ─── AI Insight ─── */}
 
@@ -793,16 +617,16 @@ export default function DashboardPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[32px] px-8 py-5 flex items-center gap-8 shadow-2xl"
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/90 backdrop-blur-3xl border border-white/10 rounded-[40px] px-10 py-5 flex items-center gap-10 shadow-2xl ring-1 ring-white/5"
           >
-            <div className="text-sm font-black uppercase tracking-widest text-white/60 text-center flex flex-col items-center">
-              <span className="text-2xl text-white">{selectedItems.length}</span>
-              <span className="text-[9px]">Selecionados</span>
+            <div className="flex flex-col items-center justify-center min-w-[80px]">
+              <span className="text-3xl font-black text-white leading-none">{selectedItems.length}</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">Itens</span>
             </div>
 
-            <div className="h-10 w-px bg-white/10" />
+            <div className="h-12 w-px bg-white/10" />
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               {[
                 { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
                 { label: 'Positivos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
@@ -813,30 +637,32 @@ export default function DashboardPage() {
                 <button 
                   key={btn.label}
                   onClick={btn.onClick}
-                  className="flex flex-col items-center gap-1.5 text-white/40 hover:text-white transition-all group/sel"
+                  className="relative flex flex-col items-center group/sel"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all">
-                    <btn.icon size={18} />
+                  <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all duration-300">
+                    <btn.icon size={20} />
                   </div>
-                  <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/sel:opacity-60 transition-opacity">
+                  <span className="absolute -bottom-6 text-[8px] font-black uppercase tracking-widest text-white opacity-0 group-hover/sel:opacity-40 transition-all pointer-events-none whitespace-nowrap">
                     {btn.label}
                   </span>
                 </button>
               ))}
             </div>
 
-            <div className="h-10 w-px bg-white/10" />
+            <div className="h-12 w-px bg-white/10" />
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <button 
                 onClick={handleBulkDelete}
                 disabled={selectedItems.length === 0 || loading}
-                className="flex flex-col items-center gap-1.5 text-red-500/40 hover:text-red-500 transition-all disabled:opacity-5 group/del"
+                className="relative flex flex-col items-center group/del disabled:opacity-20"
               >
-                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all">
-                  {loading ? <div className="w-4 h-4 border-2 border-red-500 border-t-white rounded-full animate-spin" /> : <Trash2 size={18} />}
+                <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all duration-300 text-red-500">
+                  {loading ? <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Trash2 size={20} />}
                 </div>
-                <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/del:opacity-60 transition-opacity">Excluir</span>
+                <span className="absolute -bottom-6 text-[8px] font-black uppercase tracking-widest text-red-500 opacity-0 group-hover/del:opacity-40 transition-all pointer-events-none whitespace-nowrap">
+                  Excluir
+                </span>
               </button>
               
               <button 
@@ -844,7 +670,7 @@ export default function DashboardPage() {
                   setIsSelectionMode(false)
                   setSelectedItems([])
                 }}
-                className="bg-white/10 hover:bg-white text-white hover:text-black px-8 py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all"
+                className="h-12 px-10 bg-white/10 hover:bg-white text-white hover:text-black rounded-2xl font-black uppercase tracking-[0.15em] text-[11px] transition-all duration-300 whitespace-nowrap"
               >
                 Cancelar
               </button>

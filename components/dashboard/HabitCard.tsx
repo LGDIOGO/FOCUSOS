@@ -1,6 +1,6 @@
 import { useState, memo } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Minus, X, Zap, ShieldAlert, Circle } from 'lucide-react'
+import { Check, Minus, X, Zap, ShieldAlert, Circle, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Habit, HabitStatus } from '@/types'
 import { useLongPress } from '@/lib/hooks/useLongPress'
@@ -15,6 +15,7 @@ interface HabitCardProps {
   onSelect?: () => void
   onContextMenu?: () => void
   onOpenBubble?: (pos: { x: number; y: number }) => void
+  onEdit?: () => void
 }
 
 // ─── Mapeamento de status → estilos ──────────────────────────
@@ -65,7 +66,8 @@ export function HabitCard({
   isSelected,
   onSelect,
   onContextMenu,
-  onOpenBubble
+  onOpenBubble,
+  onEdit
 }: HabitCardProps) {
   const currentStatus = habit.status || 'none'
   const cfg = (STATUS_CONFIG as any)[currentStatus] || STATUS_CONFIG.none
@@ -120,22 +122,13 @@ export function HabitCard({
         isSelected && "border-red-600/50 bg-red-600/[0.08] ring-1 ring-red-600/20 shadow-[0_0_20px_rgba(224,32,32,0.1)]"
       )}
     >
-      {isSelected && (
-        <motion.div 
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          onClick={e => e.stopPropagation()}
-          className="absolute top-3 right-3 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center z-10 shadow-lg"
-        >
-          <Check size={12} className="text-white" strokeWidth={4} />
-        </motion.div>
-      )}
 
       {/* Status Trigger (Círculo lateral) */}
-      {!isSelectionMode && (
+      {!isSelectionMode && !isSelected && (
         <motion.div
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
+          onClick={handleStatusClick}
           className={cn(
             "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
             currentStatus === 'none' ? "border-white/10 bg-white/5" : cfg.btn
@@ -181,20 +174,34 @@ export function HabitCard({
       </div>
 
       {/* Status Label (Right aligned) */}
-      {habit.status !== 'none' && !isSelectionMode && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className={cn(
-            'px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex-shrink-0 border',
-            habit.status === 'done'    && 'text-green-400 border-green-400/20 bg-green-400/5',
-            habit.status === 'partial' && 'text-amber-400 border-amber-400/20 bg-amber-400/5',
-            habit.status === 'failed'  && 'text-[#e02020] border-[#e02020]/20 bg-[#e02020]/5',
-          )}
-        >
-          {cfg.label}
-        </motion.div>
-      )}
+      <div className="flex items-center gap-2">
+        {!isSelectionMode && !isSelected && (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit?.()
+            }}
+            className="p-2.5 rounded-xl bg-white/5 border border-white/5 text-white/20 hover:text-white hover:bg-white/10 transition-all active:scale-90"
+            title="Editar Hábito"
+          >
+            <Pencil size={14} />
+          </button>
+        )}
+        {habit.status !== 'none' && !isSelectionMode && !isSelected && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={cn(
+              'px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex-shrink-0 border',
+              habit.status === 'done'    && 'text-green-400 border-green-400/20 bg-green-400/5',
+              habit.status === 'partial' && 'text-amber-400 border-amber-400/20 bg-amber-400/5',
+              habit.status === 'failed'  && 'text-[#e02020] border-[#e02020]/20 bg-[#e02020]/5',
+            )}
+          >
+            {cfg.label}
+          </motion.div>
+        )}
+      </div>
 
       {/* Choice Bubble removed (now managed at root) */}
     </motion.div>

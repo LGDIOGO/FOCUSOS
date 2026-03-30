@@ -366,16 +366,7 @@ export default function AgendaPage() {
                         selectedIds.includes(event.id) ? "border-red-500 bg-red-500/5" : "border-white/10"
                       )}
                     >
-                      {isSelectionMode && (
-                        <div className="absolute top-4 right-4 z-20" onClick={e => e.stopPropagation()}>
-                          <div className={cn(
-                            "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                            selectedIds.includes(event.id) ? "bg-red-500 border-red-500" : "border-white/20"
-                          )}>
-                            {selectedIds.includes(event.id) && <Check size={14} className="text-white" />}
-                          </div>
-                        </div>
-                      )}
+
                       <div 
                         className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-110"
                         style={{ backgroundColor: event.color ? `${event.color}20` : 'rgba(255,255,255,0.05)', color: event.color || '#FFFFFF' }}
@@ -423,6 +414,9 @@ export default function AgendaPage() {
                           if (isSelectionMode) return
                           deleteEvent.mutate(event.id)
                         }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
                         className={cn(
                           "p-3 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100",
                           isSelectionMode ? "hidden" : "text-white/5"

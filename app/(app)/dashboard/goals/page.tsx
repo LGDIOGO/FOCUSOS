@@ -77,13 +77,7 @@ function GoalGridItem({
         (goal.priority === 'high' || goal.priority === 'critical' ? "ring-1 ring-white/5 border-white/10" : "border-white/10")
       )}
     >
-      {isSelected && (
-        <div className="absolute top-8 right-8 z-20">
-          <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-lg">
-            <Check size={14} className="text-white" strokeWidth={4} />
-          </div>
-        </div>
-      )}
+
       {/* Background Glow */}
       <div 
         className="absolute -top-24 -right-24 w-64 h-64 blur-[120px] opacity-10 rounded-full"
@@ -116,6 +110,9 @@ function GoalGridItem({
           {!isSelectionMode && (
             <button 
               onClick={(e) => onDelete(goal.id, e)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
               className="p-3 text-white/5 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
             >
               <Trash2 size={20} />
@@ -222,9 +219,15 @@ export default function GoalsPage() {
   }
 
   const toggleSelection = (id: string) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    )
+    setSelectedIds(prev => {
+      const isSelected = prev.includes(id)
+      const next = isSelected 
+        ? prev.filter(i => i !== id) 
+        : [...prev, id]
+      
+      if (next.length === 0) setIsSelectionMode(false)
+      return next
+    })
   }
 
   const getRemainingDays = (endDate?: string) => {
