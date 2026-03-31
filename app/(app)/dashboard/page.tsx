@@ -31,6 +31,7 @@ import { RescheduleModal } from '@/components/dashboard/RescheduleModal'
 import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
 import { TutorialModal } from '@/components/dashboard/TutorialModal'
 import { calculateProgress } from '@/lib/utils/performance'
+import { usePerformanceMetrics } from '@/lib/hooks/usePerformance'
 
 // ─── Utilidades ─────────────────────────────────────────────
 const CYCLE: HabitStatus[] = ['none', 'done', 'partial', 'failed']
@@ -94,10 +95,12 @@ export default function DashboardPage() {
   const { mutateAsync: deleteHabit } = useDeleteHabit()
   const { mutateAsync: deleteEvent } = useDeleteEvent()
   
-  const [loading, setLoading] = useState(false)
-  
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [weekOffset, setWeekOffset] = useState(0)
+  const [loading, setLoading] = useState(false)
+  
+  const { data: metrics } = usePerformanceMetrics(weekOffset)
+  const dailyScores = metrics?.dailyScores || {}
   const [selectedItems, setSelectedItems] = useState<{ id: string; type: 'habit' | 'task' | 'event' }[]>([])
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [activeBubble, setActiveBubble] = useState<{
@@ -438,7 +441,11 @@ export default function DashboardPage() {
                       ? 'bg-[var(--text-primary)] border-transparent shadow-lg scale-105' 
                       : 'bg-[var(--bg-overlay)] border-[var(--border-subtle)]'
                     }
-                    ${d < new Date() && !isTodayActual ? 'border-green-500/20' : ''}
+                    ${d < new Date() && !isTodayActual 
+                      ? (dailyScores[format(d, 'yyyy-MM-dd')] >= 80 
+                          ? 'border-green-500/30 shadow-[0_0_10px_rgba(34,197,94,0.1)]' 
+                          : 'border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.1)]')
+                      : ''}
                   `}
                 >
                   <span className={`text-[12px] font-semibold uppercase tracking-wide ${isActive ? 'text-[var(--bg-primary)]' : 'text-[var(--text-muted)]'}`}>
