@@ -403,7 +403,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
                   onClick={() => setFormData({ ...formData, priority: p.id })}
                   className={cn(
                     "py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all",
-                    formData.priority === p.id 
+                    String(formData.priority).toLowerCase() === p.id 
                       ? "bg-white text-black border-white shadow-lg shadow-white/10" 
                       : "bg-white/5 text-white/30 border-white/5 hover:bg-white/10"
                   )}

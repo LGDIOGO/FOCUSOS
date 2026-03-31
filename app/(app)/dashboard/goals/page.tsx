@@ -12,6 +12,13 @@ import { differenceInDays, parseISO, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 
+const PRIORITY_MAP: Record<string, string> = {
+  low: 'Baixa',
+  medium: 'Média',
+  high: 'Alta',
+  critical: 'Crítica'
+}
+
 function GoalGridItem({ 
   goal, 
   idx, 
@@ -101,8 +108,8 @@ function GoalGridItem({
               <div className="flex items-center gap-2 text-white/30 text-xs font-black uppercase tracking-widest">
                  <span className={cn(!category?.name && "text-white/20")}>{category?.name || 'Nenhuma'}</span>
                  <span className="w-1 h-1 rounded-full bg-white/10" />
-                 <span style={{ color: goal.priority === 'critical' ? '#FF453A' : goal.priority === 'high' ? '#FF9F0A' : '#FFFFFF' }}>
-                   {goal.priority}
+                 <span style={{ color: String(goal.priority).toLowerCase() === 'critical' ? '#FF453A' : String(goal.priority).toLowerCase() === 'high' ? '#FF9F0A' : '#FFFFFF' }}>
+                   {PRIORITY_MAP[String(goal.priority).toLowerCase() || 'medium'] || goal.priority}
                  </span>
               </div>
             </div>
