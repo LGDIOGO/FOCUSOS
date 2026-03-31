@@ -11,14 +11,16 @@ import {
 
 // ─── Logo Component ────────────────────────────────────────────
 function FocusOSLogo({ size = 32, className = '' }: { size?: number; className?: string }) {
+  const radius = Math.round(size * 0.22)
+  const innerSize = Math.round(size * 0.38)
   return (
     <div 
-      className={`rounded-[${Math.round(size * 0.22)}px] bg-black flex items-center justify-center flex-shrink-0 border border-white/5 ${className}`}
-      style={{ width: size, height: size }}
+      className={`bg-black flex items-center justify-center flex-shrink-0 border border-white/10 ${className}`}
+      style={{ width: size, height: size, borderRadius: radius }}
     >
       <div 
-        className="bg-white rounded-[3px] rotate-45"
-        style={{ width: size * 0.38, height: size * 0.38 }}
+        className="bg-white"
+        style={{ width: innerSize, height: innerSize, borderRadius: 3, transform: 'rotate(45deg)' }}
       />
     </div>
   )
