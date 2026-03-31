@@ -153,6 +153,7 @@ export default function InsightsPage() {
             isOpen={isChatOpen}
             onClose={() => setIsChatOpen(false)}
             initialMessage={initialChatMsg}
+            userData={{ habits, goals, tasks }}
           />
         )}
       </motion.div>

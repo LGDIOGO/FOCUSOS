@@ -30,6 +30,7 @@ import AgendaItem from '@/components/dashboard/AgendaItem'
 import { RescheduleModal } from '@/components/dashboard/RescheduleModal'
 import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
 import { TutorialModal } from '@/components/dashboard/TutorialModal'
+import { calculateProgress } from '@/lib/utils/performance'
 
 // ─── Utilidades ─────────────────────────────────────────────
 const CYCLE: HabitStatus[] = ['none', 'done', 'partial', 'failed']
@@ -39,25 +40,21 @@ function calcScore(habits: Habit[], tasks: Task[], events: CalendarEvent[]) {
   const partial = habits.filter((h: Habit) => h.status === 'partial').length
   const total   = habits.length
   
-  const habitPct  = total > 0 ? Math.round((done + partial * 0.5) / total * 100) : 0
-  
   const tasksDone = tasks.filter(t => t.done).length
-  const taskPct   = tasks.length > 0 ? Math.round(tasksDone / tasks.length * 100) : 0
+  const tasksTotal = tasks.length
 
-  const eventsDone = events.filter(e => e.status === 'done').length
-  const eventsPartial = events.filter(e => e.status === 'partial').length
-  const eventPct  = events.length > 0 ? Math.round((eventsDone + eventsPartial * 0.5) / events.length * 100) : 0
+  const combined = calculateProgress(habits, tasks, events)
   
   return { 
-    habitPct, 
-    taskPct,
-    eventPct,
-    combined: Math.round((habitPct + taskPct + eventPct) / ( (total > 0 ? 1 : 0) + (tasks.length > 0 ? 1 : 0) + (events.length > 0 ? 1 : 0) || 1 )), 
+    habitPct: total > 0 ? Math.round((done + partial * 0.5) / total * 100) : 0, 
+    taskPct: tasksTotal > 0 ? Math.round(tasksDone / tasksTotal * 100) : 0,
+    eventPct: events.length > 0 ? Math.round((events.filter(e => e.status === 'done').length + events.filter(e => e.status === 'partial').length * 0.5) / events.length * 100) : 0,
+    combined, 
     done, 
     partial, 
     total, 
     tasksDone, 
-    tasksTotal: tasks.length 
+    tasksTotal
   }
 }
   
@@ -662,20 +659,19 @@ export default function DashboardPage() {
             <div className="flex items-center gap-6">
               {[
                 { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
-                { label: 'Positivos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
+                { label: 'Compromissos', icon: Calendar, onClick: () => handleSelectGroup('events') },
+                { label: 'Hábitos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
                 { label: 'A Evitar', icon: Target, onClick: () => handleSelectGroup('negative') },
-                { label: 'Agenda', icon: Calendar, onClick: () => handleSelectGroup('events') },
-                { label: 'Rascunho', icon: Clock, onClick: () => handleSelectGroup('tasks') },
               ].map(btn => (
                 <button 
                   key={btn.label}
                   onClick={btn.onClick}
-                  className="relative flex flex-col items-center group/sel"
+                  className="relative flex flex-col items-center group/sel pt-1"
                 >
                   <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all duration-300">
                     <btn.icon size={20} />
                   </div>
-                  <span className="absolute -bottom-6 text-[8px] font-black uppercase tracking-widest text-white opacity-0 group-hover/sel:opacity-40 transition-all pointer-events-none whitespace-nowrap">
+                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap">
                     {btn.label}
                   </span>
                 </button>

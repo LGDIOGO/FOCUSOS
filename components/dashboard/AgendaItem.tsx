@@ -66,11 +66,7 @@ function AgendaItem({
     () => {
       onContextMenu?.()
     },
-    () => {
-      if (isSelectionMode) {
-        onSelect?.()
-      }
-    },
+    () => {}, // Remove o click do longPress para evitar double-toggling
     { delay: 500 }
   )
 
@@ -123,13 +119,10 @@ function AgendaItem({
             onClick={handleStatusClick}
             className={cn(
               "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
-              event.status === 'todo' ? "border-white/10 bg-white/5" : cfg.icon
+              (event.status === 'todo' || !event.status) ? "border-white/10 bg-white/5" : cfg.icon
             )}
           >
-            {event.status === 'done' ? <Check size={18} strokeWidth={3} /> :
-             event.status === 'partial' ? <Minus size={18} strokeWidth={3} /> :
-             event.status === 'failed' ? <X size={18} strokeWidth={3} /> :
-             <Calendar size={18} />}
+            <StatusIcon status={event.status} />
           </motion.div>
         )}
 
@@ -148,9 +141,13 @@ function AgendaItem({
           </h4>
           <div className="flex items-center gap-3 text-xs font-medium text-white/30 uppercase tracking-widest">
             <span className="flex items-center gap-1.5"><Clock size={12} /> {event.time}</span>
-            <span className="bg-white/5 px-2 py-0.5 rounded-md">{event.type}</span>
+            {event.description && (
+              <span className="flex items-center gap-1.5 text-white/40 lowercase italic tracking-normal font-normal truncate">
+                 · {event.description}
+              </span>
+            )}
             {event.status === 'partial' && (
-              <span className="text-amber-400 font-black">REAGENDAR</span>
+              <span className="text-amber-400 font-black ml-2">REAGENDAR</span>
             )}
           </div>
         </div>
@@ -193,9 +190,9 @@ function AgendaItem({
 }
 
 function StatusIcon({ status }: { status: any }) {
-  if (status === 'done')    return <Check size={14} strokeWidth={3} className="text-white" />
-  if (status === 'partial') return <Minus size={14} strokeWidth={3} className="text-white" />
-  if (status === 'failed')  return <X     size={14} strokeWidth={3} className="text-white" />
+  if (status === 'done')    return <Check size={18} strokeWidth={3} className="text-white" />
+  if (status === 'partial') return <Minus size={18} strokeWidth={3} className="text-white" />
+  if (status === 'failed')  return <X     size={18} strokeWidth={3} className="text-white" />
   return null
 }
 

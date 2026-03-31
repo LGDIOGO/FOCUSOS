@@ -67,7 +67,11 @@ export function InsightActionCard({ type, title, body, action, onAction, onDiscu
         <div className="flex-1 space-y-2">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-lg tracking-tight">{title}</h3>
-            <span className="text-[10px] uppercase tracking-widest font-black opacity-30">{getLabel()}</span>
+            <div className="min-w-[120px] h-8 flex items-center justify-center rounded-xl bg-white/[0.02] border border-white/[0.05] group-hover:bg-white/[0.08] group-hover:border-white/10 transition-all duration-300">
+              <span className="text-[10px] uppercase tracking-[0.2em] font-black opacity-30 group-hover:opacity-60 transition-opacity">
+                {getLabel()}
+              </span>
+            </div>
           </div>
           <p className="text-white/60 leading-relaxed text-sm md:text-base pr-4">
             {body}
@@ -94,9 +98,6 @@ export function InsightActionCard({ type, title, body, action, onAction, onDiscu
           </div>
         </div>
       </div>
-      
-      {/* Decorative gradient corner */}
-      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
     </motion.div>
   )
 }

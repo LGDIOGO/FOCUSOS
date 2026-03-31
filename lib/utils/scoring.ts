@@ -23,24 +23,24 @@ export function calcWeekScore(dailyScores: number[]): number {
 
 import { differenceInDays, parseISO } from 'date-fns'
 
-export function getEffectiveStreak(streak: number, lastCompletedDate: string | null | undefined, currentStatus: HabitStatus, todayStr: string): number {
+export function getEffectiveOfensiva(streak: number, lastCompletedDate: string | null | undefined, currentStatus: HabitStatus, todayStr: string): number {
   if (currentStatus === 'failed') return 0;
   if (!lastCompletedDate) return streak || 0;
 
   const diff = differenceInDays(parseISO(todayStr), parseISO(lastCompletedDate));
   
-  // If the last completion was today or yesterday, the streak is still valid.
+  // Se a última conclusão foi hoje ou ontem, a ofensiva ainda é válida.
   if (diff <= 1) {
     return streak || 0;
   }
   
-  // Break streak if not done yesterday.
+  // Quebra a ofensiva se não foi feito ontem.
   return 0;
 }
 
-export function getStreakLabel(days: number): string {
+export function getOfensivaLabel(days: number): string {
   if (days === 0) return 'Comece hoje!'
-  if (days === 1) return '1 dia seguido'
+  if (days === 1) return '1 dia de ofensiva'
   if (days < 7)  return `${days} dias seguidos`
   if (days < 30) return `${days} dias 🔥`
   return `${days} dias 🏆`

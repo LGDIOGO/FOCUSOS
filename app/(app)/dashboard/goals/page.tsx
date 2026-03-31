@@ -49,13 +49,7 @@ function GoalGridItem({
       setIsSelectionMode(true)
       onToggleSelection(goal.id)
     },
-    () => {
-      if (isSelectionMode) {
-        onToggleSelection(goal.id)
-      } else {
-        onOpenEdit(goal)
-      }
-    },
+    () => {}, // Evitar double-toggling
     { delay: 500 }
   )
 
@@ -398,46 +392,48 @@ export default function GoalsPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[32px] px-8 py-5 flex items-center gap-8 shadow-2xl"
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/90 backdrop-blur-3xl border border-white/10 rounded-[40px] px-10 py-5 flex items-center gap-10 shadow-2xl ring-1 ring-white/5"
           >
-            <div className="text-sm font-black uppercase tracking-widest text-white/60 text-center flex flex-col items-center">
-              <span className="text-2xl text-white">{selectedIds.length}</span>
-              <span className="text-[9px]">Selecionados</span>
+            <div className="flex flex-col items-center justify-center min-w-[80px]">
+              <span className="text-3xl font-black text-white leading-none">{selectedIds.length}</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">Itens</span>
             </div>
 
-            <div className="h-10 w-px bg-white/10" />
+            <div className="h-12 w-px bg-white/10" />
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               {[
                 { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
               ].map(btn => (
                 <button 
                   key={btn.label}
                   onClick={btn.onClick}
-                  className="flex flex-col items-center gap-1.5 text-white/40 hover:text-white transition-all group/sel"
+                  className="relative flex flex-col items-center group/sel pt-1"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all">
-                    <btn.icon size={18} />
+                  <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all duration-300">
+                    <btn.icon size={20} />
                   </div>
-                  <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/sel:opacity-60 transition-opacity">
+                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap">
                     {btn.label}
                   </span>
                 </button>
               ))}
             </div>
 
-            <div className="h-10 w-px bg-white/10" />
+            <div className="h-12 w-px bg-white/10" />
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <button 
                 onClick={handleBulkDelete}
                 disabled={selectedIds.length === 0}
-                className="flex flex-col items-center gap-1.5 text-red-500/40 hover:text-red-500 transition-all disabled:opacity-5 group/del"
+                className="relative flex flex-col items-center group/del disabled:opacity-20"
               >
-                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all">
-                  <Trash2 size={18} />
+                <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all duration-300 text-red-500">
+                  <Trash2 size={20} />
                 </div>
-                <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/del:opacity-60 transition-opacity">Excluir</span>
+                <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-red-500/40 opacity-0 group-hover/del:opacity-100 transition-all pointer-events-none whitespace-nowrap">
+                  Excluir
+                </span>
               </button>
               
               <button 
@@ -445,7 +441,7 @@ export default function GoalsPage() {
                   setIsSelectionMode(false)
                   setSelectedIds([])
                 }}
-                className="bg-white/10 hover:bg-white text-white hover:text-black px-8 py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all"
+                className="h-12 px-10 bg-white/10 hover:bg-white text-white hover:text-black rounded-2xl font-black uppercase tracking-[0.15em] text-[11px] transition-all duration-300 whitespace-nowrap"
               >
                 Cancelar
               </button>

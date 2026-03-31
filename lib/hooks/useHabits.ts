@@ -238,48 +238,59 @@ export function useLogHabit() {
         }
       }
 
-      // 4. Update Habit Streak (Ofensiva)
-      const habitRef = doc(db, 'habits', habitId)
-      const habitDoc = await getDoc(habitRef)
-      if (habitDoc.exists()) {
-        const habitData = habitDoc.data()
-        let currentStreak = habitData.streak || 0
-        const lastDate = habitData.last_completed_date
+        // 4. Update Habit Streak (Ofensiva)
+        const isSuccess = (s: string) => s === 'done' || s === 'partial'
+        const habitRef = doc(db, 'habits', habitId)
+        const habitDoc = await getDoc(habitRef)
         
-        let newStreak = currentStreak
-        let newLastDate = lastDate
+        if (habitDoc.exists()) {
+          const habitData = habitDoc.data()
+          let currentStreak = habitData.streak || 0
+          const lastDate = habitData.last_completed_date
+          
+          let newStreak = currentStreak
+          let newLastDate = lastDate
 
-        const { differenceInDays, parseISO } = await import('date-fns')
+          const { differenceInDays, parseISO } = await import('date-fns')
 
-        if (status === 'done' && prevStatus !== 'done') {
-           if (!lastDate) {
-             newStreak = 1
-             newLastDate = targetDate
-           } else {
-             const diff = differenceInDays(parseISO(targetDate), parseISO(lastDate))
-             if (diff === 1) {
-               newStreak += 1
-               newLastDate = targetDate
-             } else if (diff > 1) {
+          // Status mudou para um estado de SUCESSO?
+          if (isSuccess(status) && !isSuccess(prevStatus)) {
+             if (!lastDate) {
                newStreak = 1
                newLastDate = targetDate
-             } else if (diff === 0) {
-               if (newStreak === 0) newStreak = 1
+             } else {
+               const diff = differenceInDays(parseISO(targetDate), parseISO(lastDate))
+               if (diff === 1) {
+                 newStreak += 1
+                 newLastDate = targetDate
+               } else if (diff > 1) {
+                 newStreak = 1
+                 newLastDate = targetDate
+               } else if (diff === 0) {
+                 if (newStreak === 0) newStreak = 1
+                 newLastDate = targetDate
+               }
              }
-           }
-        } else if (status !== 'done' && prevStatus === 'done') {
-           if (lastDate === targetDate) {
-             newStreak = Math.max(0, newStreak - 1)
-             if (newStreak === 0) newLastDate = null
-           }
-        } else if (status === 'failed') {
-           newStreak = 0
+          } 
+          // Status mudou de SUCESSO para NAO SUCESSO? (Exceto falha direta)
+          else if (!isSuccess(status) && isSuccess(prevStatus) && status !== 'failed') {
+             if (lastDate === targetDate) {
+               newStreak = Math.max(0, newStreak - 1)
+               // Tentar recuperar a data anterior seria complexo sem histórico completo, 
+               // então apenas resetamos a data se a ofensiva zerar.
+               if (newStreak === 0) newLastDate = null
+             }
+          } 
+          // Falha direta ou inatividade
+          else if (status === 'failed') {
+             newStreak = 0
+             // Mantemos a lastDate mas a ofensiva zerou
+          }
+          
+          if (newStreak !== currentStreak || newLastDate !== lastDate) {
+             await updateDoc(habitRef, { streak: newStreak, last_completed_date: newLastDate })
+          }
         }
-        
-        if (newStreak !== currentStreak || newLastDate !== lastDate) {
-           await updateDoc(habitRef, { streak: newStreak, last_completed_date: newLastDate })
-        }
-      }
     },
     onSuccess: (_, variables) => {
       const targetDate = variables.logDate || format(new Date(), 'yyyy-MM-dd')

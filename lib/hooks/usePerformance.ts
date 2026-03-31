@@ -5,6 +5,7 @@ import { auth, db } from '@/lib/firebase/config'
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore'
 import { startOfWeek, endOfWeek, format, eachDayOfInterval, isPast, isToday, parseISO, getDay } from 'date-fns'
 import { Habit, Task, CalendarEvent, HabitStatus } from '@/types'
+import { calculateProgress, calculateWeeklyProgress } from '@/lib/utils/performance'
 
 export function usePerformanceMetrics() {
   const user = auth.currentUser
@@ -20,6 +21,7 @@ export function usePerformanceMetrics() {
 
       const startISO = start.toISOString()
       const todayStr = format(today, 'yyyy-MM-dd')
+      const days = eachDayOfInterval({ start, end: today })
 
       // 1. Fetch Habits & Logs for the week
       const habitsQuery = query(
@@ -61,78 +63,47 @@ export function usePerformanceMetrics() {
       const eventsSnap = await getDocs(eventsQuery)
       const allEvents = eventsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as CalendarEvent[]
 
-      // Calculate Scores
-      const days = eachDayOfInterval({ start, end: today })
-      let totalPoints = 0
-      let maxPoints = 0
+      // Calculate Scores using calculateProgress utility
+      const todayData = {
+        habits: habits
+          .filter(h => {
+             if (h.start_date && todayStr < h.start_date) return false
+             if (h.end_date && todayStr > h.end_date) return false
+             if (h.recurrence?.frequency === 'specific_days') {
+               return h.recurrence.days_of_week?.includes(getDay(today)) ?? false
+             }
+             return true
+          })
+          .map(h => ({ status: logsMap.get(`${h.id}_${todayStr}`) || 'none' })),
+        tasks: allTasks.filter(t => (t.due_date || (t.completed_at ? t.completed_at.split('T')[0] : null)) === todayStr),
+        events: allEvents.filter(e => e.date === todayStr)
+      }
 
-      let todayPoints = 0
-      let todayMax = 0
+      const daily = calculateProgress(todayData.habits, todayData.tasks, todayData.events)
 
-      days.forEach(day => {
+      // Weekly calculation
+      const weeklyData = days.map(day => {
         const dStr = format(day, 'yyyy-MM-dd')
         const dayOfWeek = getDay(day)
-        const isTdy = isToday(day)
-
-        // Habits contribution
-        habits.forEach(h => {
-          // Check if habit is active on this day
-          if (h.start_date && dStr < h.start_date) return
-          if (h.end_date && dStr > h.end_date) return
-          
-          let active = true
-          if (h.recurrence) {
-            if (h.recurrence.frequency === 'specific_days') {
-              active = h.recurrence.days_of_week?.includes(dayOfWeek) ?? false
-            }
-          }
-
-          if (active) {
-            maxPoints += 1
-            if (isTdy) todayMax += 1
-            
-            const status = logsMap.get(`${h.id}_${dStr}`)
-            if (status === 'done') {
-              totalPoints += 1
-              if (isTdy) todayPoints += 1
-            } else if (status === 'partial') {
-              totalPoints += 0.5
-              if (isTdy) todayPoints += 0.5
-            }
-          }
-        })
-
-        // Tasks contribution
-        // Tasks active on this day: due_date === dStr OR (no due_date and completed_at on this day)
-        allTasks.forEach(t => {
-          const taskDate = t.due_date || (t.completed_at ? t.completed_at.split('T')[0] : null)
-          if (taskDate === dStr) {
-            maxPoints += 1
-            if (isTdy) todayMax += 1
-            if (t.status === 'done') {
-              totalPoints += 1
-              if (isTdy) todayPoints += 1
-            }
-          }
-        })
-
-        // Events contribution
-        allEvents.forEach(e => {
-          if (e.date === dStr) {
-            maxPoints += 1
-            if (isTdy) todayMax += 1
-            if (e.status === 'done') {
-              totalPoints += 1
-              if (isTdy) todayPoints += 1
-            }
-          }
-        })
+        return {
+          habits: habits
+            .filter(h => {
+              if (h.start_date && dStr < h.start_date) return false
+              if (h.end_date && dStr > h.end_date) return false
+              if (h.recurrence?.frequency === 'specific_days') {
+                return h.recurrence.days_of_week?.includes(dayOfWeek) ?? false
+              }
+              return true
+            })
+            .map(h => ({ status: logsMap.get(`${h.id}_${dStr}`) || 'none' })),
+          tasks: allTasks.filter(t => (t.due_date || (t.completed_at ? t.completed_at.split('T')[0] : null)) === dStr),
+          events: allEvents.filter(e => e.date === dStr)
+        }
       })
 
-      return {
-        daily: todayMax > 0 ? Math.round((todayPoints / todayMax) * 100) : 0,
-        weekly: maxPoints > 0 ? Math.round((totalPoints / maxPoints) * 100) : 0
-      }
+      const weekly = calculateWeeklyProgress(weeklyData)
+
+      return { daily, weekly }
     },
     enabled: !!user,
     staleTime: 10_000,

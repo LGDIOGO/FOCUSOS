@@ -12,7 +12,7 @@ import { Habit } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { getEffectiveStreak } from '@/lib/utils/scoring'
+import { getEffectiveOfensiva } from '@/lib/utils/scoring'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
@@ -37,7 +37,7 @@ function HabitGridItem({
   setIsSelectionMode: (val: boolean) => void
 }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd')
-  const activeStreak = getEffectiveStreak(habit.streak || 0, habit.last_completed_date, habit.status, todayStr)
+  const activeOfensiva = getEffectiveOfensiva(habit.streak || 0, habit.last_completed_date, habit.status, todayStr)
 
   const longPress = useLongPress(
     () => {
@@ -143,7 +143,7 @@ function HabitGridItem({
            <span className="text-sm font-black uppercase text-white/60 tracking-widest mb-1">Ofensiva</span>
            <div className="flex items-center gap-2">
               <span className="text-xl">🔥</span>
-              <span className="text-2xl font-black italic">{activeStreak}</span>
+              <span className="text-2xl font-black italic">{activeOfensiva}</span>
            </div>
         </div>
       </div>
@@ -274,30 +274,30 @@ export default function HabitsPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[32px] px-8 py-5 flex items-center gap-8 shadow-2xl"
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/90 backdrop-blur-3xl border border-white/10 rounded-[40px] px-10 py-5 flex items-center gap-10 shadow-2xl ring-1 ring-white/5"
           >
-            <div className="text-sm font-black uppercase tracking-widest text-white/60 text-center flex flex-col items-center">
-              <span className="text-2xl text-white">{selectedIds.length}</span>
-              <span className="text-[9px]">Selecionados</span>
+            <div className="flex flex-col items-center justify-center min-w-[80px]">
+              <span className="text-3xl font-black text-white leading-none">{selectedIds.length}</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">Itens</span>
             </div>
 
-            <div className="h-10 w-px bg-white/10" />
+            <div className="h-12 w-px bg-white/10" />
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               {[
                 { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
-                { label: 'Positivos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
+                { label: 'Hábitos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
                 { label: 'A Evitar', icon: ShieldAlert, onClick: () => handleSelectGroup('negative') },
               ].map(btn => (
                 <button 
                   key={btn.label}
                   onClick={btn.onClick}
-                  className="flex flex-col items-center gap-1.5 text-white/40 hover:text-white transition-all group/sel"
+                  className="relative flex flex-col items-center group/sel pt-1"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all">
-                    <btn.icon size={18} />
+                  <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all duration-300">
+                    <btn.icon size={20} />
                   </div>
-                  <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/sel:opacity-60 transition-opacity">
+                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap">
                     {btn.label}
                   </span>
                 </button>

@@ -53,11 +53,7 @@ function TaskItem({
     () => {
       onContextMenu?.()
     },
-    () => {
-      if (isSelectionMode) {
-        onSelect?.()
-      }
-    },
+    () => {}, // Remove o click do longPress para evitar double-toggling
     { delay: 500 }
   )
 

@@ -28,9 +28,15 @@ interface AIChatOnboardingProps {
   isOpen: boolean
   onClose: () => void
   initialMessage?: string
+  userData?: {
+    habits: any[]
+    goals: any[]
+    tasks: any[]
+    recentLogs?: any[]
+  }
 }
 
-export default function AIChatOnboarding({ isOpen, onClose, initialMessage }: AIChatOnboardingProps) {
+export default function AIChatOnboarding({ isOpen, onClose, initialMessage, userData }: AIChatOnboardingProps) {
   const queryClient = useQueryClient()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -83,7 +89,10 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage }: AI
       const resp = await fetch('/api/ai/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, userMessage] })
+        body: JSON.stringify({ 
+          messages: [...messages, userMessage],
+          userData
+        })
       })
 
       data = await resp.json()

@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw
+  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp
 } from 'lucide-react'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
 import { useEvents, useDeleteEvent } from '@/lib/hooks/useEvents'
@@ -12,6 +12,7 @@ import { CalendarEvent, EventType } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import { format, isToday, isTomorrow, parseISO, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, differenceInWeeks, differenceInDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useLongPress } from '@/lib/hooks/useLongPress'
 
 const EVENT_TYPES: { type: EventType; label: string; icon: any; color: string }[] = [
   { type: 'meeting', label: 'Reunião', icon: Users, color: 'text-red-400 bg-red-400/10' },
@@ -51,10 +52,30 @@ export default function AgendaPage() {
     )
   }
 
-  const handleSelectAll = () => {
+  const handleSelectGroup = (type: 'all' | 'today' | 'tomorrow' | 'current_year' | 'next_year') => {
     if (!events) return
-    const allIds = events.map(e => e.id)
-    setSelectedIds(allIds)
+    let ids: string[] = []
+    const today = format(new Date(), 'yyyy-MM-dd')
+    const tomorrowDate = new Date()
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1)
+    const tomorrowStr = format(tomorrowDate, 'yyyy-MM-dd')
+    const currentYear = new Date().getFullYear().toString()
+    const nextYear = (new Date().getFullYear() + 1).toString()
+
+    if (type === 'all') {
+      ids = events.map(e => e.id)
+    } else if (type === 'today') {
+      ids = events.filter(e => e.date === today).map(e => e.id)
+    } else if (type === 'tomorrow') {
+      ids = events.filter(e => e.date === tomorrowStr).map(e => e.id)
+    } else if (type === 'current_year') {
+      ids = events.filter(e => e.date.startsWith(currentYear)).map(e => e.id)
+    } else if (type === 'next_year') {
+      ids = events.filter(e => e.date.startsWith(nextYear)).map(e => e.id)
+    }
+    
+    setSelectedIds(ids)
+    if (ids.length > 0) setIsSelectionMode(true)
   }
 
   const handleBulkDelete = () => {
@@ -194,83 +215,101 @@ export default function AgendaPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {eventList.map((event: CalendarEvent) => (
-                    <motion.div
-                      key={event.id}
-                      layoutId={event.id}
-                      onClick={() => isSelectionMode ? toggleSelection(event.id) : openEditModal(event)}
-                      onContextMenu={(e) => {
-                        e.preventDefault()
+                  {eventList.map((event: CalendarEvent) => {
+                    const localLongPress = useLongPress(
+                      () => {
                         setIsSelectionMode(true)
                         toggleSelection(event.id)
-                      }}
-                      className={cn(
-                        "group flex items-center gap-6 p-6 bg-white/[0.03] border rounded-[32px] hover:bg-white/[0.05] transition-all cursor-pointer relative",
-                        selectedIds.includes(event.id) ? "border-red-500 bg-red-500/5" : "border-white/10"
-                      )}
-                    >
+                      },
+                      () => {},
+                      { delay: 500 }
+                    )
 
-                      <div 
-                        className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-110"
-                        style={{ backgroundColor: event.color ? `${event.color}20` : 'rgba(255,255,255,0.05)', color: event.color || '#FFFFFF' }}
-                      >
-                        {event.emoji || (
-                          event.type === 'meeting' ? <Users size={24} /> :
-                          event.type === 'birthday' ? <Cake size={24} /> :
-                          event.type === 'event' ? <Star size={24} /> : <CalendarIcon size={24} />
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1">
-                          <h3 className="text-lg font-bold text-white truncate">{event.title}</h3>
-                          {event.recurrence && (
-                             <div className="flex items-center gap-1 text-[9px] font-black text-white/20 uppercase tracking-widest">
-                               <RefreshCcw size={10} />
-                               {
-                                 event.recurrence.frequency === 'daily' ? 'Diário' :
-                                 event.recurrence.frequency === 'weekly' ? (event.recurrence.interval === 2 ? 'Quinzenal' : 'Semanal') :
-                                 event.recurrence.frequency === 'monthly' ? 'Mensal' :
-                                 event.recurrence.frequency === 'yearly' ? 'Anual' :
-                                 'Personalizado'
-                               }
-                             </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4 text-white/50 text-base font-medium">
-                          <div className="flex items-center gap-1.5">
-                            <Clock size={14} />
-                            {event.time}
-                          </div>
-                          {event.description && (
-                            <div className="flex items-center gap-1.5 truncate">
-                              <div className="w-1 h-1 rounded-full bg-white/10" />
-                              {event.description}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (isSelectionMode) return
-                          deleteEvent.mutate(event.id)
+                    return (
+                      <motion.div
+                        key={event.id}
+                        layoutId={event.id}
+                        {...localLongPress}
+                        onClick={() => {
+                          if (isSelectionMode) {
+                            toggleSelection(event.id)
+                          } else {
+                            openEditModal(event)
+                          }
                         }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onMouseUp={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onTouchStart={(e) => e.stopPropagation()}
-                        onTouchEnd={(e) => e.stopPropagation()}
+                        onContextMenu={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setIsSelectionMode(true)
+                          toggleSelection(event.id)
+                        }}
                         className={cn(
-                          "p-3 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100",
-                          isSelectionMode ? "hidden" : "text-white/5"
+                          "group flex items-center gap-6 p-6 bg-white/[0.03] border rounded-[32px] hover:bg-white/[0.05] transition-all cursor-pointer relative",
+                          selectedIds.includes(event.id) ? "border-red-500 bg-red-500/5" : "border-white/10"
                         )}
                       >
-                        <Trash2 size={20} />
-                      </button>
-                    </motion.div>
-                  ))}
+                        <div 
+                          className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-110"
+                          style={{ backgroundColor: event.color ? `${event.color}20` : 'rgba(255,255,255,0.05)', color: event.color || '#FFFFFF' }}
+                        >
+                          {event.emoji || (
+                            event.type === 'meeting' ? <Users size={24} /> :
+                            event.type === 'birthday' ? <Cake size={24} /> :
+                            event.type === 'event' ? <Star size={24} /> : <CalendarIcon size={24} />
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-1">
+                            <h3 className="text-lg font-bold text-white truncate">{event.title}</h3>
+                            {event.recurrence && (
+                               <div className="flex items-center gap-1 text-[9px] font-black text-white/20 uppercase tracking-widest">
+                                 <RefreshCcw size={10} />
+                                 {
+                                   event.recurrence.frequency === 'daily' ? 'Diário' :
+                                   event.recurrence.frequency === 'weekly' ? (event.recurrence.interval === 2 ? 'Quinzenal' : 'Semanal') :
+                                   event.recurrence.frequency === 'monthly' ? 'Mensal' :
+                                   event.recurrence.frequency === 'yearly' ? 'Anual' :
+                                   'Personalizado'
+                                 }
+                               </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-white/50 text-base font-medium">
+                            <div className="flex items-center gap-1.5">
+                              <Clock size={14} />
+                              {event.time}
+                            </div>
+                            {event.description && (
+                              <div className="flex items-center gap-1.5 truncate">
+                                <div className="w-1 h-1 rounded-full bg-white/10" />
+                                {event.description}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (isSelectionMode) return
+                            deleteEvent.mutate(event.id)
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onMouseUp={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onTouchStart={(e) => e.stopPropagation()}
+                          onTouchEnd={(e) => e.stopPropagation()}
+                          className={cn(
+                            "p-3 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100",
+                            isSelectionMode ? "hidden" : "text-white/5"
+                          )}
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </motion.div>
+                    )
+                  })}
                 </div>
               </motion.div>
             ))}
@@ -323,46 +362,52 @@ export default function AgendaPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[32px] px-8 py-5 flex items-center gap-8 shadow-2xl"
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/90 backdrop-blur-3xl border border-white/10 rounded-[40px] px-10 py-5 flex items-center gap-10 shadow-2xl ring-1 ring-white/5"
           >
-            <div className="text-sm font-black uppercase tracking-widest text-white/60 text-center flex flex-col items-center">
-              <span className="text-2xl text-white">{selectedIds.length}</span>
-              <span className="text-[9px]">Selecionados</span>
+            <div className="flex flex-col items-center justify-center min-w-[80px]">
+              <span className="text-3xl font-black text-white leading-none">{selectedIds.length}</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">Itens</span>
             </div>
 
-            <div className="h-10 w-px bg-white/10" />
+            <div className="h-12 w-px bg-white/10" />
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               {[
-                { label: 'Tudo', icon: Zap, onClick: handleSelectAll },
+                { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
+                { label: 'Hoje', icon: Clock, onClick: () => handleSelectGroup('today') },
+                { label: 'Amanhã', icon: CalendarIcon, onClick: () => handleSelectGroup('tomorrow') },
+                { label: 'Ano Atual', icon: Star, onClick: () => handleSelectGroup('current_year') },
+                { label: 'Ano Que Vem', icon: TrendingUp, onClick: () => handleSelectGroup('next_year') },
               ].map(btn => (
                 <button 
                   key={btn.label}
                   onClick={btn.onClick}
-                  className="flex flex-col items-center gap-1.5 text-white/40 hover:text-white transition-all group/sel"
+                  className="relative flex flex-col items-center group/sel pt-1"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all">
-                    <btn.icon size={18} />
+                  <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all duration-300">
+                    <btn.icon size={20} />
                   </div>
-                  <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/sel:opacity-60 transition-opacity">
+                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap">
                     {btn.label}
                   </span>
                 </button>
               ))}
             </div>
 
-            <div className="h-10 w-px bg-white/10" />
+            <div className="h-12 w-px bg-white/10" />
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <button 
                 onClick={handleBulkDelete}
                 disabled={selectedIds.length === 0}
-                className="flex flex-col items-center gap-1.5 text-red-500/40 hover:text-red-500 transition-all disabled:opacity-5 group/del"
+                className="relative flex flex-col items-center group/del disabled:opacity-20"
               >
-                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all">
-                  <Trash2 size={18} />
+                <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all duration-300 text-red-500">
+                  <Trash2 size={20} />
                 </div>
-                <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/del:opacity-60 transition-opacity">Excluir</span>
+                <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-red-500/40 opacity-0 group-hover/del:opacity-100 transition-all pointer-events-none whitespace-nowrap">
+                  Excluir
+                </span>
               </button>
               
               <button 
@@ -370,7 +415,7 @@ export default function AgendaPage() {
                   setIsSelectionMode(false)
                   setSelectedIds([])
                 }}
-                className="bg-white/10 hover:bg-white text-white hover:text-black px-8 py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all"
+                className="h-12 px-10 bg-white/10 hover:bg-white text-white hover:text-black rounded-2xl font-black uppercase tracking-[0.15em] text-[11px] transition-all duration-300 whitespace-nowrap"
               >
                 Cancelar
               </button>

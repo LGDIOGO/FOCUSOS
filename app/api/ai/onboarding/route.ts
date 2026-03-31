@@ -34,8 +34,20 @@ export async function POST(req: NextRequest) {
     const groqKey = process.env.GROQ_API_KEY?.trim()
     const geminiKey = (process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY)?.trim()
     
-    const { messages } = await req.json()
+    const { messages, userData } = await req.json()
     const lastUserMsg = messages[messages.length - 1]?.content || ''
+
+    // Construir bloco de contexto do usuário
+    let contextBlock = ""
+    if (userData) {
+      contextBlock = `\n\nCONTEXTO ATUAL DO USUÁRIO:
+- HÁBITOS ATIVOS: ${userData.habits?.map((h: any) => `${h.name} (${h.streak || 0} dias de ofensiva)`).join(', ') || 'Nenhum'}
+- METAS: ${userData.goals?.map((g: any) => `${g.title} (${g.current_value}/${g.target_value} ${g.unit})`).join(', ') || 'Nenhuma'}
+- TAREFAS RECENTES: ${userData.tasks?.slice(0, 5).map((t: any) => t.title).join(', ') || 'Nenhuma'}
+- ÚLTIMOS LOGS: ${userData.recentLogs?.slice(0, 5).map((l: any) => `${l.habit_id}: ${l.status}`).join(', ') || 'Sem histórico recente'}`
+    }
+
+    const FINAL_SYSTEM_PROMPT = SYSTEM_PROMPT + contextBlock
 
     // 1. Tentar com GROQ (Primário - mais rápido e maior cota)
     if (groqKey) {
@@ -47,7 +59,7 @@ export async function POST(req: NextRequest) {
 
         const completion = await groq.chat.completions.create({
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: FINAL_SYSTEM_PROMPT },
             ...messages.map((m: any) => ({
               role: m.role === 'ai' ? 'assistant' : 'user',
               content: m.content
@@ -72,7 +84,7 @@ export async function POST(req: NextRequest) {
         const genAI = new GoogleGenerativeAI(geminiKey)
         const model = genAI.getGenerativeModel({ 
           model: "gemini-1.5-flash",
-          systemInstruction: SYSTEM_PROMPT
+          systemInstruction: FINAL_SYSTEM_PROMPT
         })
 
         const result = await model.generateContent(lastUserMsg)
