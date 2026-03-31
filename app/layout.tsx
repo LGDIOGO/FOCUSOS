@@ -8,9 +8,8 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/favicon.ico', type: 'image/x-icon' },
     ],
-    apple: '/logo.svg',
+    apple: '/favicon.svg',
   },
   other: {
     'theme-color': '#000000',
