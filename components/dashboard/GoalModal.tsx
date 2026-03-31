@@ -1,5 +1,3 @@
-'use client'
-
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Target, Calendar, BarChart3, ChevronRight, Sparkles, AlertCircle } from 'lucide-react'
@@ -31,7 +29,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
   const addCategory = useAddCategory()
 
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false)
-  const [newCategory, setNewCategory] = useState({ name: '', icon: '🎯', color: '#FF453A' })
+  const [newCategory, setNewCategory] = useState({ name: '', icon: '🎯', color: '#e02020' })
 
   const [formData, setFormData] = useState<Partial<Goal>>({
     title: '',
@@ -216,7 +214,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between px-1">
-                <label className="text-[11px] font-black uppercase tracking-widest text-white/30">Categoria</label>
+                <label className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)]">Categoria</label>
                 <button
                   type="button"
                   onClick={() => setShowAddCategoryModal(true)}
@@ -230,10 +228,10 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
                   type="button"
                   onClick={() => setFormData({ ...formData, category_id: '' })}
                   className={cn(
-                    "px-4 py-2.5 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all",
+                    "px-4 py-3 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all",
                     !formData.category_id
                       ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]"
-                      : "bg-white/5 text-white/30 border-white/[0.06] hover:border-white/20"
+                      : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"
                   )}
                 >
                   Nenhuma
@@ -242,12 +240,12 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
                   <button
                     key={cat.id}
                     type="button"
-                    onClick={() => setFormData({ ...formData, category_id: cat.id, color: cat.color || formData.color, emoji: cat.icon || formData.emoji })}
+                    onClick={() => setFormData({ ...formData, category_id: cat.id })}
                     className={cn(
-                      "px-4 py-2.5 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
+                      "px-4 py-3 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
                       formData.category_id === cat.id
-                        ? "bg-white/5"
-                        : "bg-white/5 text-white/30 border-white/[0.06] hover:border-white/20"
+                        ? "border-[var(--text-primary)] bg-[var(--bg-overlay)] text-[var(--text-primary)]"
+                        : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"
                     )}
                     style={formData.category_id === cat.id ? { borderColor: cat.color, color: cat.color } : {}}
                   >
@@ -257,6 +255,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
                 ))}
               </div>
             </div>
+
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -421,8 +420,8 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
                   className={cn(
                     "py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all",
                     String(formData.priority).toLowerCase() === p.id 
-                      ? "bg-white text-black border-white shadow-lg shadow-white/10" 
-                      : "bg-white/5 text-white/30 border-white/5 hover:bg-white/10"
+                      ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-sm" 
+                      : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"
                   )}
                 >
                   {p.label}
@@ -435,11 +434,11 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
             <button 
               type="submit"
               disabled={addGoal.isPending || updateGoal.isPending}
-              className="w-full bg-white text-black font-black py-4 rounded-[20px] hover:bg-neutral-200 transition-all active:scale-95 text-lg flex items-center justify-center gap-2 group shadow-2xl shadow-white/5"
+              className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black py-4 rounded-[20px] hover:opacity-90 transition-all active:scale-95 text-lg flex items-center justify-center gap-2 group"
             >
               {addGoal.isPending || updateGoal.isPending ? 'Salvando...' : (
                 <>
-                  {editingGoal ? 'Salvar Alterações' : 'Criar Meta Estratérgica'}
+                  {editingGoal ? 'Salvar Alterações' : 'Criar Meta Estratégica'}
                   <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </>
               )}
@@ -447,59 +446,27 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
           </div>
         </form>
 
-        {/* Floating Add Category Modal */}
         <AnimatePresence>
           {showAddCategoryModal && (
-            <div className="absolute inset-0 z-[1000] rounded-[40px] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full max-w-sm bg-[#0A0A0A] border border-white/10 rounded-3xl p-6 shadow-2xl"
-              >
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-bold text-white">Nova Categoria</h3>
-                  <button type="button" onClick={() => setShowAddCategoryModal(false)}>
-                    <X size={20} className="text-white/40" />
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  <input
-                    value={newCategory.name}
-                    onChange={e => setNewCategory({ ...newCategory, name: e.target.value })}
-                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500/50"
-                    placeholder="Nome da categoria"
-                  />
-                  <div className="flex gap-4 items-center">
-                    <EmojiPicker value={newCategory.icon} onChange={icon => setNewCategory({ ...newCategory, icon })} />
-                    <div className="flex gap-2 flex-wrap">
-                      {['#FF453A', '#32D74B', '#FF9F0A', '#BF5AF2', '#0A84FF', '#8E8E93'].map(color => (
-                        <button
-                          key={color}
-                          type="button"
-                          onClick={() => setNewCategory({ ...newCategory, color })}
-                          className={cn("w-6 h-6 rounded-full border-2 transition-all", newCategory.color === color ? "border-white scale-110" : "border-transparent opacity-40")}
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={!newCategory.name || addCategory.isPending}
-                    onClick={() => {
-                      if (!newCategory.name) return
-                      addCategory.mutate(
-                        { ...newCategory, type: 'goals' },
-                        { onSuccess: () => setShowAddCategoryModal(false) }
-                      )
-                    }}
-                    className="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 transition-colors disabled:opacity-40"
-                  >
-                    Salvar Categoria
-                  </button>
-                </div>
-              </motion.div>
+            <div className="absolute inset-0 z-[1000] rounded-[48px] bg-[var(--bg-primary)]/60 backdrop-blur-md flex items-center justify-center p-4">
+               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-2xl relative">
+                 <div className="flex justify-between items-center mb-6">
+                   <h3 className="text-xl font-bold text-[var(--text-primary)]">Nova Categoria</h3>
+                   <button type="button" onClick={() => setShowAddCategoryModal(false)}><X size={20} className="text-[var(--text-muted)]"/></button>
+                 </div>
+                 <div className="space-y-4">
+                   <input value={newCategory.name} onChange={e => setNewCategory({ ...newCategory, name: e.target.value })} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-red-500/50" placeholder="Nome da categoria" />
+                   <div className="flex gap-4 items-center">
+                     <EmojiPicker value={newCategory.icon} onChange={icon => setNewCategory({ ...newCategory, icon })} />
+                     <div className="flex gap-2 flex-wrap flex-1">
+                       {['#FF453A', '#32D74B', '#FF9F0A', '#BF5AF2', '#0A84FF', '#8E8E93'].map(color => (
+                         <button key={color} type="button" onClick={() => setNewCategory({ ...newCategory, color })} className={cn("w-6 h-6 rounded-full border-2 transition-all", newCategory.color === color ? "border-[var(--text-primary)] scale-110" : "border-transparent opacity-40")} style={{ backgroundColor: color }} />
+                       ))}
+                     </div>
+                   </div>
+                   <button type="button" onClick={() => { if(!newCategory.name) return; addCategory.mutate({...newCategory, type: 'goals'}, { onSuccess: () => setShowAddCategoryModal(false) })}} disabled={addCategory.isPending || !newCategory.name} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl mt-4 hover:bg-red-700 transition-colors disabled:opacity-50">Salvar Categoria</button>
+                 </div>
+               </motion.div>
             </div>
           )}
         </AnimatePresence>
