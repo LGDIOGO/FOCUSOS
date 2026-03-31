@@ -107,6 +107,22 @@ export default function DashboardPage() {
     onSelect: (status: any) => void;
   } | null>(null);
 
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update logic for real-time visual alerts and day transition
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      setCurrentTime(now);
+      
+      // Auto-refresh today when it's midnight
+      if (isToday(selectedDate) && now.getDate() !== selectedDate.getDate()) {
+        setSelectedDate(now);
+      }
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [selectedDate]);
+
   const [isTutorialOpen, setIsTutorialOpen] = useState(false)
 
   // Dispara tutorial apenas na primeira vez
@@ -241,8 +257,8 @@ export default function DashboardPage() {
     return () => clearTimeout(t)
   }, [toast])
 
-  function setEventStatus(id: string, status: any) {
-    logEvent({ eventId: id, status, logDate: todayStr })
+  function setEventStatus(id: string, status: any, date?: string) {
+    logEvent({ eventId: id, status, logDate: date || todayStr })
     
     if (status === 'partial') {
       const ev = todayEvents.find(e => e.id === id)
@@ -335,7 +351,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white pb-24 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display',sans-serif]">
+    <div className="min-h-screen bg-[var(--bg-workspace)] text-[var(--text-primary)] pb-24 font-sans transition-colors duration-300">
 
       {/* ─── Top Bar ─── */}
       {/* Header */}
@@ -346,8 +362,8 @@ export default function DashboardPage() {
       >
         <div className="flex items-center gap-6">
            <div>
-              <p className="text-[12px] font-black uppercase tracking-[0.3em] text-white/50 mb-1">FocusOS Dashboard</p>
-              <h1 className="text-4xl font-black tracking-tighter">Olá, {auth.currentUser?.displayName?.split(' ')[0] || 'Usuário'}</h1>
+              <p className="text-[12px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] mb-1">FocusOS Dashboard</p>
+              <h1 className="text-4xl font-black tracking-tighter text-[var(--text-primary)]">Olá, {auth.currentUser?.displayName?.split(' ')[0] || 'Usuário'}</h1>
            </div>
         </div>
         
@@ -355,9 +371,9 @@ export default function DashboardPage() {
           <PerformanceHeader />
           <RealTimeClock />
           <div className="flex items-center gap-2.5">
-            <button className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all group relative">
-              <Bell size={20} className="text-white/60 group-hover:text-white transition-colors" />
-              <div className="absolute top-3 right-3 w-2 h-2 bg-red-600 rounded-full border-2 border-black" />
+            <button className="w-12 h-12 rounded-2xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] flex items-center justify-center hover:bg-[var(--bg-overlay)]/80 transition-all group relative">
+              <Bell size={20} className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors" />
+              <div className="absolute top-3 right-3 w-2 h-2 bg-red-600 rounded-full border-2 border-[var(--bg-primary)]" />
             </button>
           </div>
         </div>
@@ -418,14 +434,17 @@ export default function DashboardPage() {
                   whileTap={{ scale: 0.93 }}
                   onClick={() => setSelectedDate(d)}
                   className={`flex-none flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl border cursor-pointer min-w-[46px] transition-all
-                    ${isActive ? 'bg-white border-transparent shadow-[0_4px_12px_rgba(255,255,255,0.1)]' : 'bg-white/[0.04] border-white/[0.08]'}
+                    ${isActive 
+                      ? 'bg-[var(--text-primary)] border-transparent shadow-lg scale-105' 
+                      : 'bg-[var(--bg-overlay)] border-[var(--border-subtle)]'
+                    }
                     ${d < new Date() && !isTodayActual ? 'border-green-500/20' : ''}
                   `}
                 >
-                  <span className={`text-[12px] font-semibold uppercase tracking-wide ${isActive ? 'text-black' : 'text-white/50'}`}>
+                  <span className={`text-[12px] font-semibold uppercase tracking-wide ${isActive ? 'text-[var(--bg-primary)]' : 'text-[var(--text-muted)]'}`}>
                     {format(d, 'EEE', { locale: ptBR }).slice(0, 3)}
                   </span>
-                  <span className={`text-base font-bold ${isActive ? 'text-black' : 'text-white/60'}`}>
+                  <span className={`text-base font-bold ${isActive ? 'text-[var(--bg-primary)]' : 'text-[var(--text-secondary)]'}`}>
                     {format(d, 'd')}
                   </span>
                   <div className={`w-1 h-1 rounded-full transition-opacity 
@@ -461,7 +480,7 @@ export default function DashboardPage() {
                       <AgendaItem 
                         key={event.id} 
                         event={event} 
-                        onStatusChange={status => setEventStatus(event.id, status)}
+                        onStatusChange={status => setEventStatus(event.id, status, event.date)}
                         onReschedule={() => {
                           setEventToReschedule(event)
                           setIsRescheduleOpen(true)
@@ -488,6 +507,7 @@ export default function DashboardPage() {
                             setActiveBubble(null)
                           }
                         })}
+                        currentTime={currentTime}
                       />
                     ))}
                      {todayEvents.length === 0 && (
@@ -647,16 +667,16 @@ export default function DashboardPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/90 backdrop-blur-3xl border border-white/10 rounded-[40px] px-10 py-5 flex items-center gap-10 shadow-2xl ring-1 ring-white/5"
+            className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[1000] w-[95%] md:w-auto max-w-4xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-4 md:gap-10 shadow-2xl ring-1 ring-white/5"
           >
-            <div className="flex flex-col items-center justify-center min-w-[80px]">
-              <span className="text-3xl font-black text-white leading-none">{selectedItems.length}</span>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">Itens</span>
+            <div className="flex flex-col items-center justify-center min-w-[60px] md:min-w-[80px]">
+              <span className="text-2xl md:text-3xl font-black text-white leading-none">{selectedItems.length}</span>
+              <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">Itens</span>
             </div>
 
-            <div className="h-12 w-px bg-white/10" />
+            <div className="h-10 md:h-12 w-px bg-white/10" />
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3 md:gap-6">
               {[
                 { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
                 { label: 'Compromissos', icon: Calendar, onClick: () => handleSelectGroup('events') },
@@ -668,30 +688,27 @@ export default function DashboardPage() {
                   onClick={btn.onClick}
                   className="relative flex flex-col items-center group/sel pt-1"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all duration-300">
-                    <btn.icon size={20} />
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all duration-300">
+                    <btn.icon size={18} />
                   </div>
-                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap">
+                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap hidden md:block">
                     {btn.label}
                   </span>
                 </button>
               ))}
             </div>
 
-            <div className="h-12 w-px bg-white/10" />
+            <div className="h-10 md:h-12 w-px bg-white/10" />
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3 md:gap-6">
               <button 
                 onClick={handleBulkDelete}
                 disabled={selectedItems.length === 0 || loading}
                 className="relative flex flex-col items-center group/del disabled:opacity-20"
               >
-                <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all duration-300 text-red-500">
-                  {loading ? <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Trash2 size={20} />}
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all duration-300 text-red-500">
+                  {loading ? <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Trash2 size={18} />}
                 </div>
-                <span className="absolute -bottom-6 text-[8px] font-black uppercase tracking-widest text-red-500 opacity-0 group-hover/del:opacity-40 transition-all pointer-events-none whitespace-nowrap">
-                  Excluir
-                </span>
               </button>
               
               <button 
@@ -699,7 +716,7 @@ export default function DashboardPage() {
                   setIsSelectionMode(false)
                   setSelectedItems([])
                 }}
-                className="h-12 px-10 bg-white/10 hover:bg-white text-white hover:text-black rounded-2xl font-black uppercase tracking-[0.15em] text-[11px] transition-all duration-300 whitespace-nowrap"
+                className="h-10 md:h-12 px-5 md:px-10 bg-white/10 hover:bg-white text-white hover:text-black rounded-xl md:rounded-2xl font-black uppercase tracking-[0.15em] text-[10px] md:text-[11px] transition-all duration-300 whitespace-nowrap"
               >
                 Cancelar
               </button>

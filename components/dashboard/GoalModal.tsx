@@ -210,9 +210,9 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Categoria</label>
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, category_id: '' })}
@@ -234,7 +234,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
                         )}
                         style={formData.category_id === cat.id ? { borderColor: cat.color, color: cat.color } : {}}
                       >
-                        <span>{cat.icon}</span>
+                        {cat.icon && <span>{cat.icon}</span>}
                         {cat.name}
                       </button>
                     ))}
@@ -375,7 +375,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <CustomDateTimePicker 
               label="Data de Início" 
               type="date" 

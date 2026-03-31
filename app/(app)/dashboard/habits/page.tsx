@@ -74,8 +74,8 @@ function HabitGridItem({
         onToggleSelection(habit.id)
       }}
       className={cn(
-        "group relative bg-white/[0.02] border rounded-[40px] p-8 hover:bg-white/[0.04] transition-all flex flex-col justify-between overflow-hidden cursor-pointer h-full",
-        isSelected ? "border-red-500/50 bg-red-500/[0.08] ring-1 ring-red-500/20 shadow-[0_0_20px_rgba(224,32,32,0.1)]" : "border-white/10"
+        "group relative bg-[var(--bg-overlay)] border rounded-[40px] p-8 hover:bg-[var(--bg-overlay)]/80 transition-all flex flex-col justify-between overflow-hidden cursor-pointer h-full transition-colors duration-300",
+        isSelected ? "border-red-500/50 bg-red-500/[0.08] ring-1 ring-red-500/20 shadow-[0_0_20px_rgba(224,32,32,0.1)]" : "border-[var(--border-subtle)]"
       )}
     >
 
@@ -89,8 +89,8 @@ function HabitGridItem({
             {habit.emoji || (habit.type === 'positive' ? <Sparkles size={20} /> : <ShieldAlert size={20} />)}
           </div>
           <div className="space-y-1">
-            <h3 className="text-xl font-bold text-white transition-colors">{habit.name}</h3>
-            <p className="text-white/50 text-base font-medium line-clamp-1 italic">{habit.description || 'Sem descrição'}</p>
+            <h3 className="text-xl font-bold text-[var(--text-primary)] transition-colors">{habit.name}</h3>
+            <p className="text-[var(--text-muted)] text-base font-medium line-clamp-1 italic">{habit.description || 'Sem descrição'}</p>
           </div>
         </div>
         {!isSelectionMode && (
@@ -140,10 +140,10 @@ function HabitGridItem({
         </div>
         
         <div className="flex flex-col items-end">
-           <span className="text-sm font-black uppercase text-white/60 tracking-widest mb-1">Ofensiva</span>
+           <span className="text-sm font-black uppercase text-[var(--text-muted)] tracking-widest mb-1">Ofensiva</span>
            <div className="flex items-center gap-2">
               <span className="text-xl">🔥</span>
-              <span className="text-2xl font-black italic">{activeOfensiva}</span>
+              <span className="text-2xl font-black italic text-[var(--text-primary)]">{activeOfensiva}</span>
            </div>
         </div>
       </div>
@@ -214,22 +214,22 @@ export default function HabitsPage() {
         className="flex items-end justify-between"
       >
         <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-white/5 rounded-[24px] flex items-center justify-center border border-white/10 shadow-2xl">
-            <Zap className="text-white w-8 h-8" />
+          <div className="w-16 h-16 bg-[var(--bg-overlay)] rounded-[24px] flex items-center justify-center border border-[var(--border-subtle)] shadow-2xl">
+            <Zap className="text-[var(--text-primary)] w-8 h-8" />
           </div>
           <div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tightest">Meus Hábitos</h1>
-            <p className="text-white/60 font-medium text-base md:text-lg italic flex items-center gap-2">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tightest text-[var(--text-primary)]">Meus Hábitos</h1>
+            <p className="text-[var(--text-secondary)] font-medium text-base md:text-lg italic flex items-center gap-2">
               Construa disciplina com rotinas consistentes.
-              <span className="inline-block w-1 h-1 rounded-full bg-white/20 mx-1" />
-              <span className="text-white/30 text-xs font-black uppercase tracking-tighter hidden md:inline-block border border-white/5 px-2 py-0.5 rounded-md">Botão direito para selecionar</span>
+              <span className="inline-block w-1 h-1 rounded-full bg-[var(--text-muted)]/20 mx-1" />
+              <span className="text-[var(--text-muted)] text-xs font-black uppercase tracking-tighter hidden md:inline-block border border-[var(--border-subtle)] px-2 py-0.5 rounded-md">Botão direito para selecionar</span>
             </p>
           </div>
         </div>
         
         <button 
           onClick={() => setShowAddModal(true)}
-          className="bg-white text-black px-5 py-3 md:px-6 md:py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-neutral-200 transition-all active:scale-95 shadow-xl shrink-0 text-sm md:text-base"
+          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-5 py-3 md:px-6 md:py-4 rounded-2xl font-black flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-xl shrink-0 text-sm md:text-base"
         >
           <Plus size={20} />
           Novo Hábito
@@ -274,14 +274,14 @@ export default function HabitsPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/90 backdrop-blur-3xl border border-white/10 rounded-[40px] px-10 py-5 flex items-center gap-10 shadow-2xl ring-1 ring-white/5"
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[40px] px-10 py-5 flex items-center gap-10 shadow-2xl ring-1 ring-[var(--text-primary)]/5"
           >
             <div className="flex flex-col items-center justify-center min-w-[80px]">
-              <span className="text-3xl font-black text-white leading-none">{selectedIds.length}</span>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">Itens</span>
+              <span className="text-3xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-1">Itens</span>
             </div>
 
-            <div className="h-12 w-px bg-white/10" />
+            <div className="h-12 w-px bg-[var(--border-subtle)]" />
 
             <div className="flex items-center gap-6">
               {[
@@ -294,10 +294,10 @@ export default function HabitsPage() {
                   onClick={btn.onClick}
                   className="relative flex flex-col items-center group/sel pt-1"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all duration-300">
+                  <div className="w-12 h-12 rounded-2xl bg-[var(--bg-overlay)] flex items-center justify-center border border-[var(--border-subtle)] group-hover/sel:bg-[var(--text-primary)] group-hover/sel:text-[var(--bg-primary)] transition-all duration-300">
                     <btn.icon size={20} />
                   </div>
-                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap">
+                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap">
                     {btn.label}
                   </span>
                 </button>
@@ -323,7 +323,7 @@ export default function HabitsPage() {
                   setIsSelectionMode(false)
                   setSelectedIds([])
                 }}
-                className="bg-white/10 hover:bg-white text-white hover:text-black px-8 py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all"
+                className="bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] px-8 py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all border border-[var(--border-subtle)]"
               >
                 Cancelar
               </button>

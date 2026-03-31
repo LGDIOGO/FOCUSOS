@@ -7,6 +7,43 @@
   --background-start-rgb: 0, 0, 0;
   --background-end-rgb: 0, 0, 0;
   --apple-red: 255, 69, 58; /* SF Light Red */
+  
+  /* Theme Variables - Default (Dark) */
+  --bg-primary: #000000;
+  --bg-workspace: #0F0F0F; /* Rich Dark Gray per user request */
+  --bg-card: #18181A;
+  --bg-overlay: rgba(255, 255, 255, 0.04);
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.35);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --selection-ring: rgba(255, 255, 255, 0.15);
+}
+
+:root[data-theme='light'] {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 255, 255, 255;
+  --background-end-rgb: 255, 255, 255;
+  
+  --bg-primary: #FFFFFF;
+  --bg-workspace: #F2F2F7;
+  --bg-card: #FFFFFF;
+  --bg-overlay: rgba(0, 0, 0, 0.03);
+  --text-primary: #000000;
+  --text-secondary: rgba(0, 0, 0, 0.6);
+  --text-muted: rgba(0, 0, 0, 0.35);
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --selection-ring: rgba(0, 0, 0, 0.1);
+}
+
+@keyframes flash-red {
+  0% { color: #FF453A; opacity: 1; }
+  50% { color: #FF453A; opacity: 0.4; }
+  100% { color: #FF453A; opacity: 1; }
+}
+
+.animate-flash-red {
+  animation: flash-red 1.5s infinite ease-in-out;
 }
 
 * {
@@ -18,10 +55,11 @@
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: black;
+  color: var(--text-primary);
+  background: var(--bg-primary);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
   letter-spacing: -0.022em;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 input, textarea, button, select {

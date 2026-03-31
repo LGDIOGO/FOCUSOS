@@ -23,10 +23,10 @@ interface HabitCardProps {
 // ─── Mapeamento de status → estilos ──────────────────────────
 const STATUS_CONFIG = {
   none: {
-    card:   'bg-white/[0.04] border-white/[0.07]',
-    icon:   'bg-white/[0.07]',
-    btn:    'border-white/20 bg-transparent',
-    text:   '',
+    card:   'bg-[var(--bg-overlay)] border-[var(--border-subtle)]',
+    icon:   'bg-[var(--bg-overlay)]',
+    btn:    'border-[var(--border-subtle)] bg-[var(--bg-overlay)]',
+    text:   'text-[var(--text-primary)]',
     label:  '',
   },
   done: {
@@ -149,18 +149,18 @@ export function HabitCard({
       )}
 
       {/* Ícone do hábito */}
-      {!isSelectionMode && habit.status === 'none' && (
+      {!isSelectionMode && habit.status === 'none' && habit.emoji && (
         <div 
           className={cn('w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 transition-colors duration-200', cfg.icon)}
           style={{ backgroundColor: habit.color ? `${habit.color}20` : undefined, color: habit.color }}
         >
-          {habit.emoji || (habit.type === 'positive' ? <Zap size={20} /> : <ShieldAlert size={20} />)}
+          {habit.emoji}
         </div>
       )}
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className={cn('text-lg font-bold text-white truncate transition-all duration-300 tracking-tight', cfg.text)}>
+        <p className={cn('text-lg font-bold text-[var(--text-primary)] truncate transition-all duration-300 tracking-tight', cfg.text)}>
           {habit.name}
         </p>
         <div className="flex items-center gap-2 mt-0.5">
@@ -182,7 +182,7 @@ export function HabitCard({
               e.stopPropagation()
               onEdit?.()
             }}
-            className="p-2.5 rounded-xl bg-white/5 border border-white/5 text-white/20 hover:text-white hover:bg-white/10 transition-all active:scale-90"
+            className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/10 transition-all active:scale-90"
             title="Editar Hábito"
           >
             <Pencil size={14} />

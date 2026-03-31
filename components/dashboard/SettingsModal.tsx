@@ -55,15 +55,15 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-4xl bg-[#0A0A0A] border border-white/10 rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[85vh] max-h-[800px]"
+        className="relative w-full max-w-4xl bg-[var(--bg-workspace)] border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[85vh] max-h-[800px]"
       >
         {/* Sidebar Tabs */}
         <div className="w-full md:w-64 border-r border-white/5 bg-white/[0.02] p-6 flex flex-col gap-8">
           <div className="flex items-center gap-3 px-2">
-            <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
-              <Settings className="text-white w-5 h-5" />
+            <div className="w-10 h-10 bg-[var(--bg-overlay)] rounded-xl flex items-center justify-center border border-[var(--border-subtle)]">
+              <Settings className="text-[var(--text-primary)] w-5 h-5" />
             </div>
-            <h2 className="text-xl font-black tracking-tightest">Ajustes</h2>
+            <h2 className="text-xl font-black tracking-tightest text-[var(--text-primary)]">Ajustes</h2>
           </div>
 
           <nav className="flex flex-col gap-1.5">
@@ -79,7 +79,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 onClick={() => setActiveTab(tab.id as TabType)}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-bold text-sm",
-                  activeTab === tab.id ? "bg-white text-black" : "text-white/40 hover:bg-white/5 hover:text-white"
+                  activeTab === tab.id 
+                    ? "bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-lg" 
+                    : "text-[var(--text-secondary)] hover:bg-[var(--bg-overlay)] hover:text-[var(--text-primary)]"
                 )}
               >
                 <tab.icon size={18} />
@@ -99,16 +101,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
         {/* Content Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="p-6 md:p-8 flex items-center justify-between border-b border-white/5">
-            <h3 className="text-2xl font-black tracking-tightest">
+          <div className="p-6 md:p-8 flex items-center justify-between border-b border-[var(--border-subtle)]">
+            <h3 className="text-2xl font-black tracking-tightest text-[var(--text-primary)]">
               {activeTab === 'categories' && 'Gestão de Categorias'}
               {activeTab === 'notifications' && 'Avisos e Lembretes'}
               {activeTab === 'profile' && 'Perfil do Usuário'}
               {activeTab === 'system' && 'Preferências do Sistema'}
               {activeTab === 'tutorials' && 'Tutoriais & Guias'}
             </h3>
-            <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-all">
-              <X className="text-white/40" size={20} />
+            <button onClick={onClose} className="p-2 hover:bg-[var(--bg-overlay)] rounded-xl transition-all">
+              <X className="text-[var(--text-muted)]" size={20} />
             </button>
           </div>
 
@@ -404,28 +406,39 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
             {activeTab === 'system' && (
               <div className="space-y-6">
-                <div className="bg-white/[0.02] border border-white/5 rounded-[32px] p-8 space-y-6">
-                   <div className="flex items-center justify-between">
-                     <div>
-                       <h4 className="font-black text-lg">Modo Escuro (Always On)</h4>
-                       <p className="text-sm text-white/30 font-medium">O FocusOS foi projetado para ser dark para preservar seus olhos.</p>
-                     </div>
-                     <div className="w-12 h-6 bg-red-600 rounded-full p-1 relative">
-                       <div className="w-4 h-4 bg-white rounded-full absolute right-1" />
-                     </div>
-                   </div>
+                <div className="bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-[32px] p-8 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-black text-lg text-[var(--text-primary)]">Tema do Sistema</h4>
+                      <p className="text-sm text-[var(--text-secondary)] font-medium">Alternar entre os modos claro e escuro.</p>
+                    </div>
+                    <button 
+                      onClick={() => updateSettings.mutate({ 
+                        theme: settings?.theme === 'dark' ? 'light' : 'dark' 
+                      })}
+                      className={cn(
+                        "w-14 h-8 rounded-full p-1 transition-all duration-300 relative",
+                        settings?.theme === 'dark' ? "bg-red-600" : "bg-neutral-300"
+                      )}
+                    >
+                      <motion.div 
+                        animate={{ x: settings?.theme === 'dark' ? 24 : 0 }}
+                        className="w-6 h-6 bg-white rounded-full shadow-lg" 
+                      />
+                    </button>
+                  </div>
 
-                   <div className="h-px bg-white/5" />
+                  <div className="h-px bg-[var(--border-subtle)]" />
 
-                   <div className="flex items-center justify-between">
-                     <div>
-                       <h4 className="font-black text-lg">Notificações Inteligentes</h4>
-                       <p className="text-sm text-white/30 font-medium">Receba lembretes via navegador nos horários agendados.</p>
-                     </div>
-                     <div className="w-12 h-6 bg-red-600 rounded-full p-1 relative">
-                       <div className="w-4 h-4 bg-white rounded-full absolute right-1" />
-                     </div>
-                   </div>
+                  <div className="flex items-center justify-between opacity-50 pointer-events-none">
+                    <div>
+                      <h4 className="font-black text-lg text-[var(--text-primary)]">Notificações Inteligentes</h4>
+                      <p className="text-sm text-[var(--text-secondary)] font-medium">Gerenciadas na aba de Notificações.</p>
+                    </div>
+                    <div className="w-12 h-6 bg-red-600 rounded-full p-1 relative">
+                      <div className="w-4 h-4 bg-white rounded-full absolute right-1" />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="p-8 bg-red-400/5 border border-red-400/10 rounded-[32px] flex items-center justify-between">
@@ -477,7 +490,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           <div className="p-6 bg-white/[0.01] border-t border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/20">
                <Info size={12} />
-               FocusOS Build 2026.03.26
+               FocusOS Build 2026.04.01
             </div>
             <button 
               onClick={onClose}

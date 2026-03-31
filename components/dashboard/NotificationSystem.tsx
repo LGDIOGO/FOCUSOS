@@ -35,12 +35,13 @@ export function NotificationSystem() {
   }, [])
 
   const playSound = useCallback(() => {
-    if (settings?.notifications?.sound === 'apple') {
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3') // Simple pleasant ping
-      audio.volume = 0.4
-      audio.play().catch(e => console.log('Audio play blocked:', e))
+    if (settings?.notifications?.sound === 'apple' && settings?.notifications?.enabled) {
+      // Premium Apple-style alert sound
+      const audio = new Audio('https://fpm-files.s3.amazonaws.com/notification.mp3') // Placeholder but reliable
+      audio.volume = 0.5
+      audio.play().catch(e => console.log('Audio playback inhibited by browser:', e))
     }
-  }, [settings?.notifications?.sound])
+  }, [settings?.notifications?.sound, settings?.notifications?.enabled])
 
   const notify = useCallback((item: Notification) => {
     if (notifiedIds.has(item.id)) return
@@ -65,7 +66,7 @@ export function NotificationSystem() {
       // 1. Check Agenda
       if (settings.notifications.agenda && events) {
         events.forEach(event => {
-          if (event.status !== 'todo' || !event.time) return
+          if ((event.status !== 'todo' && event.status !== 'none') || !event.time) return
           const eventTime = parse(event.time, 'HH:mm', now)
           const notifyTime = subMinutes(eventTime, leadTime)
           

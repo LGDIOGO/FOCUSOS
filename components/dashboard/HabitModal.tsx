@@ -175,24 +175,24 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-lg bg-[#0A0A0A] border text-left border-white/10 rounded-[40px] md:rounded-[48px] p-4 md:p-7 overflow-y-auto max-h-[90vh] shadow-2xl z-[991]"
+        className="relative w-full max-w-lg bg-[var(--bg-primary)] border text-left border-[var(--border-subtle)] rounded-[40px] md:rounded-[48px] p-4 md:p-7 overflow-y-auto max-h-[90vh] shadow-2xl z-[991] transition-colors duration-300"
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-4xl font-black tracking-tightest">{habitToEdit ? 'Editar Hábito' : 'Novo Hábito'}</h2>
-          <button onClick={onClose} className="p-3 hover:bg-white/5 rounded-2xl">
-            <X className="text-white/60" />
+          <h2 className="text-4xl font-black tracking-tightest text-[var(--text-primary)] transition-colors">{habitToEdit ? 'Editar Hábito' : 'Novo Hábito'}</h2>
+          <button onClick={onClose} className="p-3 hover:bg-[var(--bg-overlay)] rounded-2xl transition-all">
+            <X className="text-[var(--text-muted)]" />
           </button>
         </div>
 
         <form onSubmit={handleAddHabit} className="space-y-3">
           <div className="space-y-1.5 relative">
-            <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-white/50 px-1">Nome</label>
+            <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Nome</label>
             <div className="relative group/input">
               <input 
                 required
                 value={newHabit.name}
                 onChange={e => setNewHabit({ ...newHabit, name: e.target.value })}
-                className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-3.5 text-white focus:outline-none focus:border-white/30 transition-all font-bold text-lg md:text-xl pr-14"
+                className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl px-6 py-3.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--text-primary)]/30 transition-all font-bold text-lg md:text-xl pr-14"
                 placeholder="Exemplo: Meditar..."
               />
               <button
@@ -201,8 +201,8 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
                 disabled={isParsing || !newHabit.name}
                 className={cn(
                   "absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all",
-                  isParsing ? "bg-white/10 animate-pulse" : "bg-white/0 hover:bg-white/5",
-                  newHabit.name ? "text-red-500 opacity-100" : "text-white/10 opacity-0 pointer-events-none"
+                  isParsing ? "bg-[var(--bg-overlay)] animate-pulse" : "bg-transparent hover:bg-[var(--bg-overlay)]",
+                  newHabit.name ? "text-red-500 opacity-100" : "text-[var(--text-muted)] opacity-0 pointer-events-none"
                 )}
               >
                 {isParsing ? <RefreshCcw size={20} className="animate-spin" /> : <Sparkles size={20} className={cn(newHabit.name && "animate-pulse")} />}
@@ -212,22 +212,22 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between px-1">
-              <label className="text-[12px] font-black uppercase tracking-widest text-white/50">Categoria</label>
+              <label className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)]">Categoria</label>
               <button 
                 type="button" 
                 onClick={() => setShowAddCategoryModal(true)}
-                className="text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-red-300"
+                className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors"
               >
                 + Nova
               </button>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setNewHabit({ ...newHabit, category_id: '' })}
                 className={cn(
                   "px-4 py-3 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all",
-                  !newHabit.category_id ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/5"
+                  !newHabit.category_id ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"
                 )}
               >
                 Nenhuma
@@ -239,25 +239,26 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
                   onClick={() => setNewHabit({ ...newHabit, category_id: cat.id, emoji: cat.icon || newHabit.emoji, color: cat.color || newHabit.color })}
                   className={cn(
                     "px-4 py-3 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                    newHabit.category_id === cat.id ? "border-white bg-white/10 text-white" : "bg-white/5 text-white/40 border-white/5"
+                    newHabit.category_id === cat.id ? "border-[var(--text-primary)] bg-[var(--bg-overlay)] text-[var(--text-primary)]" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"
                   )}
                   style={newHabit.category_id === cat.id ? { borderColor: cat.color } : {}}
                 >
-                  <span>{cat.icon}</span>{cat.name}
+                  {cat.icon && <span>{cat.icon}</span>}
+                  {cat.name}
                 </button>
               ))}
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[12px] font-black uppercase tracking-widest text-white/50 px-1">Personalização</label>
+            <label className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Personalização</label>
             <div className="flex items-center gap-4">
               <EmojiPicker value={newHabit.emoji || ''} onChange={emoji => setNewHabit({ ...newHabit, emoji })} />
               <div className="flex-1 grid grid-cols-5 gap-2">
                 {['#FF453A', '#FF9F0A', '#FFD60A', '#32D74B', '#0A84FF', '#5E5CE6', '#BF5AF2', '#FF375F', '#8E8E93', '#FFFFFF'].map(color => (
                   <button
                     key={color} type="button" onClick={() => setNewHabit({ ...newHabit, color })}
-                    className={cn("w-8 h-8 rounded-full border-2 transition-all", newHabit.color === color ? "border-white scale-110" : "border-transparent opacity-40")}
+                    className={cn("w-8 h-8 rounded-full border-2 transition-all", newHabit.color === color ? "border-[var(--text-primary)] scale-110" : "border-transparent opacity-40")}
                     style={{ backgroundColor: color }}
                   />
                 ))}
@@ -266,17 +267,17 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[12px] font-black uppercase tracking-widest text-white/50 px-1">Tipo de Hábito</label>
+            <label className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Tipo de Hábito</label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button" onClick={() => setNewHabit({ ...newHabit, type: 'positive' })}
-                className={cn("py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2", newHabit.type === 'positive' ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/5")}
+                className={cn("py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2", newHabit.type === 'positive' ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]")}
               >
                 <Sparkles size={14} /> Positivo
               </button>
               <button
                 type="button" onClick={() => setNewHabit({ ...newHabit, type: 'negative' })}
-                className={cn("py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2", newHabit.type === 'negative' ? "bg-red-500 text-white border-red-500" : "bg-white/5 text-white/40 border-white/5")}
+                className={cn("py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2", newHabit.type === 'negative' ? "bg-red-500 text-[var(--bg-primary)] border-red-500" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]")}
               >
                 <ShieldAlert size={14} /> A evitar
               </button>
@@ -284,60 +285,60 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[12px] font-black uppercase tracking-widest text-white/50 px-1">Vincular a Meta (Opcional)</label>
+            <label className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Vincular a Meta (Opcional)</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="relative z-50">
-                <button type="button" onClick={() => setIsGoalSelectOpen(!isGoalSelectOpen)} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-white/30 transition-all font-bold text-sm flex items-center justify-between group">
+                <button type="button" onClick={() => setIsGoalSelectOpen(!isGoalSelectOpen)} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl px-5 py-3 text-[var(--text-primary)] focus:outline-none focus:border-[var(--text-primary)]/30 transition-all font-bold text-sm flex items-center justify-between group">
                   <span className="flex items-center gap-2">
                     {newHabit.linked_goal_id ? (
-                      <><span className="text-lg">{goals?.find(g => g.id === newHabit.linked_goal_id)?.emoji}</span><span className="truncate max-w-[150px]">{goals?.find(g => g.id === newHabit.linked_goal_id)?.title}</span></>
-                    ) : <span className="text-white/40">Nenhuma Meta</span>}
+                      <><span className="text-lg">{goals?.find(g => g.id === newHabit.linked_goal_id)?.emoji}</span><span className="truncate max-w-[150px] transition-colors">{goals?.find(g => g.id === newHabit.linked_goal_id)?.title}</span></>
+                    ) : <span className="text-[var(--text-muted)]">Nenhuma Meta</span>}
                   </span>
-                  <ChevronDown size={16} className={cn("text-white/40 group-hover:text-white transition-all transform", isGoalSelectOpen && "rotate-180")} />
+                  <ChevronDown size={16} className={cn("text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-all transform", isGoalSelectOpen && "rotate-180")} />
                 </button>
                 <AnimatePresence>
                   {isGoalSelectOpen && (
-                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full mt-2 left-0 w-full z-[100] bg-[#1A1A1A] border border-white/10 rounded-2xl overflow-hidden shadow-2xl max-h-48 overflow-y-auto">
-                      <button type="button" onClick={() => { setNewHabit({ ...newHabit, linked_goal_id: '' }); setIsGoalSelectOpen(false); }} className={cn("w-full text-left px-5 py-3 text-sm font-bold transition-colors flex items-center gap-3 border-b border-white/5", !newHabit.linked_goal_id ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white")}><div className="w-5 h-5 flex items-center justify-center rounded-full bg-white/10"><X size={12}/></div><span>Nenhuma Meta</span></button>
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full mt-2 left-0 w-full z-[100] bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-2xl overflow-hidden shadow-2xl max-h-48 overflow-y-auto">
+                      <button type="button" onClick={() => { setNewHabit({ ...newHabit, linked_goal_id: '' }); setIsGoalSelectOpen(false); }} className={cn("w-full text-left px-5 py-3 text-sm font-bold transition-colors flex items-center gap-3 border-b border-[var(--border-subtle)]", !newHabit.linked_goal_id ? "bg-[var(--bg-overlay)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] hover:text-[var(--text-primary)]")}><div className="w-5 h-5 flex items-center justify-center rounded-full bg-[var(--bg-overlay)]"><X size={12}/></div><span>Nenhuma Meta</span></button>
                       {goals?.filter(g => g.status === 'active').map(goal => (
-                        <button key={goal.id} type="button" onClick={() => { setNewHabit({ ...newHabit, linked_goal_id: goal.id }); setIsGoalSelectOpen(false); }} className={cn("w-full text-left px-5 py-3 text-sm font-bold transition-colors flex items-center gap-3", newHabit.linked_goal_id === goal.id ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white")}><span className="text-lg">{goal.emoji}</span><span className="truncate">{goal.title}</span></button>
+                        <button key={goal.id} type="button" onClick={() => { setNewHabit({ ...newHabit, linked_goal_id: goal.id }); setIsGoalSelectOpen(false); }} className={cn("w-full text-left px-5 py-3 text-sm font-bold transition-colors flex items-center gap-3", newHabit.linked_goal_id === goal.id ? "bg-[var(--bg-overlay)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] hover:text-[var(--text-primary)]")}><span className="text-lg">{goal.emoji}</span><span className="truncate">{goal.title}</span></button>
                       ))}
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
               <div className="relative">
-                <input type="number" step="0.1" min="0" placeholder="Impacto" value={newHabit.goal_impact} onChange={e => setNewHabit({ ...newHabit, goal_impact: parseFloat(e.target.value) || 0 })} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-white/30 transition-all font-bold text-sm" />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/30 uppercase tracking-widest pointer-events-none">Impacto</span>
+                <input type="number" step="0.1" min="0" placeholder="Impacto" value={newHabit.goal_impact} onChange={e => setNewHabit({ ...newHabit, goal_impact: parseFloat(e.target.value) || 0 })} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl px-5 py-3 text-[var(--text-primary)] focus:outline-none focus:border-[var(--text-primary)]/30 transition-all font-bold text-sm" />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pointer-events-none">Impacto</span>
               </div>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[12px] font-black uppercase tracking-widest text-white/50 px-1">Repetir</label>
+            <label className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Repetir</label>
             <div className="grid grid-cols-3 gap-2">
               {[{ id: 'daily', label: 'Diário' }, { id: 'weekly', label: 'Semanal' }, { id: 'monthly', label: 'Mensal' }, { id: 'yearly', label: 'Anual' }, { id: 'specific_days', label: 'Personalizado' }].map(freq => (
                 <button
                   key={freq.id} type="button"
                   onClick={() => setNewHabit({ ...newHabit, recurrence: { frequency: (freq.id === 'quinzenal' ? 'weekly' : freq.id as RecurrenceFreq), interval: freq.id === 'quinzenal' ? 2 : 1, days_of_week: freq.id === 'specific_days' ? (newHabit.recurrence.days_of_week && newHabit.recurrence.days_of_week.length > 0 ? newHabit.recurrence.days_of_week : [1,2,3,4,5]) : [0,1,2,3,4,5,6] } })}
-                  className={cn("py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all", (newHabit.recurrence.frequency === freq.id || (freq.id === 'quinzenal' && newHabit.recurrence.interval === 2 && newHabit.recurrence.frequency === 'weekly')) ? "bg-white text-black border-white shadow-lg" : "bg-white/5 text-white/60 border-white/5 hover:border-white/20")}
+                  className={cn("py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all", (newHabit.recurrence.frequency === freq.id || (freq.id === 'quinzenal' && newHabit.recurrence.interval === 2 && newHabit.recurrence.frequency === 'weekly')) ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-lg" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--text-primary)]/20")}
                 >
                   {freq.label}
                 </button>
               ))}
             </div>
             {newHabit.recurrence.frequency === 'specific_days' && (
-              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 bg-white/[0.03] border border-white/10 p-6 rounded-[32px] mt-4">
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] p-6 rounded-[32px] mt-4">
                 <div className="flex justify-between gap-1">
                   {DAYS.map((day, i) => (
-                    <button key={i} type="button" onClick={() => toggleDay(i)} className={cn("w-10 h-10 rounded-xl font-black text-base transition-all flex items-center justify-center", newHabit.recurrence.days_of_week?.includes(i) ? "bg-white text-black shadow-lg" : "text-white/20 hover:bg-white/5 border border-white/5")}>{day}</button>
+                    <button key={i} type="button" onClick={() => toggleDay(i)} className={cn("w-10 h-10 rounded-xl font-black text-base transition-all flex items-center justify-center", newHabit.recurrence.days_of_week?.includes(i) ? "bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-lg" : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] border border-[var(--border-subtle)]")}>{day}</button>
                   ))}
                 </div>
-                <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                  <span className="text-[12px] font-black uppercase text-white/50 tracking-widest">Intervalo</span>
+                <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
+                  <span className="text-[12px] font-black uppercase text-[var(--text-muted)] tracking-widest">Intervalo</span>
                   <div className="flex gap-2">
                     {[1, 2].map(int => (
-                      <button key={int} type="button" onClick={() => setNewHabit({ ...newHabit, recurrence: { ...newHabit.recurrence, interval: int } })} className={cn("px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all", newHabit.recurrence.interval === int ? "bg-white text-black" : "text-white/50 hover:bg-white/5")}>{int === 1 ? 'Toda Semana' : 'Quinzenal'}</button>
+                      <button key={int} type="button" onClick={() => setNewHabit({ ...newHabit, recurrence: { ...newHabit.recurrence, interval: int } })} className={cn("px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all", newHabit.recurrence.interval === int ? "bg-[var(--text-primary)] text-[var(--bg-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] transition-colors")}>{int === 1 ? 'Toda Semana' : 'Quinzenal'}</button>
                     ))}
                   </div>
                 </div>
@@ -345,19 +346,19 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pb-2 pt-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pb-2 pt-1">
             <CustomDateTimePicker label="Início" type="date" value={newHabit.start_date} onChange={val => setNewHabit({ ...newHabit, start_date: val })} direction="up" />
             <CustomDateTimePicker label="Fim" type="date" value={newHabit.end_date || ''} onChange={val => setNewHabit({ ...newHabit, end_date: val })} align="right" direction="up" />
             <CustomDateTimePicker label="Hora" type="time" value={newHabit.time} onChange={val => setNewHabit({ ...newHabit, time: val })} align="right" direction="up" />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[12px] font-black uppercase tracking-widest text-white/50 px-1">Descrição</label>
-            <textarea value={newHabit.description} onChange={e => setNewHabit({ ...newHabit, description: e.target.value })} className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-3 text-white focus:outline-none focus:border-white/30 transition-all font-medium text-base min-h-[50px] max-h-[100px] resize-none" placeholder="Adicione um detalhe..." />
+            <label className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Descrição</label>
+            <textarea value={newHabit.description} onChange={e => setNewHabit({ ...newHabit, description: e.target.value })} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl px-6 py-3 text-[var(--text-primary)] focus:outline-none focus:border-[var(--text-primary)]/30 transition-all font-medium text-base min-h-[50px] max-h-[100px] resize-none" placeholder="Adicione um detalhe..." />
           </div>
 
           <div className="pt-2">
-            <button type="submit" disabled={addHabit.isPending || updateHabit.isPending} className="w-full bg-white text-black font-black py-4 rounded-[24px] hover:bg-neutral-200 transition-all active:scale-95 text-lg">
+            <button type="submit" disabled={addHabit.isPending || updateHabit.isPending} className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black py-4 rounded-[24px] hover:opacity-90 transition-all active:scale-95 text-lg">
               {addHabit.isPending || updateHabit.isPending ? 'Salvando...' : (habitToEdit ? 'Salvar Alterações' : 'Criar Hábito')}
             </button>
           </div>
@@ -365,23 +366,23 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
 
         <AnimatePresence>
           {showAddCategoryModal && (
-            <div className="absolute inset-0 z-50 rounded-[48px] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[#1A1A1A] border border-white/10 rounded-3xl p-6 shadow-2xl">
+            <div className="absolute inset-0 z-[1000] rounded-[48px] bg-[var(--bg-primary)]/60 backdrop-blur-md flex items-center justify-center p-4">
+               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-2xl relative">
                  <div className="flex justify-between items-center mb-6">
-                   <h3 className="text-xl font-bold">Nova Categoria</h3>
-                   <button type="button" onClick={() => setShowAddCategoryModal(false)}><X size={20} className="text-white/60"/></button>
+                   <h3 className="text-xl font-bold text-[var(--text-primary)]">Nova Categoria</h3>
+                   <button type="button" onClick={() => setShowAddCategoryModal(false)}><X size={20} className="text-[var(--text-muted)]"/></button>
                  </div>
                  <div className="space-y-4">
-                   <input value={newCategory.name} onChange={e => setNewCategory({ ...newCategory, name: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500/50" placeholder="Nome da categoria" />
+                   <input value={newCategory.name} onChange={e => setNewCategory({ ...newCategory, name: e.target.value })} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-red-500/50" placeholder="Nome da categoria" />
                    <div className="flex gap-4 items-center">
                      <EmojiPicker value={newCategory.icon} onChange={icon => setNewCategory({ ...newCategory, icon })} />
                      <div className="flex gap-2 flex-wrap">
                        {['#FF453A', '#32D74B', '#FF9F0A', '#BF5AF2', '#8E8E93'].map(color => (
-                         <button key={color} type="button" onClick={() => setNewCategory({ ...newCategory, color })} className={cn("w-6 h-6 rounded-full border-2", newCategory.color === color ? "border-white" : "border-transparent opacity-40")} style={{ backgroundColor: color }} />
+                         <button key={color} type="button" onClick={() => setNewCategory({ ...newCategory, color })} className={cn("w-6 h-6 rounded-full border-2 transition-all", newCategory.color === color ? "border-[var(--text-primary)] scale-110" : "border-transparent opacity-40")} style={{ backgroundColor: color }} />
                        ))}
                      </div>
                    </div>
-                   <button type="button" onClick={() => { if(!newCategory.name) return; addCategory.mutate({...newCategory, type: 'habits'}, { onSuccess: () => setShowAddCategoryModal(false) })}} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl mt-4">Salvar Categoria</button>
+                   <button type="button" onClick={() => { if(!newCategory.name) return; addCategory.mutate({...newCategory, type: 'habits'}, { onSuccess: () => setShowAddCategoryModal(false) })}} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl mt-4 hover:bg-red-700 transition-colors">Salvar Categoria</button>
                  </div>
                </motion.div>
             </div>

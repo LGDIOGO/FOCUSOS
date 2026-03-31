@@ -19,7 +19,8 @@ const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id' | 'updated_at'> = {
     drafts: true,
     leadTimeMinutes: 5,
     sound: 'apple'
-  }
+  },
+  theme: 'dark'
 }
 
 export function useSettings() {

@@ -7,15 +7,29 @@ import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/layout/Sidebar'
 import MobileNav from '@/components/layout/MobileNav'
 import { NotificationSystem } from '@/components/dashboard/NotificationSystem'
+import { useSettings } from '@/lib/hooks/useSettings'
 
 export default function AppLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const { data: settings } = useSettings()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const router = useRouter()
+
+  // Apply theme to document root
+  useEffect(() => {
+    if (settings?.theme) {
+      document.documentElement.setAttribute('data-theme', settings.theme)
+      // Update meta theme-color for mobile browser address bars
+      const metaTheme = document.querySelector('meta[name="theme-color"]')
+      if (metaTheme) {
+        metaTheme.setAttribute('content', settings.theme === 'dark' ? '#000000' : '#F2F2F7')
+      }
+    }
+  }, [settings?.theme])
 
   useEffect(() => {
     // 1. Defina um timeout de segurança (5s) para o spinner caso o Firebase trave
@@ -48,9 +62,9 @@ export default function AppLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-black">
+    <div className="flex min-h-screen bg-[var(--bg-primary)] transition-colors duration-300 font-sans">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto pb-24 md:pb-0 relative">
+      <main className="flex-1 overflow-y-auto pb-24 md:pb-0 relative bg-[var(--bg-workspace)] rounded-none lg:rounded-tl-[40px] border-l border-white/[0.03] shadow-2xl">
         {children}
         <NotificationSystem />
       </main>

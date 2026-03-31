@@ -22,13 +22,13 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="hidden md:flex w-20 lg:w-64 h-screen border-r border-white/[0.06] bg-black flex-col p-4 gap-8 sticky top-0 bg-black/95 backdrop-blur-3xl z-[100]">
+      <aside className="hidden lg:flex w-64 h-screen border-r border-[var(--border-subtle)] bg-[var(--bg-primary)] flex-col p-4 gap-8 sticky top-0 z-[100] transition-all duration-300">
         {/* Logo */}
         <div className="relative z-[1000] flex items-center gap-3 px-2">
-          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-            <div className="w-4 h-4 rounded-sm bg-black rotate-45" />
+          <div className="w-8 h-8 rounded-[9px] bg-[var(--text-primary)] flex items-center justify-center transition-colors flex-shrink-0">
+            <div className="w-3.5 h-3.5 rounded-[3px] bg-[var(--bg-primary)] rotate-45 transition-colors" />
           </div>
-          <span className="hidden lg:block text-lg font-bold tracking-tight">FocusOS</span>
+          <span className="hidden lg:block text-lg font-bold tracking-tight text-[var(--text-primary)]">FocusOS</span>
         </div>
 
         {/* Nav */}
@@ -41,15 +41,17 @@ export default function Sidebar() {
                 href={item.href}
                 className={cn(
                   "group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 relative",
-                  active ? "bg-white/[0.08] text-white" : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"
+                  active 
+                    ? "bg-[var(--bg-overlay)] text-[var(--text-primary)] shadow-sm" 
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]"
                 )}
               >
-                <item.icon size={20} className={cn("transition-colors relative z-10", active ? "text-white" : "text-white/40 group-hover:text-white/70")} />
+                <item.icon size={20} className={cn("transition-colors relative z-10", active ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] group-hover:text-[var(--text-primary)]")} />
                 <span className="hidden lg:block text-base font-medium relative z-10">{item.label}</span>
                 {active && (
                   <motion.div
                     layoutId="active-pill"
-                    className="absolute left-0 w-1 h-6 bg-white rounded-r-full"
+                    className="absolute left-0 w-1 h-6 bg-red-500 rounded-r-full shadow-[0_0_10px_rgba(239,68,68,0.5)]"
                   />
                 )}
               </Link>
@@ -61,7 +63,7 @@ export default function Sidebar() {
         <div className="mt-auto flex flex-col gap-2">
           <button 
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-3 px-3 py-2.5 text-white/40 hover:text-white/70 hover:bg-white/[0.04] rounded-xl transition-all"
+            className="flex items-center gap-3 px-3 py-2.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)] rounded-xl transition-all"
           >
             <Settings size={20} />
             <span className="hidden lg:block text-base font-medium">Configurações</span>

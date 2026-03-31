@@ -1,6 +1,7 @@
-import { memo, useState } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Minus, X, Calendar, Clock, RefreshCcw, Circle, Pencil } from 'lucide-react'
+import { Check, Minus, X, Calendar, Clock, RefreshCcw, Circle, Pencil, AlertCircle } from 'lucide-react'
+import { format, parse, isAfter, subMinutes, isToday } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
 import { CalendarEvent } from '@/types'
 import { useLongPress } from '@/lib/hooks/useLongPress'
@@ -16,34 +17,35 @@ interface AgendaItemProps {
   onContextMenu?: () => void
   onOpenBubble?: (pos: { x: number; y: number }) => void
   onEdit?: () => void
+  currentTime?: Date
 }
 
 const DEFAULT_STATUS_CONFIG = {
-  icon: 'bg-white/5 text-white/40',
-  border: 'border-white/10',
-  text: 'text-white'
+  icon: 'bg-[var(--bg-overlay)] text-[var(--text-muted)]',
+  border: 'border-[var(--border-subtle)]',
+  text: 'text-[var(--text-primary)]'
 }
 
 const STATUS_CONFIG = {
   todo: {
-    icon: 'bg-white/5 text-white/40',
-    border: 'border-white/10',
-    text: 'text-white'
+    icon: 'bg-[var(--bg-overlay)] text-[var(--text-muted)]',
+    border: 'border-[var(--border-subtle)]',
+    text: 'text-[var(--text-primary)]'
   },
   done: {
     icon: 'bg-green-500 text-white',
     border: 'border-green-500/30 bg-green-500/[0.03]',
-    text: 'text-white/40 line-through'
+    text: 'text-[var(--text-muted)] line-through'
   },
   partial: {
     icon: 'bg-amber-400 text-black',
     border: 'border-amber-400/30 bg-amber-400/[0.03]',
-    text: 'text-white/70'
+    text: 'text-[var(--text-primary)]/70'
   },
   failed: {
     icon: 'bg-red-500 text-white',
     border: 'border-red-500/30 bg-red-500/[0.03]',
-    text: 'text-white/40'
+    text: 'text-[var(--text-muted)]'
   },
   none: DEFAULT_STATUS_CONFIG
 }
@@ -57,10 +59,31 @@ function AgendaItem({
   onSelect,
   onContextMenu,
   onOpenBubble,
-  onEdit
+  onEdit,
+  currentTime = new Date()
 }: AgendaItemProps) {
   const currentStatus = event.status || 'none'
   const cfg = (STATUS_CONFIG as any)[currentStatus] || STATUS_CONFIG.none || DEFAULT_STATUS_CONFIG
+
+  // Status de tempo real
+  const timeStatus = useMemo(() => {
+    if (!event.time || event.status === 'done' || !isToday(parse(event.date || '', 'yyyy-MM-dd', new Date()))) {
+      return { approaching: false, passed: event.isOverdue }
+    }
+    
+    try {
+      const eventTime = parse(event.time, 'HH:mm', currentTime)
+      const now = currentTime
+      
+      const isPassed = isAfter(now, eventTime)
+      // Flash red if it's within 15 mins of starting
+      const isApproaching = !isPassed && isAfter(now, subMinutes(eventTime, 15))
+      
+      return { approaching: isApproaching, passed: isPassed }
+    } catch (e) {
+      return { approaching: false, passed: false }
+    }
+  }, [event.time, event.status, event.isOverdue, event.date, currentTime])
 
   const longPress = useLongPress(
     () => {
@@ -104,7 +127,7 @@ function AgendaItem({
         onContextMenu?.()
       }}
       className={cn(
-        "bg-white/[0.03] border rounded-[28px] p-4 flex items-center justify-between gap-4 hover:bg-white/[0.05] transition-all group relative overflow-hidden cursor-pointer",
+        "bg-[var(--bg-overlay)] border rounded-[28px] p-4 flex items-center justify-between gap-4 bg-[var(--bg-overlay)]/50 transition-all group relative overflow-hidden cursor-pointer",
         cfg.border,
         isSelected && "border-red-600/50 bg-red-600/[0.08] ring-1 ring-red-600/20 shadow-[0_0_20px_rgba(224,32,32,0.1)]"
       )}
@@ -119,7 +142,7 @@ function AgendaItem({
             onClick={handleStatusClick}
             className={cn(
               "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
-              (event.status === 'todo' || !event.status) ? "border-white/10 bg-white/5" : cfg.icon
+              (event.status === 'todo' || !event.status) ? "border-[var(--border-subtle)] bg-[var(--bg-overlay)]" : cfg.icon
             )}
           >
             <StatusIcon status={event.status} />
@@ -140,9 +163,23 @@ function AgendaItem({
             {event.title}
           </h4>
           <div className="flex items-center gap-3 text-xs font-medium text-white/30 uppercase tracking-widest">
-            <span className="flex items-center gap-1.5"><Clock size={12} /> {event.time}</span>
-            {event.description && (
-              <span className="flex items-center gap-1.5 text-white/40 lowercase italic tracking-normal font-normal truncate">
+            <span className={cn(
+              "flex items-center gap-1.5 transition-all duration-700",
+              timeStatus.passed ? "text-[#FF453A] font-black scale-105" : 
+              timeStatus.approaching ? "animate-flash-red font-bold" : ""
+            )}>
+              <Clock size={12} className={cn(timeStatus.passed || timeStatus.approaching ? "text-[#FF453A]" : "")} /> 
+              {event.time}
+            </span>
+
+            {event.isOverdue && (
+              <span className="flex items-center gap-1 px-2 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-lg text-[#FF453A] text-[9px] font-black animate-in fade-in zoom-in duration-500">
+                <AlertCircle size={10} /> ATRASADO
+              </span>
+            )}
+
+            {event.description && !event.isOverdue && (
+              <span className="flex items-center gap-1.5 text-[var(--text-muted)] lowercase italic tracking-normal font-normal truncate">
                  · {event.description}
               </span>
             )}
@@ -160,7 +197,7 @@ function AgendaItem({
               e.stopPropagation()
               onEdit?.()
             }}
-            className="p-2.5 rounded-xl bg-white/5 border border-white/5 text-white/20 hover:text-white hover:bg-white/10 transition-all active:scale-90"
+            className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/80 transition-all active:scale-90"
             title="Editar Compromisso"
           >
             <Pencil size={14} />

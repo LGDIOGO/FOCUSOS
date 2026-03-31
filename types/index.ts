@@ -76,6 +76,7 @@ export interface UserSettings {
     sound: 'apple' | 'none';
   };
   updated_at: string;
+  theme: 'light' | 'dark';
 }
 
 export interface Goal {
@@ -119,7 +120,8 @@ export interface CalendarEvent {
   date: string; // ISO yyyy-MM-dd
   time?: string; // HH:mm
   type: EventType;
-  status: 'todo' | 'done' | 'partial' | 'failed';
+  status: 'todo' | 'done' | 'partial' | 'failed' | 'none';
+  isOverdue?: boolean;
   recurrence?: RecurrenceRule;
   category_id?: string;
   color?: string;      // Curated Apple hex or tailwind class

@@ -41,36 +41,49 @@ export function CustomDateTimePicker({
 
   return (
     <div className="space-y-2 flex-1 relative">
-      <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">{label}</label>
+      <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">{label}</label>
       <div 
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "relative flex items-center bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 cursor-pointer hover:bg-white/[0.06] hover:border-white/20 transition-all group",
-          isOpen && "border-white/30 bg-white/[0.08]"
+          "relative flex items-center bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl px-6 py-4 cursor-pointer hover:opacity-80 transition-all group",
+          isOpen && "border-[var(--text-primary)]/30 bg-[var(--bg-overlay)]/80"
         )}
       >
         <span className={cn(
-          "text-white font-bold text-lg flex-1",
-          !value && "text-white/20"
+          "text-[var(--text-primary)] font-bold text-lg flex-1 transition-colors",
+          !value && "text-[var(--text-muted)]"
         )}>
           {getDisplayValue()}
         </span>
         
         {type === 'date' ? (
-          <Calendar className="text-white/40 group-hover:text-white transition-colors" size={20} />
+          <Calendar className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" size={20} />
         ) : (
-          <Clock className="text-white/40 group-hover:text-white transition-colors" size={20} />
+          <Clock className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" size={20} />
         )}
       </div>
 
       <AnimatePresence>
         {isOpen && (
           <>
-            <div className="fixed inset-0 z-[90]" onClick={() => setIsOpen(false)} />
+            {/* Backdrop for mobile/tablet */}
+            <div 
+              className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm lg:hidden" 
+              onClick={() => setIsOpen(false)} 
+            />
+            {/* Click area for desktop absolute positioning */}
+            <div 
+              className="fixed inset-0 z-[90] hidden lg:block" 
+              onClick={() => setIsOpen(false)} 
+            />
+
             <div className={cn(
-              "absolute z-[100]",
-              direction === 'up' ? "bottom-full mb-4" : "top-full mt-4",
-              align === 'right' ? "right-0" : "left-0"
+              "z-[100]",
+              // Mobile/Tablet: Fixed Centered
+              "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 lg:absolute lg:top-auto lg:left-auto lg:translate-x-0 lg:translate-y-0",
+              // Desktop: Absolute Positioning
+              direction === 'up' ? "lg:bottom-full lg:mb-4" : "lg:top-full lg:mt-4",
+              align === 'right' ? "lg:right-0" : "lg:left-0"
             )}>
               {type === 'date' ? (
                 <AppleDatePicker 

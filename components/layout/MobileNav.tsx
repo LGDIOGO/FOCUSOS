@@ -18,7 +18,7 @@ export default function MobileNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/[0.08] px-6 py-4 flex justify-between items-center z-[5000]">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-t border-[var(--border-subtle)] px-6 py-4 flex justify-between items-center z-[5000] transition-colors duration-300">
       {NAV_ITEMS.map((item) => {
         const active = pathname === item.href
         return (
@@ -27,16 +27,19 @@ export default function MobileNav() {
             href={item.href}
             className={cn(
               "relative flex flex-col items-center gap-1 transition-all duration-300",
-              active ? "text-white" : "text-white/40"
+              active ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
             )}
           >
-            <item.icon size={22} className={cn("transition-colors", active ? "scale-110" : "")} />
-            <span className="text-[10px] font-bold uppercase tracking-widest">{item.label}</span>
+            <item.icon size={22} className={cn("transition-colors", active ? "scale-110 text-red-500" : "")} />
+            <span className={cn(
+              "text-[10px] font-bold uppercase tracking-widest transition-colors",
+              active ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"
+            )}>{item.label}</span>
             
             {active && (
               <motion.div
                 layoutId="active-nav-dot"
-                className="absolute -top-1 w-1 h-1 bg-white rounded-full"
+                className="absolute -top-1 w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]"
                 transition={{ type: "spring", stiffness: 380, damping: 30 }}
               />
             )}

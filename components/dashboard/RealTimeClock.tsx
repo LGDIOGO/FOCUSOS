@@ -26,10 +26,10 @@ export function RealTimeClock() {
 
   return (
     <div className="flex flex-col items-end">
-      <span className="text-[32px] font-black tracking-tighter tabular-nums leading-none">
+      <span className="text-[32px] font-black tracking-tighter tabular-nums leading-none text-[var(--text-primary)]">
         {format(time, timeFormat)}
       </span>
-      <span className="text-[12px] font-black uppercase tracking-[0.2em] text-white/20 mt-1">
+      <span className="text-[12px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-1">
         {format(time, "EEEE", { locale }).toUpperCase()} • {format(time, dateFormat)}
       </span>
     </div>

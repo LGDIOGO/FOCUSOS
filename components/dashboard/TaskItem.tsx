@@ -80,7 +80,7 @@ function TaskItem({
         (task.status === 'done' || task.done) ? 'bg-green-500/[0.03] border-green-500/20' : 
         task.status === 'partial' ? 'bg-amber-400/[0.03] border-amber-400/20' :
         task.status === 'failed' ? 'bg-red-500/[0.03] border-red-500/20' :
-        'bg-white/[0.04] border-white/[0.08]',
+        'bg-[var(--bg-overlay)] border-[var(--border-subtle)]',
         isSelected && 'border-red-600/50 bg-red-600/[0.08] ring-1 ring-red-600/20 shadow-[0_0_20px_rgba(224,32,32,0.1)]'
       )}
     >
@@ -103,7 +103,7 @@ function TaskItem({
           ) : task.status === 'failed' ? (
             <X size={16} strokeWidth={4} />
           ) : (
-            <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+            <div className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]" />
           )}
         </motion.div>
       )}
@@ -121,10 +121,10 @@ function TaskItem({
       <div className="flex-1 min-w-0 flex items-center gap-2">
         {task.emoji && <span className="text-lg flex-shrink-0">{task.emoji}</span>}
         <div className="min-w-0 flex-1">
-          <p className={cn('text-base font-bold text-white truncate transition-all', (task.done || task.status === 'done') && 'line-through text-white/40')}>
+          <p className={cn('text-base font-bold text-[var(--text-primary)] truncate transition-all', (task.done || task.status === 'done') && 'line-through text-[var(--text-muted)]')}>
             {task.title}
           </p>
-          <p className="text-[12px] text-white/40 mt-0.5 truncate font-medium uppercase tracking-widest">{dueLabel}</p>
+          <p className="text-[12px] text-[var(--text-muted)] mt-0.5 truncate font-medium uppercase tracking-widest">{dueLabel}</p>
         </div>
       </div>
 

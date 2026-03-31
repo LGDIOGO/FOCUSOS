@@ -19,11 +19,11 @@ export function AppleTimePicker({ value, onChange, onClose, direction = 'down' }
       initial={{ opacity: 0, scale: 0.95, y: direction === 'up' ? 10 : -10 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, y: direction === 'up' ? 10 : -10 }}
-      className="bg-[#1C1C1E] border border-white/10 rounded-[32px] p-6 shadow-2xl w-[260px] max-w-[90vw]"
+      className="bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-[32px] p-4 sm:p-6 shadow-2xl w-[260px] max-w-[95vw] transition-colors duration-300"
     >
       <div className="flex justify-between items-center mb-6 px-2">
-        <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Escolher Horário</span>
-        <span className="text-white font-black text-xl tracking-tighter">{value}</span>
+        <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Escolher Horário</span>
+        <span className="text-[var(--text-primary)] font-black text-xl tracking-tighter">{value}</span>
       </div>
 
       <div className="grid grid-cols-2 gap-4 h-[200px]">
@@ -35,7 +35,7 @@ export function AppleTimePicker({ value, onChange, onClose, direction = 'down' }
               onClick={() => onChange(`${hour}:${m}`)}
               className={cn(
                 "w-full py-3 rounded-2xl text-lg font-bold transition-all",
-                h === hour ? "bg-white text-black scale-[1.05]" : "text-white/40 hover:bg-white/5 hover:text-white"
+                h === hour ? "bg-[var(--text-primary)] text-[var(--bg-primary)] scale-[1.05]" : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] hover:text-[var(--text-primary)]"
               )}
             >
               {hour}
@@ -50,7 +50,7 @@ export function AppleTimePicker({ value, onChange, onClose, direction = 'down' }
               onClick={() => onChange(`${h}:${min}`)}
               className={cn(
                 "w-full py-3 rounded-2xl text-lg font-bold transition-all",
-                m === min ? "bg-white text-black scale-[1.05]" : "text-white/40 hover:bg-white/5 hover:text-white"
+                m === min ? "bg-[var(--text-primary)] text-[var(--bg-primary)] scale-[1.05]" : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] hover:text-[var(--text-primary)]"
               )}
             >
               {min}
@@ -59,10 +59,16 @@ export function AppleTimePicker({ value, onChange, onClose, direction = 'down' }
         </div>
       </div>
 
-      <div className="mt-6 flex gap-4">
+      <div className="mt-6 flex gap-3">
         <button 
           onClick={onClose}
-          className="flex-1 py-4 text-xs font-black uppercase tracking-widest bg-white text-black rounded-2xl hover:opacity-90 active:scale-95 transition-all"
+          className="flex-1 py-4 text-xs font-black uppercase tracking-widest bg-[var(--bg-overlay)] text-[var(--text-muted)] rounded-2xl hover:bg-[var(--bg-overlay)]/80 active:scale-95 transition-all text-center"
+        >
+          Cancelar
+        </button>
+        <button 
+          onClick={onClose}
+          className="flex-1 py-4 text-xs font-black uppercase tracking-widest bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-2xl hover:opacity-90 active:scale-95 transition-all text-center"
         >
           Confirmar
         </button>
@@ -76,7 +82,7 @@ export function AppleTimePicker({ value, onChange, onClose, direction = 'down' }
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.1);
+          background: var(--border-subtle);
           border-radius: 10px;
         }
       `}</style>

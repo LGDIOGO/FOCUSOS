@@ -4,15 +4,18 @@ import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp
+  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle
 } from 'lucide-react'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
 import { useEvents, useDeleteEvent } from '@/lib/hooks/useEvents'
+import { db, auth } from '@/lib/firebase/config'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 import { CalendarEvent, EventType } from '@/types'
 import { cn } from '@/lib/utils/cn'
-import { format, isToday, isTomorrow, parseISO, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, differenceInWeeks, differenceInDays } from 'date-fns'
+import { format, isToday, isTomorrow, parseISO, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, differenceInWeeks, differenceInDays, parse } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useLongPress } from '@/lib/hooks/useLongPress'
+import { isAfter, subMinutes } from 'date-fns'
 
 const EVENT_TYPES: { type: EventType; label: string; icon: any; color: string }[] = [
   { type: 'meeting', label: 'Reunião', icon: Users, color: 'text-red-400 bg-red-400/10' },
@@ -31,7 +34,8 @@ function EventItem({
   toggleSelection, 
   openEditModal, 
   setIsSelectionMode,
-  onDelete
+  onDelete,
+  currentTime = new Date()
 }: { 
   event: CalendarEvent
   isSelectionMode: boolean
@@ -40,6 +44,7 @@ function EventItem({
   openEditModal: (event: CalendarEvent) => void
   setIsSelectionMode: (val: boolean) => void
   onDelete: (id: string) => void
+  currentTime?: Date
 }) {
   const localLongPress = useLongPress(
     () => {
@@ -49,6 +54,19 @@ function EventItem({
     () => {},
     { delay: 500 }
   )
+
+  const timeStatus = useMemo(() => {
+    if (!event.time || event.isOverdue) return { approaching: false, passed: event.isOverdue }
+    const now = currentTime || new Date()
+    try {
+      const eventTime = parse(event.time, 'HH:mm', now)
+      const isPassed = isAfter(now, eventTime)
+      const isApproaching = !isPassed && isAfter(now, subMinutes(eventTime, 15))
+      return { approaching: isApproaching, passed: isPassed }
+    } catch (e) {
+      return { approaching: false, passed: false }
+    }
+  }, [event.time, event.isOverdue, currentTime])
 
   return (
     <motion.div
@@ -68,8 +86,8 @@ function EventItem({
         toggleSelection(event.id)
       }}
       className={cn(
-        "group flex items-center gap-6 p-6 bg-white/[0.03] border rounded-[32px] hover:bg-white/[0.05] transition-all cursor-pointer relative",
-        isSelected ? "border-red-500 bg-red-500/5" : "border-white/10"
+        "group flex items-center gap-6 p-6 bg-[var(--bg-overlay)] border rounded-[32px] hover:bg-[var(--bg-overlay)]/80 transition-all cursor-pointer relative transition-colors duration-300",
+        isSelected ? "border-red-500 bg-red-500/5" : "border-[var(--border-subtle)]"
       )}
     >
       <div 
@@ -85,7 +103,7 @@ function EventItem({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-3 mb-1">
-          <h3 className="text-lg font-bold text-white truncate">{event.title}</h3>
+          <h3 className="text-lg font-bold text-[var(--text-primary)] truncate transition-colors">{event.title}</h3>
           {event.recurrence && (
              <div className="flex items-center gap-1 text-[9px] font-black text-white/20 uppercase tracking-widest">
                <RefreshCcw size={10} />
@@ -99,18 +117,27 @@ function EventItem({
              </div>
           )}
         </div>
-        <div className="flex items-center gap-4 text-white/50 text-base font-medium">
-          <div className="flex items-center gap-1.5">
-            <Clock size={14} />
-            {event.time}
-          </div>
-          {event.description && (
-            <div className="flex items-center gap-1.5 truncate">
-              <div className="w-1 h-1 rounded-full bg-white/10" />
-              {event.description}
+          <div className={cn(
+            "flex items-center gap-4 text-base font-medium transition-all duration-700",
+            timeStatus.passed ? "text-[#FF453A]" : 
+            timeStatus.approaching ? "text-[#FF453A] animate-pulse" : "text-[var(--text-muted)]"
+          )}>
+            <div className="flex items-center gap-1.5">
+              <Clock size={14} className={cn(timeStatus.passed || timeStatus.approaching ? "text-[#FF453A]" : "")} />
+              {event.time}
             </div>
-          )}
-        </div>
+            {event.isOverdue && (
+              <span className="flex items-center gap-1 px-2 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-lg text-[#FF453A] text-[10px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-500">
+                <AlertCircle size={10} /> ATRASADO
+              </span>
+            )}
+            {event.description && (
+              <div className="flex items-center gap-1.5 truncate">
+                <div className="w-1 h-1 rounded-full bg-white/10" />
+                {event.description}
+              </div>
+            )}
+          </div>
       </div>
 
       <button 
@@ -138,13 +165,54 @@ function EventItem({
 export default function AgendaPage() {
   const { data: events, isLoading } = useEvents()
   const deleteEvent = useDeleteEvent()
-
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const searchParams = useSearchParams()
+  const [logs, setLogs] = useState<Map<string, string>>(new Map())
+  const [loadingLogs, setLoadingLogs] = useState(false)
+  const [currentTime, setCurrentTime] = useState(new Date())
   const [showAddModal, setShowAddModal] = useState(false)
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isSelectionMode, setIsSelectionMode] = useState(false)
+
+  // Update logic for real-time visual alerts
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // Fetch logs for the current month view
+  useEffect(() => {
+    const fetchLogs = async () => {
+      const user = auth.currentUser
+      if (!user || !events) return
+      
+      setLoadingLogs(true)
+      try {
+        const start = format(startOfMonth(currentMonth), 'yyyy-MM-dd')
+        const end = format(endOfMonth(currentMonth), 'yyyy-MM-dd')
+        
+        const q = query(
+          collection(db, 'event_logs'),
+          where('user_id', '==', user.uid),
+          where('log_date', '>=', start),
+          where('log_date', '<=', end)
+        )
+        const snap = await getDocs(q)
+        const newLogs = new Map()
+        snap.docs.forEach(d => {
+          const data = d.data()
+          newLogs.set(`${data.event_id}_${data.log_date}`, data.status)
+        })
+        setLogs(newLogs)
+      } catch (e) {
+        console.error('Error fetching logs:', e)
+      } finally {
+        setLoadingLogs(false)
+      }
+    }
+    fetchLogs()
+  }, [events, currentMonth])
 
   useEffect(() => {
     if (searchParams.get('add') === 'true') {
@@ -209,6 +277,7 @@ export default function AgendaPage() {
     days.forEach((day: Date) => {
       const dateStr = format(day, 'yyyy-MM-dd')
       const dayOfWeek = getDay(day)
+      const isPast = isAfter(new Date(), day) && !isToday(day)
       
       const dayEvents = events.filter(e => {
         if (e.date === dateStr) return true
@@ -223,34 +292,34 @@ export default function AgendaPage() {
              const diff = Math.abs(differenceInDays(day, evDate))
              return diff % interval === 0
           }
-          
           if (freq === 'weekly') {
              const diff = Math.abs(differenceInWeeks(day, evDate))
              return diff % interval === 0 && dayOfWeek === getDay(evDate)
           }
-
           if (freq === 'specific_days') {
              const diff = Math.abs(differenceInWeeks(day, evDate))
              return diff % interval === 0 && e.recurrence.days_of_week?.includes(dayOfWeek)
           }
-
-          if (freq === 'monthly') {
-             return format(day, 'dd') === format(evDate, 'dd')
-          }
-          if (freq === 'yearly') {
-             return format(day, 'MM-dd') === format(evDate, 'MM-dd')
-          }
+          if (freq === 'monthly') return format(day, 'dd') === format(evDate, 'dd')
+          if (freq === 'yearly') return format(day, 'MM-dd') === format(evDate, 'MM-dd')
         }
         return false
+      }).map(e => {
+        const status = logs.get(`${e.id}_${dateStr}`) || 'none'
+        return {
+          ...e,
+          status,
+          isOverdue: isPast && status !== 'done'
+        }
       })
       
       if (dayEvents.length > 0) {
-        grouped[dateStr] = dayEvents
+        grouped[dateStr] = dayEvents as CalendarEvent[]
       }
     })
     
     return grouped
-  }, [events, currentMonth])
+  }, [events, currentMonth, logs])
 
   return (
     <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10">
@@ -261,35 +330,35 @@ export default function AgendaPage() {
         className="flex flex-col md:flex-row md:items-end justify-between gap-6"
       >
         <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-white/5 rounded-[24px] flex items-center justify-center border border-white/10 shadow-2xl">
-            <CalendarIcon className="text-white w-8 h-8" />
+          <div className="w-16 h-16 bg-[var(--bg-overlay)] rounded-[24px] flex items-center justify-center border border-[var(--border-subtle)] shadow-2xl">
+            <CalendarIcon className="text-[var(--text-primary)] w-8 h-8" />
           </div>
           <div>
             <div className="flex items-center gap-3 mb-1">
-               <h1 className="text-5xl font-black tracking-tightest">Minha Agenda</h1>
-               <div className="flex items-center gap-1 bg-white/5 rounded-full px-3 py-1 border border-white/10">
-                  <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:text-white transition-colors text-white/60">
+               <h1 className="text-5xl font-black tracking-tightest text-[var(--text-primary)]">Minha Agenda</h1>
+               <div className="flex items-center gap-1 bg-[var(--bg-overlay)] rounded-full px-3 py-1 border border-[var(--border-subtle)]">
+                  <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:text-[var(--text-primary)] transition-colors text-[var(--text-muted)]">
                     <ChevronRight className="rotate-180" size={14} />
                   </button>
-                  <span className="text-[12px] font-black uppercase tracking-widest min-w-[100px] text-center">
+                  <span className="text-[12px] font-black uppercase tracking-widest min-w-[100px] text-center text-[var(--text-primary)]">
                     {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
                   </span>
-                  <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:text-white transition-colors text-white/60">
+                  <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:text-[var(--text-primary)] transition-colors text-[var(--text-muted)]">
                     <ChevronRight size={14} />
                   </button>
                </div>
             </div>
-            <p className="text-white/60 font-medium text-lg italic flex items-center gap-2">
+            <p className="text-[var(--text-secondary)] font-medium text-lg italic flex items-center gap-2">
               Gerencie compromissos para qualquer data futura.
-              <span className="inline-block w-1 h-1 rounded-full bg-white/20 mx-1" />
-              <span className="text-white/30 text-xs font-black uppercase tracking-tighter hidden md:inline-block border border-white/5 px-2 py-0.5 rounded-md">Botão direito para selecionar</span>
+              <span className="inline-block w-1 h-1 rounded-full bg-[var(--text-muted)]/20 mx-1" />
+              <span className="text-[var(--text-muted)] text-xs font-black uppercase tracking-tighter hidden md:inline-block border border-[var(--border-subtle)] px-2 py-0.5 rounded-md">Botão direito para selecionar</span>
             </p>
           </div>
         </div>
         
         <button 
           onClick={() => setShowAddModal(true)}
-          className="bg-white text-black px-6 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-neutral-200 transition-all active:scale-95 shadow-xl shrink-0"
+          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-6 py-4 rounded-2xl font-black flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-xl shrink-0"
         >
           <Plus size={20} />
           Novo Compromisso
@@ -336,6 +405,7 @@ export default function AgendaPage() {
                       openEditModal={openEditModal}
                       setIsSelectionMode={setIsSelectionMode}
                       onDelete={(id) => deleteEvent.mutate(id)}
+                      currentTime={currentTime}
                     />
                   ))}
                 </div>
@@ -383,59 +453,55 @@ export default function AgendaPage() {
 
 
 
-      {/* Selection Tray */}
       <AnimatePresence>
         {isSelectionMode && (
           <motion.div 
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-black/90 backdrop-blur-3xl border border-white/10 rounded-[40px] px-10 py-5 flex items-center gap-10 shadow-2xl ring-1 ring-white/5"
+            className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[1000] w-[95%] md:w-auto max-w-5xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-3 md:gap-10 shadow-2xl ring-1 ring-[var(--text-primary)]/5"
           >
-            <div className="flex flex-col items-center justify-center min-w-[80px]">
-              <span className="text-3xl font-black text-white leading-none">{selectedIds.length}</span>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">Itens</span>
+            <div className="flex flex-col items-center justify-center min-w-[60px] md:min-w-[80px]">
+              <span className="text-2xl md:text-3xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>
+              <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-1">Itens</span>
             </div>
 
-            <div className="h-12 w-px bg-white/10" />
+            <div className="h-10 md:h-12 w-px bg-[var(--border-subtle)]" />
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 md:gap-6">
               {[
                 { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
                 { label: 'Hoje', icon: Clock, onClick: () => handleSelectGroup('today') },
                 { label: 'Amanhã', icon: CalendarIcon, onClick: () => handleSelectGroup('tomorrow') },
                 { label: 'Ano Atual', icon: Star, onClick: () => handleSelectGroup('current_year') },
-                { label: 'Ano Que Vem', icon: TrendingUp, onClick: () => handleSelectGroup('next_year') },
+                { label: 'Próximo', icon: TrendingUp, onClick: () => handleSelectGroup('next_year') },
               ].map(btn => (
                 <button 
                   key={btn.label}
                   onClick={btn.onClick}
                   className="relative flex flex-col items-center group/sel pt-1"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all duration-300">
-                    <btn.icon size={20} />
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-[var(--bg-overlay)] flex items-center justify-center border border-[var(--border-subtle)] group-hover/sel:bg-[var(--text-primary)] group-hover/sel:text-[var(--bg-primary)] transition-all duration-300">
+                    <btn.icon size={18} />
                   </div>
-                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap">
+                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap hidden md:block">
                     {btn.label}
                   </span>
                 </button>
               ))}
             </div>
 
-            <div className="h-12 w-px bg-white/10" />
+            <div className="h-10 md:h-12 w-px bg-white/10" />
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3 md:gap-6">
               <button 
                 onClick={handleBulkDelete}
                 disabled={selectedIds.length === 0}
                 className="relative flex flex-col items-center group/del disabled:opacity-20"
               >
-                <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all duration-300 text-red-500">
-                  <Trash2 size={20} />
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all duration-300 text-red-500">
+                  <Trash2 size={18} />
                 </div>
-                <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-red-500/40 opacity-0 group-hover/del:opacity-100 transition-all pointer-events-none whitespace-nowrap">
-                  Excluir
-                </span>
               </button>
               
               <button 
@@ -443,7 +509,7 @@ export default function AgendaPage() {
                   setIsSelectionMode(false)
                   setSelectedIds([])
                 }}
-                className="h-12 px-10 bg-white/10 hover:bg-white text-white hover:text-black rounded-2xl font-black uppercase tracking-[0.15em] text-[11px] transition-all duration-300 whitespace-nowrap"
+                className="h-10 md:h-12 px-5 md:px-10 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-xl md:rounded-2xl font-black uppercase tracking-[0.15em] text-[10px] md:text-[11px] transition-all duration-300 whitespace-nowrap border border-[var(--border-subtle)]"
               >
                 Cancelar
               </button>

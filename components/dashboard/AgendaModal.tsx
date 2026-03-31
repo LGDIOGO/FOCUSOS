@@ -132,7 +132,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
       time: newEvent.time,
       type: newEvent.type,
       color: newEvent.color,
-      emoji: newEvent.emoji || '📅',
+      emoji: newEvent.emoji || null,
       category_id: newEvent.category_id || null
     }
 
@@ -186,24 +186,24 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-lg bg-[#0A0A0A] border text-left border-white/10 rounded-[40px] md:rounded-[48px] p-5 md:p-7 overflow-y-auto max-h-[90vh] shadow-2xl z-[991]"
+        className="relative w-full max-w-lg bg-[var(--bg-primary)] border text-left border-[var(--border-subtle)] rounded-[40px] md:rounded-[48px] p-5 md:p-7 overflow-y-auto max-h-[90vh] shadow-2xl z-[991] transition-colors duration-300"
       >
         <div className="flex justify-between items-center mb-10">
-          <h2 className="text-4xl font-black tracking-tightest">{eventToEdit ? 'Editar Compromisso' : 'Novo Compromisso'}</h2>
-          <button onClick={onClose} className="p-3 hover:bg-white/5 rounded-2xl">
-            <X className="text-white/60" />
+          <h2 className="text-4xl font-black tracking-tightest text-[var(--text-primary)] transition-colors">{eventToEdit ? 'Editar Compromisso' : 'Novo Compromisso'}</h2>
+          <button onClick={onClose} className="p-3 hover:bg-[var(--bg-overlay)] rounded-2xl transition-all">
+            <X className="text-[var(--text-muted)]" />
           </button>
         </div>
 
         <form onSubmit={handleAddEvent} className="space-y-3">
           <div className="space-y-2 relative">
-            <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-white/50 px-1">Nome</label>
+            <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Nome</label>
             <div className="relative group/input">
               <input 
                 required
                 value={newEvent.title}
                 onChange={e => setNewEvent({ ...newEvent, title: e.target.value })}
-                className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-white/30 transition-all font-bold text-xl pr-14"
+                className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl px-6 py-4 text-[var(--text-primary)] focus:outline-none focus:border-[var(--text-primary)]/30 transition-all font-bold text-xl pr-14"
                 placeholder="Exemplo: Almoço com João amanhã às 12:30"
               />
               <button
@@ -212,8 +212,8 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                 disabled={isParsing || !newEvent.title}
                 className={cn(
                   "absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all",
-                  isParsing ? "bg-white/10 animate-pulse" : "bg-white/0 hover:bg-white/5",
-                  newEvent.title ? "text-red-400 opacity-100" : "text-white/10 opacity-0 pointer-events-none"
+                  isParsing ? "bg-[var(--bg-overlay)] animate-pulse" : "bg-transparent hover:bg-[var(--bg-overlay)]",
+                  newEvent.title ? "text-red-500 opacity-100" : "text-[var(--text-muted)] opacity-0 pointer-events-none"
                 )}
               >
                 {isParsing ? <RefreshCcw size={20} className="animate-spin" /> : <Sparkles size={20} className={cn(newEvent.title && "animate-pulse")} />}
@@ -223,22 +223,22 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between px-1">
-              <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-white/50">Categoria</label>
+              <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-[var(--text-muted)]">Categoria</label>
               <button 
                 type="button" 
                 onClick={() => setShowAddCategoryModal(true)}
-                className="text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-red-300"
+                className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors"
               >
                 + Nova
               </button>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setNewEvent({ ...newEvent, category_id: '' })}
                 className={cn(
                   "px-4 py-3 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all",
-                  !newEvent.category_id ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/5"
+                  !newEvent.category_id ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-sm" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"
                 )}
               >
                 Nenhuma
@@ -257,11 +257,11 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                   }}
                   className={cn(
                     "px-4 py-3 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                    newEvent.category_id === cat.id ? "border-white bg-white/10 text-white" : "bg-white/5 text-white/40 border-white/5"
+                    newEvent.category_id === cat.id ? "border-[var(--text-primary)] bg-[var(--bg-overlay)] text-[var(--text-primary)]" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"
                   )}
                   style={newEvent.category_id === cat.id ? { borderColor: cat.color } : {}}
                 >
-                  <span>{cat.icon}</span>
+                  {cat.icon && <span>{cat.icon}</span>}
                   {cat.name}
                 </button>
               ))}
@@ -269,7 +269,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-white/50 px-1">Personalização</label>
+            <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Personalização</label>
             <div className="flex items-center gap-4">
               <EmojiPicker 
                 value={newEvent.emoji || ''} 
@@ -283,7 +283,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                     onClick={() => setNewEvent({ ...newEvent, color })}
                     className={cn(
                       "w-8 h-8 rounded-full border-2 transition-all",
-                      newEvent.color === color ? "border-white scale-110 shadow-lg" : "border-transparent opacity-40"
+                      newEvent.color === color ? "border-[var(--text-primary)] scale-110 shadow-lg" : "border-transparent opacity-40"
                     )}
                     style={{ backgroundColor: color }}
                   />
@@ -293,7 +293,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-white/50 px-1">Repetir</label>
+            <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Repetir</label>
             <div className="grid grid-cols-3 gap-2">
               {[
                 { id: 'none', label: 'Uma vez' },
@@ -317,8 +317,8 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                   className={cn(
                     "py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all",
                     (newEvent.recurrence.frequency === freq.id || (freq.id === 'quinzenal' && newEvent.recurrence.interval === 2 && newEvent.recurrence.frequency === 'weekly')) 
-                      ? "bg-white text-black border-white shadow-lg" 
-                      : "bg-white/5 text-white/60 border-white/5 hover:border-white/20"
+                       ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-lg" 
+                       : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--text-primary)]/20"
                   )}
                 >
                   {freq.label}
@@ -330,7 +330,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="space-y-4 bg-white/[0.03] border border-white/10 p-6 rounded-[32px] mt-4"
+                className="space-y-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] p-6 rounded-[32px] mt-4"
               >
                 <div className="flex justify-between gap-1">
                   {DAYS.map((day, i) => (
@@ -341,8 +341,8 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                       className={cn(
                         "w-10 h-10 rounded-xl font-black text-base transition-all flex items-center justify-center",
                         newEvent.recurrence.days_of_week?.includes(i) 
-                          ? "bg-white text-black shadow-lg" 
-                          : "text-white/20 hover:bg-white/5 border border-white/5"
+                          ? "bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-lg" 
+                          : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] border border-[var(--border-subtle)]"
                       )}
                     >
                       {day}
@@ -350,8 +350,8 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                   ))}
                 </div>
                 
-                <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                  <span className="text-[12px] font-black uppercase text-white/50 tracking-widest">Intervalo</span>
+                <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
+                  <span className="text-[12px] font-black uppercase text-[var(--text-muted)] tracking-widest">Intervalo</span>
                   <div className="flex gap-2">
                      {[1, 2].map(int => (
                        <button
@@ -360,7 +360,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                          onClick={() => setNewEvent({ ...newEvent, recurrence: { ...newEvent.recurrence, interval: int } })}
                          className={cn(
                            "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
-                           newEvent.recurrence.interval === int ? "bg-white text-black" : "text-white/50 hover:bg-white/5"
+                           newEvent.recurrence.interval === int ? "bg-[var(--text-primary)] text-[var(--bg-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] transition-colors"
                          )}
                        >
                          {int === 1 ? 'Toda Semana' : 'Quinzenal'}
@@ -372,17 +372,17 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <CustomDateTimePicker label="Data" type="date" value={newEvent.date} onChange={val => setNewEvent({ ...newEvent, date: val })} direction="up" />
             <CustomDateTimePicker label="Hora" type="time" value={newEvent.time} onChange={val => setNewEvent({ ...newEvent, time: val })} align="right" direction="up" />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-white/50 px-1">Anotações</label>
+            <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Anotações</label>
             <textarea 
               value={newEvent.description}
               onChange={e => setNewEvent({ ...newEvent, description: e.target.value })}
-              className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-3 text-white focus:outline-none focus:border-white/30 min-h-[70px] resize-none"
+              className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl px-6 py-3 text-[var(--text-primary)] focus:outline-none focus:border-[var(--text-primary)]/30 min-h-[70px] resize-none"
               placeholder="Adicionar detalhes..."
             />
           </div>
@@ -391,7 +391,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
             <button 
               type="submit"
               disabled={addEvent.isPending || updateEvent.isPending}
-              className="w-full bg-white text-black font-black py-5 rounded-[24px] hover:bg-neutral-200 transition-all active:scale-95 text-lg shadow-2xl"
+              className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black py-5 rounded-[24px] hover:opacity-90 transition-all active:scale-95 text-lg shadow-2xl"
             >
               {addEvent.isPending || updateEvent.isPending ? 'Salvando...' : (eventToEdit ? 'Salvar Alterações' : 'Criar Compromisso')}
             </button>
@@ -400,23 +400,23 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
 
         <AnimatePresence>
           {showAddCategoryModal && (
-            <div className="absolute inset-0 z-50 rounded-[48px] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[#1A1A1A] border border-white/10 rounded-3xl p-6 shadow-2xl">
+            <div className="absolute inset-0 z-[1000] rounded-[48px] bg-[var(--bg-primary)]/60 backdrop-blur-md flex items-center justify-center p-4">
+               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-2xl relative">
                  <div className="flex justify-between items-center mb-6">
-                   <h3 className="text-xl font-bold">Nova Categoria</h3>
-                   <button type="button" onClick={() => setShowAddCategoryModal(false)}><X size={20} className="text-white/60"/></button>
+                   <h3 className="text-xl font-bold text-[var(--text-primary)]">Nova Categoria</h3>
+                   <button type="button" onClick={() => setShowAddCategoryModal(false)}><X size={20} className="text-[var(--text-muted)]"/></button>
                  </div>
-                 <div className="space-y-4">
-                   <input value={newCategory.name} onChange={e => setNewCategory({ ...newCategory, name: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500/50" placeholder="Nome da categoria" />
+                 <div className="space-y-4 text-[var(--text-primary)]">
+                   <input value={newCategory.name} onChange={e => setNewCategory({ ...newCategory, name: e.target.value })} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-red-500/50" placeholder="Nome da categoria" />
                    <div className="flex gap-4 items-center">
                      <EmojiPicker value={newCategory.icon} onChange={icon => setNewCategory({ ...newCategory, icon })} />
                      <div className="flex gap-2 flex-wrap flex-1">
                        {['#FF453A', '#32D74B', '#FF9F0A', '#BF5AF2', '#8E8E93', '#FFFFFF'].map(color => (
-                         <button key={color} type="button" onClick={() => setNewCategory({ ...newCategory, color })} className={cn("w-6 h-6 rounded-full border-2", newCategory.color === color ? "border-white" : "border-transparent opacity-40")} style={{ backgroundColor: color }} />
+                         <button key={color} type="button" onClick={() => setNewCategory({ ...newCategory, color })} className={cn("w-6 h-6 rounded-full border-2 transition-all", newCategory.color === color ? "border-[var(--text-primary)] scale-110" : "border-transparent opacity-40")} style={{ backgroundColor: color }} />
                        ))}
                      </div>
                    </div>
-                   <button type="button" onClick={() => { if(!newCategory.name) return; addCategory.mutate({...newCategory, type: 'agenda'}, { onSuccess: () => setShowAddCategoryModal(false) })}} disabled={addCategory.isPending || !newCategory.name} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl mt-4">Salvar Categoria</button>
+                   <button type="button" onClick={() => { if(!newCategory.name) return; addCategory.mutate({...newCategory, type: 'agenda'}, { onSuccess: () => setShowAddCategoryModal(false) })}} disabled={addCategory.isPending || !newCategory.name} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl mt-4 hover:bg-red-700 transition-colors">Salvar Categoria</button>
                  </div>
                </motion.div>
             </div>

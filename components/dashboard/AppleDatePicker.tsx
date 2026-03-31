@@ -41,8 +41,8 @@ export function AppleDatePicker({ value, onChange, onClose, direction = 'down' }
               onClose()
             }}
             className={cn(
-              "w-9 h-9 flex items-center justify-center text-sm rounded-full transition-all",
-              isSelected ? "bg-white text-black font-bold scale-110" : "hover:bg-white/10",
+              "w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-xs sm:text-sm rounded-full transition-all",
+              isSelected ? "bg-[var(--text-primary)] text-[var(--bg-primary)] font-bold scale-110" : "hover:bg-[var(--bg-overlay)]",
               !isCurrentMonth && "opacity-20"
             )}
           >
@@ -66,17 +66,17 @@ export function AppleDatePicker({ value, onChange, onClose, direction = 'down' }
       initial={{ opacity: 0, scale: 0.95, y: direction === 'up' ? 10 : -10 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, y: direction === 'up' ? 10 : -10 }}
-      className="bg-[#1C1C1E] border border-white/10 rounded-[32px] p-6 shadow-2xl w-[320px] max-w-[90vw] overflow-hidden"
+      className="bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-[32px] p-4 sm:p-6 shadow-2xl w-[320px] max-w-[95vw] overflow-hidden transition-colors duration-300"
     >
       <div className="flex items-center justify-between mb-6">
-        <span className="text-sm font-bold text-white capitalize">
+        <span className="text-sm font-bold text-[var(--text-primary)] capitalize">
           {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
         </span>
         <div className="flex gap-2">
           <button 
             type="button"
             onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-            className="p-2 hover:bg-white/5 rounded-full text-white/40 hover:text-white"
+            className="p-2 hover:bg-[var(--bg-overlay)] rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
             <ChevronLeft size={18} />
           </button>
@@ -92,7 +92,7 @@ export function AppleDatePicker({ value, onChange, onClose, direction = 'down' }
 
       <div className="grid grid-cols-7 gap-1 mb-2">
         {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
-          <div key={i} className="w-9 h-9 flex items-center justify-center text-[10px] font-black text-white/20 uppercase tracking-widest">
+          <div key={i} className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-[9px] sm:text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">
             {day}
           </div>
         ))}
@@ -106,13 +106,13 @@ export function AppleDatePicker({ value, onChange, onClose, direction = 'down' }
             onChange(format(new Date(), 'yyyy-MM-dd'))
             onClose()
           }}
-          className="flex-1 py-3 text-xs font-black uppercase tracking-widest bg-white/5 rounded-2xl hover:bg-white/10"
+          className="flex-1 py-3 text-xs font-black uppercase tracking-widest bg-[var(--bg-overlay)] text-[var(--text-primary)] rounded-2xl hover:bg-[var(--bg-overlay)]/80 transition-all font-sans"
         >
           Hoje
         </button>
         <button 
           onClick={onClose}
-          className="flex-1 py-3 text-xs font-black uppercase tracking-widest text-red-400 hover:text-red-300"
+          className="flex-1 py-3 text-xs font-black uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors font-sans"
         >
           Cancelar
         </button>

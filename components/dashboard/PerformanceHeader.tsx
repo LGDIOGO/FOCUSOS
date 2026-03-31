@@ -19,7 +19,7 @@ export function PerformanceHeader() {
     return getParetoMessage(seed)
   }, [daily, weekly])
 
-  if (isLoading) return <div className="h-12 w-48 bg-white/5 animate-pulse rounded-2xl" />
+  if (isLoading) return <div className="h-12 w-48 bg-[var(--bg-overlay)] animate-pulse rounded-2xl" />
 
   return (
     <div className="flex flex-col items-end gap-3.5 pr-2">
@@ -27,20 +27,20 @@ export function PerformanceHeader() {
         {/* Daily Progress */}
         <div className="flex flex-col items-end">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-[11px] font-black uppercase tracking-widest text-white/50">HOJE</span>
-            <Target size={14} className="text-white/40" />
+            <span className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">HOJE</span>
+            <Target size={14} className="text-[var(--text-muted)]" />
           </div>
           <div className="flex items-baseline gap-1">
             <span className={cn(
-              "text-3xl font-black tracking-tighter",
-              daily >= 80 ? "text-white" : daily >= 50 ? "text-white/80" : "text-white/50"
+              "text-3xl font-black tracking-tighter text-[var(--text-primary)]",
+              daily < 50 && "opacity-50"
             )}>{daily}%</span>
           </div>
-          <div className="w-20 h-1.5 bg-white/5 rounded-full mt-1.5 overflow-hidden">
+          <div className="w-20 h-1.5 bg-[var(--bg-overlay)] rounded-full mt-1.5 overflow-hidden">
              <motion.div 
                initial={{ width: 0 }}
                animate={{ width: `${daily}%` }}
-               className="h-full bg-white transition-all duration-1000 shadow-[0_0_8px_rgba(255,255,255,0.3)]"
+               className="h-full bg-[var(--text-primary)] transition-all duration-1000 shadow-[0_0_8px_rgba(var(--text-primary-rgb),0.3)]"
              />
           </div>
         </div>
@@ -48,22 +48,22 @@ export function PerformanceHeader() {
         {/* Weekly Progress */}
         <div className="flex flex-col items-end">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-[11px] font-black uppercase tracking-widest text-white/50">SEMANA</span>
-            <TrendingUp size={14} className={cn(weekly >= 80 ? "text-green-400" : "text-white/40")} />
+            <span className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">SEMANA</span>
+            <TrendingUp size={14} className={cn(weekly >= 80 ? "text-green-500" : "text-[var(--text-muted)]")} />
           </div>
           <div className="flex items-baseline gap-1">
             <span className={cn(
-              "text-3xl font-black tracking-tighter",
-              weekly >= 80 ? "text-white" : weekly >= 50 ? "text-white/80" : "text-white/50"
+              "text-3xl font-black tracking-tighter text-[var(--text-primary)]",
+              weekly < 50 && "opacity-50"
             )}>{weekly}%</span>
           </div>
-          <div className="w-20 h-1.5 bg-white/5 rounded-full mt-1.5 overflow-hidden">
+          <div className="w-20 h-1.5 bg-[var(--bg-overlay)] rounded-full mt-1.5 overflow-hidden">
              <motion.div 
                initial={{ width: 0 }}
                animate={{ width: `${weekly}%` }}
                className={cn(
                  "h-full transition-all duration-1000",
-                 weekly >= 80 ? "bg-white shadow-[0_0_12px_rgba(255,255,255,0.6)]" : "bg-white/50"
+                 weekly >= 80 ? "bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.4)]" : "bg-[var(--text-primary)]/60"
                )}
              />
           </div>
@@ -74,7 +74,7 @@ export function PerformanceHeader() {
       <motion.p 
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-[13px] font-black text-white/80 italic max-w-none text-right leading-none tracking-tightest bg-white/5 px-4 py-2 rounded-full border border-white/10 shadow-xl inline-block mt-2"
+        className="text-[13px] font-black text-[var(--text-primary)] italic max-w-none text-right leading-none tracking-tightest bg-[var(--bg-overlay)] px-4 py-2 rounded-full border border-[var(--border-subtle)] shadow-xl inline-block mt-2"
       >
         {paretoMessage}
       </motion.p>
