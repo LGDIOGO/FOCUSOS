@@ -24,6 +24,117 @@ const EVENT_TYPES: { type: EventType; label: string; icon: any; color: string }[
 
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 
+function EventItem({ 
+  event, 
+  isSelectionMode, 
+  isSelected, 
+  toggleSelection, 
+  openEditModal, 
+  setIsSelectionMode,
+  onDelete
+}: { 
+  event: CalendarEvent
+  isSelectionMode: boolean
+  isSelected: boolean
+  toggleSelection: (id: string) => void
+  openEditModal: (event: CalendarEvent) => void
+  setIsSelectionMode: (val: boolean) => void
+  onDelete: (id: string) => void
+}) {
+  const localLongPress = useLongPress(
+    () => {
+      setIsSelectionMode(true)
+      toggleSelection(event.id)
+    },
+    () => {},
+    { delay: 500 }
+  )
+
+  return (
+    <motion.div
+      layoutId={event.id}
+      {...localLongPress}
+      onClick={() => {
+        if (isSelectionMode) {
+          toggleSelection(event.id)
+        } else {
+          openEditModal(event)
+        }
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsSelectionMode(true)
+        toggleSelection(event.id)
+      }}
+      className={cn(
+        "group flex items-center gap-6 p-6 bg-white/[0.03] border rounded-[32px] hover:bg-white/[0.05] transition-all cursor-pointer relative",
+        isSelected ? "border-red-500 bg-red-500/5" : "border-white/10"
+      )}
+    >
+      <div 
+        className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-110"
+        style={{ backgroundColor: event.color ? `${event.color}20` : 'rgba(255,255,255,0.05)', color: event.color || '#FFFFFF' }}
+      >
+        {event.emoji || (
+          event.type === 'meeting' ? <Users size={24} /> :
+          event.type === 'birthday' ? <Cake size={24} /> :
+          event.type === 'event' ? <Star size={24} /> : <CalendarIcon size={24} />
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-3 mb-1">
+          <h3 className="text-lg font-bold text-white truncate">{event.title}</h3>
+          {event.recurrence && (
+             <div className="flex items-center gap-1 text-[9px] font-black text-white/20 uppercase tracking-widest">
+               <RefreshCcw size={10} />
+               {
+                 event.recurrence.frequency === 'daily' ? 'Diário' :
+                 event.recurrence.frequency === 'weekly' ? (event.recurrence.interval === 2 ? 'Quinzenal' : 'Semanal') :
+                 event.recurrence.frequency === 'monthly' ? 'Mensal' :
+                 event.recurrence.frequency === 'yearly' ? 'Anual' :
+                 'Personalizado'
+               }
+             </div>
+          )}
+        </div>
+        <div className="flex items-center gap-4 text-white/50 text-base font-medium">
+          <div className="flex items-center gap-1.5">
+            <Clock size={14} />
+            {event.time}
+          </div>
+          {event.description && (
+            <div className="flex items-center gap-1.5 truncate">
+              <div className="w-1 h-1 rounded-full bg-white/10" />
+              {event.description}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <button 
+        onClick={(e) => {
+          e.stopPropagation()
+          if (isSelectionMode) return
+          onDelete(event.id)
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+        className={cn(
+          "p-3 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100",
+          isSelectionMode ? "hidden" : "text-white/5"
+        )}
+      >
+        <Trash2 size={20} />
+      </button>
+    </motion.div>
+  )
+}
+
 export default function AgendaPage() {
   const { data: events, isLoading } = useEvents()
   const deleteEvent = useDeleteEvent()
@@ -215,101 +326,18 @@ export default function AgendaPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {eventList.map((event: CalendarEvent) => {
-                    const localLongPress = useLongPress(
-                      () => {
-                        setIsSelectionMode(true)
-                        toggleSelection(event.id)
-                      },
-                      () => {},
-                      { delay: 500 }
-                    )
-
-                    return (
-                      <motion.div
-                        key={event.id}
-                        layoutId={event.id}
-                        {...localLongPress}
-                        onClick={() => {
-                          if (isSelectionMode) {
-                            toggleSelection(event.id)
-                          } else {
-                            openEditModal(event)
-                          }
-                        }}
-                        onContextMenu={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          setIsSelectionMode(true)
-                          toggleSelection(event.id)
-                        }}
-                        className={cn(
-                          "group flex items-center gap-6 p-6 bg-white/[0.03] border rounded-[32px] hover:bg-white/[0.05] transition-all cursor-pointer relative",
-                          selectedIds.includes(event.id) ? "border-red-500 bg-red-500/5" : "border-white/10"
-                        )}
-                      >
-                        <div 
-                          className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-110"
-                          style={{ backgroundColor: event.color ? `${event.color}20` : 'rgba(255,255,255,0.05)', color: event.color || '#FFFFFF' }}
-                        >
-                          {event.emoji || (
-                            event.type === 'meeting' ? <Users size={24} /> :
-                            event.type === 'birthday' ? <Cake size={24} /> :
-                            event.type === 'event' ? <Star size={24} /> : <CalendarIcon size={24} />
-                          )}
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-1">
-                            <h3 className="text-lg font-bold text-white truncate">{event.title}</h3>
-                            {event.recurrence && (
-                               <div className="flex items-center gap-1 text-[9px] font-black text-white/20 uppercase tracking-widest">
-                                 <RefreshCcw size={10} />
-                                 {
-                                   event.recurrence.frequency === 'daily' ? 'Diário' :
-                                   event.recurrence.frequency === 'weekly' ? (event.recurrence.interval === 2 ? 'Quinzenal' : 'Semanal') :
-                                   event.recurrence.frequency === 'monthly' ? 'Mensal' :
-                                   event.recurrence.frequency === 'yearly' ? 'Anual' :
-                                   'Personalizado'
-                                 }
-                               </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-4 text-white/50 text-base font-medium">
-                            <div className="flex items-center gap-1.5">
-                              <Clock size={14} />
-                              {event.time}
-                            </div>
-                            {event.description && (
-                              <div className="flex items-center gap-1.5 truncate">
-                                <div className="w-1 h-1 rounded-full bg-white/10" />
-                                {event.description}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (isSelectionMode) return
-                            deleteEvent.mutate(event.id)
-                          }}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onMouseUp={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onTouchStart={(e) => e.stopPropagation()}
-                          onTouchEnd={(e) => e.stopPropagation()}
-                          className={cn(
-                            "p-3 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100",
-                            isSelectionMode ? "hidden" : "text-white/5"
-                          )}
-                        >
-                          <Trash2 size={20} />
-                        </button>
-                      </motion.div>
-                    )
-                  })}
+                  {eventList.map((event: CalendarEvent) => (
+                    <EventItem 
+                      key={event.id}
+                      event={event}
+                      isSelectionMode={isSelectionMode}
+                      isSelected={selectedIds.includes(event.id)}
+                      toggleSelection={toggleSelection}
+                      openEditModal={openEditModal}
+                      setIsSelectionMode={setIsSelectionMode}
+                      onDelete={(id) => deleteEvent.mutate(id)}
+                    />
+                  ))}
                 </div>
               </motion.div>
             ))}
