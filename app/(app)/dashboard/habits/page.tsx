@@ -1,16 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Plus, Trash2, Zap, ShieldAlert, Sparkles, TrendingUp
+  Plus, Trash2, Zap, ShieldAlert, Sparkles, TrendingUp, RefreshCcw
 } from 'lucide-react'
 import { HabitModal } from '@/components/dashboard/HabitModal'
 import { useHabits, useDeleteHabit } from '@/lib/hooks/useHabits'
+import { useCategories } from '@/lib/hooks/useCategories'
 import { Habit } from '@/types'
 import { cn } from '@/lib/utils/cn'
-import { format } from 'date-fns'
+import { format, isToday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { getEffectiveOfensiva } from '@/lib/utils/scoring'
 import { useLongPress } from '@/lib/hooks/useLongPress'
@@ -153,6 +154,7 @@ function HabitGridItem({
 
 export default function HabitsPage() {
   const { data: habits, isLoading } = useHabits()
+  const { data: categories } = useCategories()
   const deleteHabit = useDeleteHabit()
 
   const searchParams = useSearchParams()
@@ -160,6 +162,40 @@ export default function HabitsPage() {
   const [habitToEdit, setHabitToEdit] = useState<Habit | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isSelectionMode, setIsSelectionMode] = useState(false)
+
+  const groupedHabits = useMemo(() => {
+    if (!habits) return []
+    const MAP = new Map<string, Habit[]>()
+
+    // Sort all habits by streak (desc) then frequency
+    const sorted = [...habits].sort((a, b) => {
+      const streakA = a.streak || 0
+      const streakB = b.streak || 0
+      if (streakB !== streakA) return streakB - streakA
+      
+      const freqA = a.recurrence?.frequency || 'daily'
+      const freqB = b.recurrence?.frequency || 'daily'
+      if (freqA === 'daily' && freqB !== 'daily') return -1
+      if (freqB === 'daily' && freqA !== 'daily') return 1
+      return 0
+    })
+
+    sorted.forEach(h => {
+      const cid = h.category_id || 'UNCATEGORIZED'
+      if (!MAP.has(cid)) MAP.set(cid, [])
+      MAP.get(cid)?.push(h)
+    })
+
+    return Array.from(MAP.entries()).map(([categoryId, items]) => ({
+      categoryId,
+      category: categories?.find(c => c.id === categoryId),
+      items
+    })).sort((a, b) => {
+      if (a.categoryId === 'UNCATEGORIZED') return 1
+      if (b.categoryId === 'UNCATEGORIZED') return -1
+      return (a.category?.name || '').localeCompare(b.category?.name || '')
+    })
+  }, [habits, categories])
 
   useEffect(() => {
     if (searchParams.get('add') === 'true') {
@@ -215,7 +251,7 @@ export default function HabitsPage() {
       >
         <div className="flex items-center gap-6">
           <div className="w-16 h-16 bg-[var(--bg-overlay)] rounded-[24px] flex items-center justify-center border border-[var(--border-subtle)] shadow-2xl">
-            <Zap className="text-[var(--text-primary)] w-8 h-8" />
+            <RefreshCcw className="text-[var(--text-primary)] w-8 h-8" />
           </div>
           <div>
             <h1 className="text-4xl md:text-5xl font-black tracking-tightest text-[var(--text-primary)]">Meus Hábitos</h1>
@@ -236,25 +272,41 @@ export default function HabitsPage() {
         </button>
       </motion.div>
 
-      {/* Habits Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {/* Habits Grid by Category */}
+      <div className="space-y-16">
         <AnimatePresence mode="popLayout">
           {isLoading ? (
-            [1, 2, 3].map(i => (
-              <div key={i} className="h-48 rounded-[40px] bg-white/[0.02] border border-white/10 animate-pulse" />
-            ))
-          ) : (habits || []).map((habit: Habit, idx: number) => (
-            <HabitGridItem
-              key={habit.id}
-              habit={habit}
-              idx={idx}
-              isSelectionMode={isSelectionMode}
-              isSelected={selectedIds.includes(habit.id)}
-              onToggleSelection={toggleSelection}
-              onOpenEdit={openEditModal}
-              onDelete={(id) => deleteHabit.mutate(id)}
-              setIsSelectionMode={setIsSelectionMode}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-48 rounded-[40px] bg-white/[0.02] border border-white/10 animate-pulse" />
+              ))}
+            </div>
+          ) : groupedHabits.map((group, groupIdx) => (
+            <motion.div key={group.categoryId} layout className="space-y-6">
+              <div className="flex items-center gap-3 px-2">
+                <div 
+                   className="w-2 h-2 rounded-full shadow-[0_0_10px_currentColor]" 
+                   style={{ backgroundColor: group.category?.color || '#FFFFFF', color: group.category?.color || '#FFFFFF' }} 
+                />
+                <h2 className="text-xl font-bold tracking-tight text-white/80">{group.category?.name || 'Sem Categoria'}</h2>
+                <span className="text-white/20 text-xs font-black uppercase tracking-widest">{group.items.length} {group.items.length === 1 ? 'Hábito' : 'Hábitos'}</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {group.items.map((habit: Habit, idx: number) => (
+                  <HabitGridItem
+                    key={habit.id}
+                    habit={habit}
+                    idx={idx}
+                    isSelectionMode={isSelectionMode}
+                    isSelected={selectedIds.includes(habit.id)}
+                    onToggleSelection={toggleSelection}
+                    onOpenEdit={openEditModal}
+                    onDelete={(id) => deleteHabit.mutate(id)}
+                    setIsSelectionMode={setIsSelectionMode}
+                  />
+                ))}
+              </div>
+            </motion.div>
           ))}
         </AnimatePresence>
       </div>

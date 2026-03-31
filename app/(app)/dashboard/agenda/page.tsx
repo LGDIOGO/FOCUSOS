@@ -277,7 +277,7 @@ export default function AgendaPage() {
     days.forEach((day: Date) => {
       const dateStr = format(day, 'yyyy-MM-dd')
       const dayOfWeek = getDay(day)
-      const isPast = isAfter(new Date(), day) && !isToday(day)
+      const isPastDay = isAfter(new Date(), day) && !isToday(day)
       
       const dayEvents = events.filter(e => {
         if (e.date === dateStr) return true
@@ -309,17 +309,37 @@ export default function AgendaPage() {
         return {
           ...e,
           status,
-          isOverdue: isPast && status !== 'done'
+          isOverdue: isPastDay && status !== 'done'
         }
       })
-      
+
       if (dayEvents.length > 0) {
-        grouped[dateStr] = dayEvents as CalendarEvent[]
+        // Sort items: done/past at bottom
+        const sortedDayEvents = (dayEvents as CalendarEvent[]).sort((a, b) => {
+          const isDoneA = a.status === 'done'
+          const isDoneB = b.status === 'done'
+          if (isDoneA && !isDoneB) return 1
+          if (!isDoneA && isDoneB) return -1
+
+          if (isToday(day)) {
+            const timeA = a.time ? parse(a.time, 'HH:mm', currentTime) : null
+            const timeB = b.time ? parse(b.time, 'HH:mm', currentTime) : null
+            if (timeA && timeB) {
+              const passedA = isAfter(currentTime, timeA)
+              const passedB = isAfter(currentTime, timeB)
+              if (passedA && !passedB) return 1
+              if (!passedA && passedB) return -1
+              return timeA.getTime() - timeB.getTime()
+            }
+          }
+          return (a.time || '00:00').localeCompare(b.time || '00:00')
+        })
+        grouped[dateStr] = sortedDayEvents
       }
     })
     
     return grouped
-  }, [events, currentMonth, logs])
+  }, [events, currentMonth, logs, currentTime])
 
   return (
     <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10">

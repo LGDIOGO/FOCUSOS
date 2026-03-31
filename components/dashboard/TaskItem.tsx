@@ -158,17 +158,15 @@ function TaskItem({
             <Trash2 size={14} />
           </button>
         )}
-        {!isSelectionMode && !isSelected && ((task.status && task.status !== 'todo') || task.done) && (
+        {!isSelectionMode && !isSelected && (task.status === 'done' || task.status === 'partial' || task.status === 'failed') && (
           <div className={cn(
             "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border",
-            (task.status === 'done' || task.done) && "text-green-400 border-green-400/20 bg-green-400/5",
+            task.status === 'done' && "text-green-400 border-green-400/20 bg-green-400/5",
             task.status === 'partial' && "text-amber-400 border-amber-400/20 bg-amber-400/5",
-            task.status === 'failed' && "text-red-400 border-red-400/20 bg-red-400/5",
-            (!task.status || task.status === 'todo') && !task.done && "text-[var(--text-muted)] border-[var(--border-subtle)] bg-[var(--bg-overlay)]/10"
+            task.status === 'failed' && "text-red-400 border-red-400/20 bg-red-400/5"
           )}>
-             {(task.status === 'done' || task.done) ? 'CONCLUÍDO' : 
-              task.status === 'partial' ? 'PARCIAL' : 
-              task.status === 'failed' ? 'FALHOU' : 'PENDENTE'}
+             {task.status === 'done' ? 'CONCLUÍDO' : 
+              task.status === 'partial' ? 'PARCIAL' : 'FALHOU'}
           </div>
         )}
       </div>

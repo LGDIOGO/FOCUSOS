@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { format, startOfWeek, addDays, isToday, getDay, isSameDay, isTomorrow, isYesterday } from 'date-fns'
+import { format, startOfWeek, addDays, isToday, getDay, isSameDay, isTomorrow, isYesterday, parse, isAfter } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { auth } from '@/lib/firebase/config'
 import HabitCard from '@/components/dashboard/HabitCard'
@@ -239,9 +239,40 @@ export default function DashboardPage() {
   const todayDay = getDay(selectedDate)
   const isViewingToday = isToday(selectedDate)
 
-  const habits = useMemo(() => habitsData || [], [habitsData])
+  const habits = useMemo(() => {
+    if (!habitsData) return []
+    return [...habitsData].sort((a, b) => (b.streak || 0) - (a.streak || 0))
+  }, [habitsData])
+
   const tasks = useMemo(() => tasksData || [], [tasksData])
-  const todayEvents = useMemo(() => eventsToday || [], [eventsToday])
+
+  const todayEvents = useMemo(() => {
+    if (!eventsToday) return []
+    return [...eventsToday].sort((a, b) => {
+      // Done items always last
+      const isDoneA = a.status === 'done'
+      const isDoneB = b.status === 'done'
+      if (isDoneA && !isDoneB) return 1
+      if (!isDoneA && isDoneB) return -1
+
+      // Past items (today) vs upcoming
+      const now = currentTime
+      const timeA = a.time ? parse(a.time, 'HH:mm', now) : null
+      const timeB = b.time ? parse(b.time, 'HH:mm', now) : null
+
+      if (timeA && timeB) {
+        const passedA = isToday(selectedDate) && isAfter(now, timeA)
+        const passedB = isToday(selectedDate) && isAfter(now, timeB)
+        
+        if (passedA && !passedB) return 1
+        if (!passedA && passedB) return -1
+        
+        // Both passed or both upcoming, sort by time
+        return timeA.getTime() - timeB.getTime()
+      }
+      return 0
+    })
+  }, [eventsToday, currentTime, selectedDate])
   
   const { data: allGoals, isLoading: loadingGoals } = useGoals()
   const goals = useMemo(() => allGoals || [], [allGoals])

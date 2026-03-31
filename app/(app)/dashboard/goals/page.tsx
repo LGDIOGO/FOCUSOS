@@ -289,26 +289,41 @@ export default function GoalsPage() {
 
   const groupedGoals = useMemo(() => {
     if (!goals) return []
-    const MAP = new Map<string, Goal[]>()
     
-    // Sort goals by end_date ascending
-    const sortedGoals = [...goals].sort((a, b) => {
-      const dateA = a.end_date || '9999-12-31'
-      const dateB = b.end_date || '9999-12-31'
-      return dateA.localeCompare(dateB)
+    // Category -> Year -> Goals[]
+    const categoryMap = new Map<string, Map<number, Goal[]>>()
+
+    goals.forEach(g => {
+      const cid = g.category_id || 'UNCATEGORIZED'
+      const year = g.end_date ? new Date(g.end_date).getFullYear() : 9999
+
+      if (!categoryMap.has(cid)) {
+        categoryMap.set(cid, new Map<number, Goal[]>())
+      }
+      
+      const yearMap = categoryMap.get(cid)!
+      if (!yearMap.has(year)) {
+        yearMap.set(year, [])
+      }
+      yearMap.get(year)!.push(g)
     })
 
-    sortedGoals.forEach(g => {
-      const cid = g.category_id || 'UNCATEGORIZED'
-      if (!MAP.has(cid)) MAP.set(cid, [])
-      MAP.get(cid)?.push(g)
+    // Sort goals within each year by date
+    categoryMap.forEach(yearMap => {
+      yearMap.forEach(items => {
+        items.sort((a, b) => (a.end_date || '').localeCompare(b.end_date || ''))
+      })
     })
-    
-    return Array.from(MAP.entries()).map(([categoryId, items]) => {
+
+    return Array.from(categoryMap.entries()).map(([categoryId, yearMap]) => {
+      const yearGroups = Array.from(yearMap.entries())
+        .map(([year, items]) => ({ year, items }))
+        .sort((a, b) => a.year - b.year)
+
       return {
         categoryId,
         category: categories?.find(c => c.id === categoryId),
-        items
+        yearGroups
       }
     }).sort((a, b) => {
       if (a.categoryId === 'UNCATEGORIZED') return 1
@@ -348,16 +363,16 @@ export default function GoalsPage() {
         </button>
       </motion.div>
 
-      {/* Goals Grid by Categories */}
-      <div className="space-y-16">
+      {/* Goals Grid by Categories and Year */}
+      <div className="space-y-20">
         <AnimatePresence mode="popLayout">
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
                {[1, 2].map(i => (
-             <div key={i} className="h-64 rounded-[40px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)] animate-pulse" />
+                 <div key={i} className="h-64 rounded-[40px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)] animate-pulse" />
                ))}
             </div>
-          ) : groupedGoals.map((group, groupIdx) => {
+          ) : groupedGoals.map((group) => {
              const categoryName = group.category ? group.category.name : 'Sem Categoria'
              const categoryColor = group.category ? group.category.color : '#FFFFFF'
 
@@ -366,34 +381,44 @@ export default function GoalsPage() {
                  key={group.categoryId}
                  initial={{ opacity: 0, y: 20 }}
                  animate={{ opacity: 1, y: 0 }}
-                 className="space-y-6"
+                 className="space-y-10"
                >
                  <div className="flex items-center gap-3 px-2">
                    <div className="w-2 h-2 rounded-full shadow-[0_0_10px_currentColor]" style={{ backgroundColor: categoryColor, color: categoryColor }} />
-                   <h2 className="text-xl font-bold tracking-tight text-white/80">{categoryName}</h2>
-                   <span className="text-white/20 text-xs font-black uppercase tracking-widest">{group.items.length} {group.items.length === 1 ? 'Meta' : 'Metas'}</span>
+                   <h2 className="text-2xl font-black tracking-tight text-white/90 uppercase">{categoryName}</h2>
                  </div>
                  
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
-                   {group.items.map((goal: Goal, idx: number) => {
-                     const daysLeft = getRemainingDays(goal.end_date)
-                     return (
-                       <GoalGridItem
-                         key={goal.id}
-                         goal={goal}
-                         idx={idx}
-                         category={group.category}
-                         daysLeft={daysLeft}
-                         isSelectionMode={isSelectionMode}
-                         isSelected={selectedIds.includes(goal.id)}
-                         onToggleSelection={toggleSelection}
-                         onOpenEdit={handleOpenEdit}
-                         onDelete={handleDelete}
-                         setIsSelectionMode={setIsSelectionMode}
-                         formatDateSafely={formatDateSafely}
-                       />
-                     )
-                   })}
+                 <div className="space-y-12 pl-4 border-l border-white/5">
+                   {group.yearGroups.map((yearGroup) => (
+                     <div key={yearGroup.year} className="space-y-6">
+                       <div className="flex items-center gap-4">
+                         <span className="text-sm font-black text-white/30 uppercase tracking-[0.3em]">{yearGroup.year === 9999 ? 'Sem prazo' : yearGroup.year}</span>
+                         <div className="flex-1 h-px bg-white/5" />
+                       </div>
+                       
+                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+                         {yearGroup.items.map((goal: Goal, idx: number) => {
+                           const daysLeft = getRemainingDays(goal.end_date)
+                           return (
+                             <GoalGridItem
+                               key={goal.id}
+                               goal={goal}
+                               idx={idx}
+                               category={group.category}
+                               daysLeft={daysLeft}
+                               isSelectionMode={isSelectionMode}
+                               isSelected={selectedIds.includes(goal.id)}
+                               onToggleSelection={toggleSelection}
+                               onOpenEdit={handleOpenEdit}
+                               onDelete={handleDelete}
+                               setIsSelectionMode={setIsSelectionMode}
+                               formatDateSafely={formatDateSafely}
+                             />
+                           )
+                         })}
+                       </div>
+                     </div>
+                   ))}
                  </div>
                </motion.div>
              )

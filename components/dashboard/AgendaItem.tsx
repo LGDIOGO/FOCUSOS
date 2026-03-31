@@ -203,7 +203,7 @@ function AgendaItem({
             <Pencil size={14} />
           </button>
         )}
-        {!isSelectionMode && !isSelected && event.status && event.status !== 'todo' && (
+        {!isSelectionMode && !isSelected && (event.status === 'done' || event.status === 'partial' || event.status === 'failed') && (
            <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -214,9 +214,8 @@ function AgendaItem({
                 event.status === 'failed' && "text-red-400 border-red-400/20 bg-red-400/5"
               )}
            >
-             {event.status === 'done' ? 'CONCLUÍDO' : 
-              event.status === 'partial' ? 'PARCIAL' : 
-              event.status === 'failed' ? 'FALHOU' : 'PENDENTE'}
+              {event.status === 'done' ? 'CONCLUÍDO' : 
+               event.status === 'partial' ? 'PARCIAL' : 'FALHOU'}
            </motion.div>
         )}
       </div>
