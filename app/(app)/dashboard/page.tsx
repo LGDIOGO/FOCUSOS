@@ -29,6 +29,7 @@ import Link from 'next/link'
 import AgendaItem from '@/components/dashboard/AgendaItem'
 import { RescheduleModal } from '@/components/dashboard/RescheduleModal'
 import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
+import { TutorialModal } from '@/components/dashboard/TutorialModal'
 
 // ─── Utilidades ─────────────────────────────────────────────
 const CYCLE: HabitStatus[] = ['none', 'done', 'partial', 'failed']
@@ -108,6 +109,21 @@ export default function DashboardPage() {
     options: any[];
     onSelect: (status: any) => void;
   } | null>(null);
+
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false)
+
+  // Dispara tutorial apenas na primeira vez
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem('focusos_onboarding_completed')
+    if (!hasSeenTutorial) {
+      setIsTutorialOpen(true)
+    }
+  }, [])
+
+  const handleCloseTutorial = () => {
+    localStorage.setItem('focusos_onboarding_completed', 'true')
+    setIsTutorialOpen(false)
+  }
 
   const HABIT_OPTIONS = [
     { id: 'done', label: 'CONCLUÍDO', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
@@ -761,6 +777,10 @@ export default function DashboardPage() {
           </>
         )}
       </AnimatePresence>
+      <TutorialModal 
+        isOpen={isTutorialOpen} 
+        onClose={handleCloseTutorial} 
+      />
     </div>
   )
 }

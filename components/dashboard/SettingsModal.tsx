@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   X, Settings, Tag, User, Bell, Shield, Moon, Trash2, Plus, 
-  ChevronRight, Sparkles, Check, Info
+  ChevronRight, Sparkles, Check, Info, BookOpen, Play
 } from 'lucide-react'
+import { TutorialModal } from '@/components/dashboard/TutorialModal'
 import { useCategories, useAddCategory, useDeleteCategory } from '@/lib/hooks/useCategories'
 import { useSettings, useUpdateSettings } from '@/lib/hooks/useSettings'
 import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
@@ -16,10 +17,11 @@ interface SettingsModalProps {
   onClose: () => void
 }
 
-type TabType = 'categories' | 'notifications' | 'profile' | 'system'
+type TabType = 'categories' | 'notifications' | 'profile' | 'system' | 'tutorials'
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>('categories')
+  const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false)
   const { data: categories, isLoading } = useCategories()
   const { data: settings } = useSettings()
   const updateSettings = useUpdateSettings()
@@ -70,6 +72,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               { id: 'notifications', label: 'Notificações', icon: Bell },
               { id: 'profile', label: 'Meu Perfil', icon: User },
               { id: 'system', label: 'Sistema', icon: Shield },
+              { id: 'tutorials', label: 'Tutoriais & Guias', icon: BookOpen },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -102,6 +105,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               {activeTab === 'notifications' && 'Avisos e Lembretes'}
               {activeTab === 'profile' && 'Perfil do Usuário'}
               {activeTab === 'system' && 'Preferências do Sistema'}
+              {activeTab === 'tutorials' && 'Tutoriais & Guias'}
             </h3>
             <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-all">
               <X className="text-white/40" size={20} />
@@ -435,6 +439,39 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
               </div>
             )}
+
+            {activeTab === 'tutorials' && (
+              <div className="space-y-6">
+                 <div className="flex flex-col md:flex-row gap-6">
+                    <div 
+                      className="group relative flex-1 bg-gradient-to-br from-[#111] to-[#0A0A0A] border border-white/5 hover:border-white/20 rounded-[32px] overflow-hidden cursor-pointer transition-all duration-300 transform hover:scale-[1.02]"
+                      onClick={() => setIsTutorialModalOpen(true)}
+                    >
+                       <div className="h-40 w-full bg-white/5 relative flex items-center justify-center overflow-hidden">
+                           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(255,0,0,0.1),rgba(0,0,0,0))]" />
+                           <BookOpen size={48} className="text-white/20 group-hover:text-white/40 transition-colors" />
+                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                              <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-2xl pl-1">
+                                <Play size={20} className="fill-current" />
+                              </div>
+                           </div>
+                       </div>
+                       <div className="p-6">
+                          <h4 className="text-lg font-black text-white group-hover:text-red-400 transition-colors">Guia Rápido: Onboarding</h4>
+                          <p className="text-sm font-medium text-white/40 mt-1">Relembre as funcionalidades essenciais, arraste, status e modo de seleção do FocusOS.</p>
+                       </div>
+                    </div>
+                    {/* Placeholder for future tutorials */}
+                    <div className="flex-1 border border-dashed border-white/10 rounded-[32px] flex flex-col items-center justify-center p-8 text-center bg-white/[0.01]">
+                       <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/20 mb-4">
+                         <Sparkles size={20} />
+                       </div>
+                       <h4 className="text-md font-bold text-white/60">Em Breve</h4>
+                       <p className="text-xs text-white/30 font-medium mt-1">Mais guias e truques avançados estão sendo produzidos.</p>
+                    </div>
+                 </div>
+              </div>
+            )}
           </div>
 
           <div className="p-6 bg-white/[0.01] border-t border-white/5 flex items-center justify-between">
@@ -451,6 +488,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </div>
         </div>
       </motion.div>
+
+      <TutorialModal 
+        isOpen={isTutorialModalOpen} 
+        onClose={() => setIsTutorialModalOpen(false)} 
+      />
     </div>
   )
 }
