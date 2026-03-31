@@ -638,6 +638,7 @@ export default function DashboardPage() {
                       setIsSelectionMode(true)
                       toggleSelection(t.id, 'task')
                     }}
+                    onEdit={() => window.location.href = `/dashboard/tasks?edit=${t.id}`}
                     onOpenBubble={(position) => setActiveBubble({
                       id: t.id,
                       position,

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { memo } from 'react'
-import { Check, Minus, X, Circle, Zap, Target } from 'lucide-react'
+import { Check, Minus, X, Circle, Zap, Target, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Task, TaskPriority, TaskStatus } from '@/types'
 import { useLongPress } from '@/lib/hooks/useLongPress'
@@ -22,7 +22,8 @@ function TaskItem({
   isSelected,
   onSelect,
   onContextMenu,
-  onOpenBubble
+  onOpenBubble,
+  onEdit
 }: { 
   task: Task; 
   onToggle?: () => void;
@@ -32,6 +33,7 @@ function TaskItem({
   onSelect?: () => void;
   onContextMenu?: () => void;
   onOpenBubble?: (pos: { x: number; y: number }) => void;
+  onEdit?: () => void;
 }) {
   
   const dueLabel = task.due || (task.due_time ? `Hoje · ${task.due_time}` : 'Hoje')
@@ -76,7 +78,7 @@ function TaskItem({
         onContextMenu?.()
       }}
       className={cn(
-        'flex items-center gap-3 px-4 py-4 rounded-[28px] border cursor-pointer transition-all duration-300 select-none relative group w-full',
+        'flex items-center gap-4 p-4 rounded-[28px] border cursor-pointer transition-all duration-300 select-none relative group w-full',
         (task.status === 'done' || task.done) ? 'bg-green-500/[0.03] border-green-500/20' : 
         task.status === 'partial' ? 'bg-amber-400/[0.03] border-amber-400/20' :
         task.status === 'failed' ? 'bg-red-500/[0.03] border-red-500/20' :
@@ -89,7 +91,7 @@ function TaskItem({
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           className={cn(
-            'w-10 h-10 rounded-full border flex-shrink-0 flex items-center justify-center transition-all duration-200',
+            'w-12 h-12 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all duration-200',
             (task.status === 'done' || task.done) ? 'bg-green-500 border-green-500' : 
             task.status === 'partial' ? 'bg-amber-400 border-amber-400 text-black' :
             task.status === 'failed' ? 'bg-red-500 border-red-500' :
@@ -110,10 +112,10 @@ function TaskItem({
 
       {isSelectionMode && (
          <div className={cn(
-            "w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
+            "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
             isSelected ? "border-red-600 bg-red-600" : "border-white/10 bg-white/5"
          )}>
-          {isSelected && <Check size={16} className="text-white" strokeWidth={3} />}
+          {isSelected && <Check size={20} className="text-white" strokeWidth={3} />}
         </div>
       )}
 
@@ -128,19 +130,34 @@ function TaskItem({
         </div>
       </div>
 
-      {/* Status Badge */}
-      {!isSelectionMode && task.status && task.status !== 'todo' && (
-        <div className={cn(
-          "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
-          (task.status === 'done' || task.done) && "text-green-400 border-green-400/20 bg-green-400/5",
-          task.status === 'partial' && "text-amber-400 border-amber-400/20 bg-amber-400/5",
-          task.status === 'failed' && "text-red-400 border-red-400/20 bg-red-400/5"
-        )}>
-           {task.status === 'done' || task.done ? 'CONCLUÍDO' : 
-            task.status === 'partial' ? 'PARCIAL' : 
-            task.status === 'failed' ? 'FALHOU' : ''}
-        </div>
-      )}
+      {/* Status Badge & Actions */}
+      <div className="flex items-center gap-2">
+        {!isSelectionMode && !isSelected && (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit?.()
+            }}
+            className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/80 transition-all active:scale-90"
+            title="Editar Tarefa"
+          >
+            <Pencil size={14} />
+          </button>
+        )}
+        {!isSelectionMode && !isSelected && (
+          <div className={cn(
+            "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border",
+            (task.status === 'done' || task.done) && "text-green-400 border-green-400/20 bg-green-400/5",
+            task.status === 'partial' && "text-amber-400 border-amber-400/20 bg-amber-400/5",
+            task.status === 'failed' && "text-red-400 border-red-400/20 bg-red-400/5",
+            (!task.status || task.status === 'todo') && !task.done && "text-[var(--text-muted)] border-[var(--border-subtle)] bg-[var(--bg-overlay)]/10"
+          )}>
+             {(task.status === 'done' || task.done) ? 'CONCLUÍDO' : 
+              task.status === 'partial' ? 'PARCIAL' : 
+              task.status === 'failed' ? 'FALHOU' : 'PENDENTE'}
+          </div>
+        )}
+      </div>
 
       {/* Choice Bubble removed (now managed at root) */}
     </motion.div>

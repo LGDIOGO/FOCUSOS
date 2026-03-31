@@ -118,7 +118,7 @@ export function HabitCard({
         onContextMenu?.()
       }}
       className={cn(
-        'flex items-center gap-3 rounded-[28px] border px-4 py-4 cursor-pointer select-none transition-all duration-300 relative overflow-hidden group',
+        'flex items-center gap-4 rounded-[28px] border p-4 cursor-pointer select-none transition-all duration-300 relative overflow-hidden group',
         cfg.card,
         isSelected && "border-red-600/50 bg-red-600/[0.08] ring-1 ring-red-600/20 shadow-[0_0_20px_rgba(224,32,32,0.1)]"
       )}
@@ -182,24 +182,25 @@ export function HabitCard({
               e.stopPropagation()
               onEdit?.()
             }}
-            className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/10 transition-all active:scale-90"
+            className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/80 transition-all active:scale-90"
             title="Editar Hábito"
           >
             <Pencil size={14} />
           </button>
         )}
-        {habit.status !== 'none' && !isSelectionMode && !isSelected && (
+        {!isSelectionMode && !isSelected && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             className={cn(
-              'px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex-shrink-0 border',
+              'px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex-shrink-0 border',
               habit.status === 'done'    && 'text-green-400 border-green-400/20 bg-green-400/5',
               habit.status === 'partial' && 'text-amber-400 border-amber-400/20 bg-amber-400/5',
               habit.status === 'failed'  && 'text-[#e02020] border-[#e02020]/20 bg-[#e02020]/5',
+              (currentStatus === 'none' || !currentStatus) && 'text-[var(--text-muted)] border-[var(--border-subtle)] bg-[var(--bg-overlay)]/10'
             )}
           >
-            {cfg.label}
+            {cfg.label || 'PENDENTE'}
           </motion.div>
         )}
       </div>
