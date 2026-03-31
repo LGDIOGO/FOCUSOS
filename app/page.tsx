@@ -262,7 +262,7 @@ function Testimonial({ name, role, text, stars = 5 }: any) {
           <Star key={i} size={14} className="text-amber-400 fill-amber-400" />
         ))}
       </div>
-      <p className="text-white/60 text-sm leading-relaxed italic">"{text}"</p>
+      <p className="text-white/60 text-sm leading-relaxed italic">&ldquo;{text}&rdquo;</p>
       <div className="mt-auto">
         <p className="font-bold text-sm text-white">{name}</p>
         <p className="text-white/30 text-xs">{role}</p>
