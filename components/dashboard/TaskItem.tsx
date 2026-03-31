@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { memo } from 'react'
-import { Check, Minus, X, Circle, Zap, Target, Pencil } from 'lucide-react'
+import { Check, Minus, X, Circle, Zap, Target, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Task, TaskPriority, TaskStatus } from '@/types'
 import { useLongPress } from '@/lib/hooks/useLongPress'
@@ -23,7 +23,8 @@ function TaskItem({
   onSelect,
   onContextMenu,
   onOpenBubble,
-  onEdit
+  onEdit,
+  onDelete
 }: { 
   task: Task; 
   onToggle?: () => void;
@@ -34,9 +35,10 @@ function TaskItem({
   onContextMenu?: () => void;
   onOpenBubble?: (pos: { x: number; y: number }) => void;
   onEdit?: () => void;
+  onDelete?: () => void;
 }) {
   
-  const dueLabel = task.due || (task.due_time ? `Hoje · ${task.due_time}` : 'Hoje')
+  const dueLabel = (task.due && task.due !== 'Hoje') ? task.due : (task.due_time ? task.due_time : '')
 
   const handleStatusClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -138,10 +140,22 @@ function TaskItem({
               e.stopPropagation()
               onEdit?.()
             }}
-            className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/80 transition-all active:scale-90"
+            className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-white hover:bg-white/10 transition-all active:scale-90"
             title="Editar Tarefa"
           >
             <Pencil size={14} />
+          </button>
+        )}
+        {!isSelectionMode && !isSelected && (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete?.()
+            }}
+            className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-all active:scale-90"
+            title="Excluir Tarefa"
+          >
+            <Trash2 size={14} />
           </button>
         )}
         {!isSelectionMode && !isSelected && (

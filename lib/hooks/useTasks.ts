@@ -109,7 +109,7 @@ export function useDeleteTask() {
       await deleteDoc(taskRef)
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tasks', 'today', user?.uid] })
+      qc.invalidateQueries({ queryKey: ['tasks'] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })

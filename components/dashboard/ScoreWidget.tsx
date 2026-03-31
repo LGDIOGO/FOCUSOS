@@ -32,7 +32,7 @@ export default function ScoreWidget({ score, selectedDate = new Date() }: { scor
         animate={{ opacity: 1, scale: 1 }}
         className="col-span-1 bg-[var(--text-primary)] rounded-2xl p-4 flex flex-col gap-1 transition-colors duration-300 shadow-xl"
       >
-        <span className="text-[12px] font-bold uppercase tracking-widest text-black/40">Score</span>
+        <span className="text-[12px] font-bold uppercase tracking-widest text-black/40">Compromissos e Hábitos</span>
         <span className="text-3xl font-black tracking-tighter text-black">{combined}%</span>
         <span className="text-[13px] font-medium text-black/60">
           {combined >= 80 ? 'Excelente performance!' : combined >= 50 ? 'Bom progresso' : 'Continue focado'}

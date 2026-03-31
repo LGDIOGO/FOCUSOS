@@ -310,7 +310,7 @@ export default function DashboardPage() {
     
     addTask({
       title: newTaskTitle.trim(),
-      emoji: '⏺️',
+      emoji: '',
       priority: 'medium',
       due_date: todayStr
     })
@@ -472,7 +472,7 @@ export default function DashboardPage() {
             {/* ─── Today's Agenda ─── */}
             <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                  <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
-                    <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">{getSectionLabel('Compromissos', selectedDate)}</p>
+                    <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Compromissos</p>
                     <div className="flex items-center gap-3">
                       <Link href="/dashboard/agenda?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
                         <Plus size={14} />
@@ -526,7 +526,7 @@ export default function DashboardPage() {
             {/* ─── Positive Habits ─── */}
             <section>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Hábitos positivos</p>
+                <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Hábitos</p>
                 <div className="flex items-center gap-3">
                   <Link href="/dashboard/habits?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
                     <Plus size={14} />
@@ -568,7 +568,7 @@ export default function DashboardPage() {
             <section>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#b80000]" />
-                <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[#b80000]">Hábitos a evitar</p>
+                <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[#b80000]">A Evitar</p>
               </div>
               <div className="flex flex-col gap-2">
                 {negative.map((h: Habit) => (
@@ -602,7 +602,7 @@ export default function DashboardPage() {
             {/* ─── Tasks ─── */}
             <section>
               <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
-                <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">{getSectionLabel('Rascunho', selectedDate)}</p>
+                <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Rascunho</p>
                 <span className="text-[13px] text-white/50">{score.tasksDone}/{score.tasksTotal} concluídas</span>
               </div>
               <div className="flex flex-col gap-1.5">
@@ -639,6 +639,7 @@ export default function DashboardPage() {
                       toggleSelection(t.id, 'task')
                     }}
                     onEdit={() => window.location.href = `/dashboard/tasks?edit=${t.id}`}
+                    onDelete={() => deleteTask(t.id)}
                     onOpenBubble={(position) => setActiveBubble({
                       id: t.id,
                       position,
