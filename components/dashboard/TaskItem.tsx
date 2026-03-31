@@ -107,7 +107,7 @@ function TaskItem({
           ) : task.status === 'failed' ? (
             <X size={16} strokeWidth={4} />
           ) : (
-            <div className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]" />
+            null
           )}
         </motion.div>
       )}
@@ -158,7 +158,7 @@ function TaskItem({
             <Trash2 size={14} />
           </button>
         )}
-        {!isSelectionMode && !isSelected && (
+        {!isSelectionMode && !isSelected && ((task.status && task.status !== 'todo') || task.done) && (
           <div className={cn(
             "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border",
             (task.status === 'done' || task.done) && "text-green-400 border-green-400/20 bg-green-400/5",

@@ -326,7 +326,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                        </div>
                        <div className="space-y-3">
                           <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Som de Alerta</label>
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 relative">
                              {['apple', 'none'].map((s) => (
                                <button
                                  key={s}
@@ -340,9 +340,29 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                      : "bg-white/5 text-white/40 border-white/5"
                                  )}
                                >
-                                 {s === 'apple' ? ' Apple Style' : 'Mudo'}
+                                 {s === 'apple' ? (
+                                   <div className="flex items-center gap-2">
+                                     <Sparkles size={14} className="text-red-500" />
+                                     <span>Apple Style</span>
+                                   </div>
+                                 ) : 'Mudo'}
                                </button>
                              ))}
+                             
+                             {settings?.notifications?.sound === 'apple' && (
+                               <button 
+                                 onClick={(e) => {
+                                   e.stopPropagation()
+                                   const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3')
+                                   audio.volume = 0.5
+                                   audio.play()
+                                 }}
+                                 className="absolute -right-12 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl bg-red-600/10 border border-red-500/20 text-red-500 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all active:scale-95 shadow-xl"
+                                 title="Testar Som"
+                               >
+                                 <Play size={16} fill="currentColor" />
+                               </button>
+                             )}
                           </div>
                        </div>
                     </div>

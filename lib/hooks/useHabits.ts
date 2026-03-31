@@ -150,6 +150,7 @@ export function useAddHabit() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['habits'] })
+      qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
 }
@@ -165,6 +166,7 @@ export function useUpdateHabit() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['habits'] })
+      qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
 }
@@ -179,6 +181,7 @@ export function useDeleteHabit() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['habits'] })
+      qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
 }

@@ -18,6 +18,7 @@ interface HabitCardProps {
   onContextMenu?: () => void
   onOpenBubble?: (pos: { x: number; y: number }) => void
   onEdit?: () => void
+  isToday?: boolean
 }
 
 // ─── Mapeamento de status → estilos ──────────────────────────
@@ -69,7 +70,8 @@ export function HabitCard({
   onSelect,
   onContextMenu,
   onOpenBubble,
-  onEdit
+  onEdit,
+  isToday
 }: HabitCardProps) {
   const currentStatus = habit.status || 'none'
   const cfg = (STATUS_CONFIG as any)[currentStatus] || STATUS_CONFIG.none
@@ -176,7 +178,7 @@ export function HabitCard({
 
       {/* Status Label (Right aligned) */}
       <div className="flex items-center gap-2">
-        {!isSelectionMode && !isSelected && (
+        {!isSelectionMode && !isSelected && currentStatus !== 'none' && (
           <button 
             onClick={(e) => {
               e.stopPropagation()
@@ -188,7 +190,7 @@ export function HabitCard({
             <Pencil size={14} />
           </button>
         )}
-        {!isSelectionMode && !isSelected && (
+        {!isSelectionMode && !isSelected && currentStatus !== 'none' && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -196,11 +198,10 @@ export function HabitCard({
               'px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex-shrink-0 border',
               habit.status === 'done'    && 'text-green-400 border-green-400/20 bg-green-400/5',
               habit.status === 'partial' && 'text-amber-400 border-amber-400/20 bg-amber-400/5',
-              habit.status === 'failed'  && 'text-[#e02020] border-[#e02020]/20 bg-[#e02020]/5',
-              (currentStatus === 'none' || !currentStatus) && 'text-[var(--text-muted)] border-[var(--border-subtle)] bg-[var(--bg-overlay)]/10'
+              habit.status === 'failed'  && 'text-[#e02020] border-[#e02020]/20 bg-[#e02020]/5'
             )}
           >
-            {cfg.label || 'PENDENTE'}
+            {cfg.label}
           </motion.div>
         )}
       </div>

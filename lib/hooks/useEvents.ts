@@ -135,6 +135,7 @@ export function useLogEvent() {
       const targetDate = variables.logDate || format(new Date(), 'yyyy-MM-dd')
       qc.invalidateQueries({ queryKey: ['events'] })
       qc.invalidateQueries({ queryKey: ['eventsToday', targetDate] })
+      qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
 }

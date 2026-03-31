@@ -7,10 +7,10 @@ import { TrendingUp, Target, Award } from 'lucide-react'
 import { useMemo } from 'react'
 import { cn } from '@/lib/utils/cn'
 
-export function PerformanceHeader() {
+export function PerformanceHeader({ manualDailyScore }: { manualDailyScore?: number }) {
   const { data: metrics, isLoading } = usePerformanceMetrics()
   
-  const daily = metrics?.daily || 0
+  const daily = manualDailyScore !== undefined ? manualDailyScore : (metrics?.daily || 0)
   const weekly = metrics?.weekly || 0
   
   const paretoMessage = useMemo(() => {

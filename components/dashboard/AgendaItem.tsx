@@ -203,7 +203,7 @@ function AgendaItem({
             <Pencil size={14} />
           </button>
         )}
-        {!isSelectionMode && !isSelected && event.status !== 'todo' && (
+        {!isSelectionMode && !isSelected && event.status && event.status !== 'todo' && (
            <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}

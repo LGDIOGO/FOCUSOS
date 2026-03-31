@@ -101,6 +101,6 @@ export function usePerformanceMetrics(weekOffset: number = 0) {
       return { daily, weekly, dailyScores }
     },
     enabled: !!user,
-    staleTime: 10_000,
+    staleTime: 2_000,
   })
 }

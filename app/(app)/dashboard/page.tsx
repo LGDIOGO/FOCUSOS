@@ -55,7 +55,9 @@ function calcScore(habits: Habit[], tasks: Task[], events: CalendarEvent[]) {
     partial, 
     total, 
     tasksDone, 
-    tasksTotal
+    tasksTotal,
+    eventsDone: events.filter(e => e.status === 'done').length,
+    eventsTotal: events.length
   }
 }
   
@@ -371,7 +373,7 @@ export default function DashboardPage() {
         </div>
         
         <div className="flex flex-col md:flex-row md:items-center gap-8 md:gap-12">
-          <PerformanceHeader />
+          <PerformanceHeader manualDailyScore={score.combined} />
           <RealTimeClock />
           <div className="flex items-center gap-2.5">
             <button className="w-12 h-12 rounded-2xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] flex items-center justify-center hover:bg-[var(--bg-overlay)]/80 transition-all group relative">
@@ -554,12 +556,13 @@ export default function DashboardPage() {
                         id: h.id,
                         position,
                         options: HABIT_OPTIONS,
-                        onSelect: (status) => {
-                          setHabitStatus(h.id, status)
-                          setActiveBubble(null)
-                        }
-                      })}
-                    />
+                      onSelect: (status) => {
+                        setHabitStatus(h.id, status)
+                        setActiveBubble(null)
+                      }
+                    })}
+                    isToday={isViewingToday}
+                  />
                   ))}
               </div>
             </section>
@@ -594,6 +597,7 @@ export default function DashboardPage() {
                         setActiveBubble(null)
                       }
                     })}
+                    isToday={isViewingToday}
                   />
                 ))}
               </div>
@@ -680,7 +684,9 @@ export default function DashboardPage() {
           >
             <div className="flex flex-col items-center justify-center min-w-[60px] md:min-w-[80px]">
               <span className="text-2xl md:text-3xl font-black text-white leading-none">{selectedItems.length}</span>
-              <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">Itens</span>
+              <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">
+                {selectedItems.length === 1 ? 'Item' : 'Itens'}
+              </span>
             </div>
 
             <div className="h-10 md:h-12 w-px bg-white/10" />
@@ -761,42 +767,50 @@ export default function DashboardPage() {
       </AnimatePresence>
       <AnimatePresence>
         {isBulkDeleteModalOpen && (
-          <>
+          <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsBulkDeleteModalOpen(false)}
-              className="fixed inset-0 z-[1001] bg-black/60 backdrop-blur-md"
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1002] w-full max-w-sm bg-[#111] border border-white/10 rounded-[32px] p-8 shadow-2xl"
+              exit={{ opacity: 0, scale: 0.9, y: 30 }}
+              className="relative w-full max-w-sm bg-[#111] border border-white/10 rounded-[40px] p-10 shadow-2xl z-[1002]"
             >
-              <div className="w-16 h-16 rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-6 mx-auto text-red-500">
-                <Trash2 size={24} />
+              <div className="w-20 h-20 rounded-[30px] bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-8 mx-auto text-red-500">
+                <Trash2 size={32} />
               </div>
-              <h3 className="text-xl font-black text-white text-center mb-2 tracking-tight">Excluir {selectedItems.length} itens?</h3>
-              <p className="text-sm font-medium text-white/40 text-center mb-8">Essa ação não pode ser desfeita. Todos os dados associados a essas tarefas ou hábitos serão apagados permanentemente.</p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setIsBulkDeleteModalOpen(false)}
-                  className="flex-1 px-4 py-3 rounded-2xl bg-white/5 border border-white/5 text-white/70 hover:bg-white/10 hover:text-white text-sm font-bold transition-all"
-                >
-                  Cancelar
-                </button>
+              <h3 className="text-2xl font-black text-white text-center mb-3 tracking-tightest">
+                Excluir {selectedItems.length} {selectedItems.length === 1 ? 'item' : 'itens'}?
+              </h3>
+              <p className="text-sm font-medium text-white/30 text-center mb-10 leading-relaxed px-4">
+                Essa ação é definitiva. Todos os dados serão apagados para sempre do seu FocusOS.
+              </p>
+              <div className="flex flex-col gap-3">
                 <button
                   onClick={confirmBulkDelete}
                   disabled={loading}
-                  className="flex-1 px-4 py-3 rounded-2xl bg-red-600 border border-red-500 text-white hover:bg-red-500 text-sm font-bold transition-all flex items-center justify-center gap-2"
+                  className="w-full h-14 rounded-2xl bg-red-600 text-white hover:bg-red-500 font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-3 shadow-xl shadow-red-600/20 active:scale-95 disabled:opacity-50"
                 >
-                  {loading ? <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : 'Confirmar'}
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>Confirmar Exclusão</>
+                  )}
+                </button>
+                <button
+                  onClick={() => setIsBulkDeleteModalOpen(false)}
+                  className="w-full h-14 rounded-2xl bg-white/[0.03] border border-white/5 text-white/50 hover:bg-white/[0.08] hover:text-white font-black uppercase tracking-widest text-xs transition-all active:scale-95"
+                >
+                  Cancelar
                 </button>
               </div>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
       <TutorialModal 
