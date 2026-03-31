@@ -237,8 +237,10 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                 type="button"
                 onClick={() => setNewEvent({ ...newEvent, category_id: '' })}
                 className={cn(
-                  "px-4 py-3 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all",
-                  !newEvent.category_id ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-sm" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"
+                  "px-4 py-2.5 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all",
+                  !newEvent.category_id 
+                    ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]" 
+                    : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-white/20"
                 )}
               >
                 Nenhuma
@@ -256,10 +258,14 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                     })
                   }}
                   className={cn(
-                    "px-4 py-3 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                    newEvent.category_id === cat.id ? "border-[var(--text-primary)] bg-[var(--bg-overlay)] text-[var(--text-primary)]" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"
+                    "px-4 py-2.5 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
+                    newEvent.category_id === cat.id 
+                      ? "bg-[var(--bg-overlay)]" 
+                      : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-white/20"
                   )}
-                  style={newEvent.category_id === cat.id ? { borderColor: cat.color } : {}}
+                  style={newEvent.category_id === cat.id 
+                    ? { borderColor: cat.color, color: cat.color } 
+                    : {}}
                 >
                   {cat.icon && <span>{cat.icon}</span>}
                   {cat.name}

@@ -226,8 +226,10 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
                 type="button"
                 onClick={() => setNewHabit({ ...newHabit, category_id: '' })}
                 className={cn(
-                  "px-4 py-3 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all",
-                  !newHabit.category_id ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"
+                  "px-4 py-2.5 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all",
+                  !newHabit.category_id 
+                    ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]" 
+                    : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-white/20"
                 )}
               >
                 Nenhuma
@@ -238,10 +240,14 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
                   type="button"
                   onClick={() => setNewHabit({ ...newHabit, category_id: cat.id, emoji: cat.icon || newHabit.emoji, color: cat.color || newHabit.color })}
                   className={cn(
-                    "px-4 py-3 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                    newHabit.category_id === cat.id ? "border-[var(--text-primary)] bg-[var(--bg-overlay)] text-[var(--text-primary)]" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"
+                    "px-4 py-2.5 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
+                    newHabit.category_id === cat.id 
+                      ? "bg-[var(--bg-overlay)]" 
+                      : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-white/20"
                   )}
-                  style={newHabit.category_id === cat.id ? { borderColor: cat.color } : {}}
+                  style={newHabit.category_id === cat.id 
+                    ? { borderColor: cat.color, color: cat.color } 
+                    : {}}
                 >
                   {cat.icon && <span>{cat.icon}</span>}
                   {cat.name}
