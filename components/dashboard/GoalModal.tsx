@@ -29,12 +29,12 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
   const addCategory = useAddCategory()
 
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false)
-  const [newCategory, setNewCategory] = useState({ name: '', icon: '🎯', color: '#e02020' })
+  const [newCategory, setNewCategory] = useState({ name: '', icon: '📁', color: '#e02020' })
 
   const [formData, setFormData] = useState<Partial<Goal>>({
     title: '',
     description: '',
-    emoji: '🎯',
+    emoji: '',
     color: '#FF453A',
     priority: 'medium',
     status: 'active',
@@ -55,7 +55,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
       setFormData({
         title: '',
         description: '',
-        emoji: '🎯',
+        emoji: '',
         color: '#FF453A',
         priority: 'medium',
         status: 'active',

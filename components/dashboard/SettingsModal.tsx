@@ -410,23 +410,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-black text-lg text-[var(--text-primary)]">Tema do Sistema</h4>
-                      <p className="text-sm text-[var(--text-secondary)] font-medium">Alternar entre os modos claro e escuro.</p>
+                      <p className="text-sm text-[var(--text-secondary)] font-medium">Modo claro disponível em breve.</p>
                     </div>
-                    <button 
-                      onClick={() => updateSettings.mutate({ 
-                        theme: settings?.theme === 'dark' ? 'light' : 'dark' 
-                      })}
-                      className={cn(
-                        "w-14 h-8 rounded-full p-1 transition-all duration-300 relative",
-                        settings?.theme === 'dark' ? "bg-red-600" : "bg-neutral-300"
-                      )}
-                    >
-                      <motion.div 
-                        animate={{ x: settings?.theme === 'dark' ? 24 : 0 }}
-                        className="w-6 h-6 bg-white rounded-full shadow-lg" 
-                      />
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] border border-[var(--border-subtle)] px-2 py-1 rounded-lg opacity-70">Em Breve</span>
+                      <div className="w-14 h-8 rounded-full bg-red-600 p-1 relative opacity-50 cursor-not-allowed">
+                        <div className="w-6 h-6 bg-white rounded-full shadow-lg translate-x-6" />
+                      </div>
+                    </div>
                   </div>
+
 
                   <div className="h-px bg-[var(--border-subtle)]" />
 

@@ -124,7 +124,10 @@ function GoalGridItem({
               className="w-16 h-16 rounded-3xl flex items-center justify-center text-3xl shadow-2xl transition-transform group-hover:scale-110"
               style={{ backgroundColor: `${accentColor}18` }}
             >
-              {goal.emoji || '🎯'}
+              {goal.emoji 
+                ? <span>{goal.emoji}</span>
+                : <Target size={28} style={{ color: accentColor }} />
+              }
             </div>
             <div className="space-y-1">
               <h3 className="text-2xl font-black text-[var(--text-primary)]">{goal.title}</h3>

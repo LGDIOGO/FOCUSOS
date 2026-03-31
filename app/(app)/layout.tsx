@@ -19,15 +19,13 @@ export default function AppLayout({
   const [user, setUser] = useState<any>(null)
   const router = useRouter()
 
-  // Apply theme to document root
+  // Apply theme to document root - always default to dark
   useEffect(() => {
-    if (settings?.theme) {
-      document.documentElement.setAttribute('data-theme', settings.theme)
-      // Update meta theme-color for mobile browser address bars
-      const metaTheme = document.querySelector('meta[name="theme-color"]')
-      if (metaTheme) {
-        metaTheme.setAttribute('content', settings.theme === 'dark' ? '#000000' : '#F2F2F7')
-      }
+    const theme = settings?.theme || 'dark'
+    document.documentElement.setAttribute('data-theme', theme)
+    const metaTheme = document.querySelector('meta[name="theme-color"]')
+    if (metaTheme) {
+      metaTheme.setAttribute('content', theme === 'dark' ? '#000000' : '#F2F2F7')
     }
   }, [settings?.theme])
 
