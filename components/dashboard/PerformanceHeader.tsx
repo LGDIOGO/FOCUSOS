@@ -14,10 +14,11 @@ export function PerformanceHeader() {
   const weekly = metrics?.weekly || 0
   
   const paretoMessage = useMemo(() => {
-    // Usamos o dia do ano + semana para manter a mensagem constante por um tempo ou rotacionar
-    const seed = new Date().getMilliseconds() 
+    // Atualiza a cada 2 horas (2 * 60 * 60 * 1000 ms)
+    const hoursInterval = 2
+    const seed = Math.floor(Date.now() / (hoursInterval * 60 * 60 * 1000))
     return getParetoMessage(seed)
-  }, [daily, weekly])
+  }, [])
 
   if (isLoading) return <div className="h-12 w-48 bg-[var(--bg-overlay)] animate-pulse rounded-2xl" />
 
