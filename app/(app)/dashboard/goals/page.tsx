@@ -49,9 +49,26 @@ function GoalGridItem({
       setIsSelectionMode(true)
       onToggleSelection(goal.id)
     },
-    () => {}, // Evitar double-toggling
+    () => {},
     { delay: 500 }
   )
+
+  const pct = goal.progress_pct || 0
+  const isCompleted = pct >= 100
+  const isHalfway = pct >= 50 && !isCompleted
+
+  // Dynamic accent color based on progress
+  const accentColor = isCompleted ? '#32D74B' : isHalfway ? '#FF9F0A' : (goal.color || '#FFFFFF')
+  const progressBg = isCompleted 
+    ? 'rgba(50,215,75,0.08)' 
+    : isHalfway 
+    ? 'rgba(255,159,10,0.06)' 
+    : 'transparent'
+  const progressBorder = isCompleted 
+    ? 'rgba(50,215,75,0.35)' 
+    : isHalfway 
+    ? 'rgba(255,159,10,0.25)' 
+    : undefined
 
   return (
     <motion.div
@@ -73,36 +90,48 @@ function GoalGridItem({
         onToggleSelection(goal.id)
       }}
       className={cn(
-        "group relative bg-white/[0.02] border rounded-[48px] p-10 hover:bg-white/[0.04] transition-all flex flex-col justify-between overflow-hidden cursor-pointer",
-        isSelected ? "border-red-500/50 bg-red-500/[0.08] ring-1 ring-red-500/20 shadow-[0_0_20px_rgba(255,69,58,0.1)]" : 
-        (goal.priority === 'high' || goal.priority === 'critical' ? "ring-1 ring-white/5 border-white/10" : "border-white/10")
+        "group relative rounded-[48px] p-10 transition-all flex flex-col justify-between overflow-hidden cursor-pointer border",
+        isSelected
+          ? "border-red-500/50 bg-red-500/[0.08] ring-1 ring-red-500/20 shadow-[0_0_20px_rgba(255,69,58,0.1)]"
+          : isCompleted
+          ? "ring-2 ring-green-500/40 shadow-[0_0_30px_rgba(50,215,75,0.15)]"
+          : "border-[var(--border-subtle)] bg-[var(--bg-overlay)] hover:bg-[var(--bg-overlay)]"
       )}
+      style={{
+        backgroundColor: isSelected ? undefined : progressBg,
+        borderColor: isSelected ? undefined : (progressBorder || 'var(--border-subtle)'),
+      }}
     >
 
       {/* Background Glow */}
       <div 
-        className="absolute -top-24 -right-24 w-64 h-64 blur-[120px] opacity-10 rounded-full"
-        style={{ backgroundColor: goal.color || '#FFFFFF' }}
+        className="absolute -top-24 -right-24 w-64 h-64 blur-[120px] opacity-10 rounded-full pointer-events-none"
+        style={{ backgroundColor: accentColor }}
       />
+
+      {/* Completed Badge */}
+      {isCompleted && (
+        <div className="absolute top-5 right-5 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-green-500/15 border border-green-500/30 text-green-500">
+          <Check size={10} strokeWidth={3} />
+          Concluído
+        </div>
+      )}
 
       <div className="relative z-10 space-y-8">
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-6">
             <div 
               className="w-16 h-16 rounded-3xl flex items-center justify-center text-3xl shadow-2xl transition-transform group-hover:scale-110"
-              style={{ backgroundColor: `${goal.color}15`, color: goal.color }}
+              style={{ backgroundColor: `${accentColor}18` }}
             >
               {goal.emoji || '🎯'}
             </div>
             <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                 <h3 className="text-2xl font-black text-white">{goal.title}</h3>
-                 {goal.priority === 'critical' && <Sparkles size={16} className="text-red-400 animate-pulse" />}
-              </div>
-              <div className="flex items-center gap-2 text-white/30 text-xs font-black uppercase tracking-widest">
-                 <span className={cn(!category?.name && "text-white/20")}>{category?.name || 'Nenhuma'}</span>
-                 <span className="w-1 h-1 rounded-full bg-white/10" />
-                 <span style={{ color: String(goal.priority).toLowerCase() === 'critical' ? '#FF453A' : String(goal.priority).toLowerCase() === 'high' ? '#FF9F0A' : '#FFFFFF' }}>
+              <h3 className="text-2xl font-black text-[var(--text-primary)]">{goal.title}</h3>
+              <div className="flex items-center gap-2 text-[var(--text-muted)] text-xs font-black uppercase tracking-widest">
+                 <span className={cn(!category?.name && "opacity-50")}>{category?.name || 'Nenhuma'}</span>
+                 <span className="w-1 h-1 rounded-full bg-[var(--border-subtle)]" />
+                 <span style={{ color: String(goal.priority).toLowerCase() === 'critical' ? '#FF453A' : String(goal.priority).toLowerCase() === 'high' ? '#FF9F0A' : 'var(--text-muted)' }}>
                    {PRIORITY_MAP[String(goal.priority).toLowerCase() || 'medium'] || goal.priority}
                  </span>
               </div>
@@ -116,7 +145,7 @@ function GoalGridItem({
               onPointerDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
               onTouchEnd={(e) => e.stopPropagation()}
-              className="p-3 text-white/5 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+              className="p-3 text-[var(--text-muted)] hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
             >
               <Trash2 size={20} />
             </button>
@@ -126,53 +155,56 @@ function GoalGridItem({
         <div className="space-y-4">
           <div className="flex justify-between items-end">
             <div className="space-y-1">
-              <p className="text-sm font-black uppercase tracking-widest text-white/20">Progresso Atual</p>
+              <p className="text-sm font-black uppercase tracking-widest text-[var(--text-muted)]">Progresso Atual</p>
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-black text-white italic">{goal.current_value}</span>
-                <span className="text-lg font-bold text-white/40">/ {goal.target_value} {goal.unit}</span>
+                <span className="text-4xl font-black text-[var(--text-primary)] italic">{goal.current_value}</span>
+                <span className="text-lg font-bold text-[var(--text-secondary)]">/ {goal.target_value} {goal.unit}</span>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-1">Status</p>
-              <span className="text-3xl font-black text-white italic">{goal.progress_pct}%</span>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">Status</p>
+              <span 
+                className="text-3xl font-black italic"
+                style={{ color: accentColor }}
+              >{goal.progress_pct}%</span>
             </div>
           </div>
 
-          <div className="relative h-3 bg-white/5 rounded-full overflow-hidden border border-white/5">
+          <div className="relative h-3 bg-[var(--bg-overlay)] rounded-full overflow-hidden border border-[var(--border-subtle)]">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${goal.progress_pct}%` }}
-              className="absolute h-full bg-white"
-              style={{ backgroundColor: goal.color }}
+              className="absolute h-full rounded-full"
+              style={{ backgroundColor: accentColor }}
             />
           </div>
           
           {/* Milestones context */}
-          <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/20 px-1 pt-1">
+          <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1 pt-1">
              <span>Início: {goal.initial_value}</span>
              <div className="flex gap-4">
-                {goal.min_goal_value && <span className="text-white/40">Mínimo: {goal.min_goal_value}</span>}
-                {goal.elite_goal_value && <span className="text-red-400/60">Elite: {goal.elite_goal_value}</span>}
+                {goal.min_goal_value && <span className="text-[var(--text-secondary)]">Mínimo: {goal.min_goal_value}</span>}
+                {goal.elite_goal_value && <span className="text-red-400/80">Elite: {goal.elite_goal_value}</span>}
              </div>
              <span>Alvo: {goal.target_value}</span>
           </div>
         </div>
       </div>
 
-      <div className="relative z-10 pt-10 flex items-center justify-between border-t border-white/5 mt-8 opacity-60 group-hover:opacity-100 transition-opacity">
+      <div className="relative z-10 pt-10 flex items-center justify-between border-t border-[var(--border-subtle)] mt-8 opacity-70 group-hover:opacity-100 transition-opacity">
          <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-               <Calendar size={14} className="text-white/40" />
-               <span className="text-xs font-bold text-white/60">
+               <Calendar size={14} className="text-[var(--text-muted)]" />
+               <span className="text-xs font-bold text-[var(--text-secondary)]">
                  Até {formatDateSafely(goal.end_date)}
                </span>
             </div>
-            <div className="w-1 h-1 rounded-full bg-white/10" />
-            <span className="text-xs font-black text-white/40 uppercase tracking-widest">
+            <div className="w-1 h-1 rounded-full bg-[var(--border-subtle)]" />
+            <span className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest">
               {daysLeft} dias restantes
             </span>
          </div>
-         <div className="flex items-center gap-2 text-white/40 font-black text-[10px] uppercase tracking-widest group-hover:text-white transition-colors">
+         <div className="flex items-center gap-2 text-[var(--text-muted)] font-black text-[10px] uppercase tracking-widest group-hover:text-[var(--text-primary)] transition-colors">
             Detalhes <ChevronRight size={14} />
          </div>
       </div>
@@ -246,7 +278,7 @@ export default function GoalsPage() {
   const formatDateSafely = (dateStr?: string) => {
     if (!dateStr) return 'Não definida'
     try {
-      return format(parseISO(dateStr), "dd 'de' MMMM", { locale: ptBR })
+      return format(parseISO(dateStr), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
     } catch (e) {
       return 'Data inválida'
     }
@@ -291,22 +323,22 @@ export default function GoalsPage() {
         className="flex items-end justify-between"
       >
         <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-white/5 rounded-[24px] flex items-center justify-center border border-white/10 shadow-2xl">
-            <Target className="text-white w-8 h-8" />
+          <div className="w-16 h-16 bg-[var(--bg-overlay)] rounded-[24px] flex items-center justify-center border border-[var(--border-subtle)] shadow-2xl">
+            <Target className="text-[var(--text-primary)] w-8 h-8" />
           </div>
           <div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tightest">Metas Estratégicas</h1>
-            <p className="text-white/60 font-medium text-base md:text-lg italic flex items-center gap-2">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tightest text-[var(--text-primary)]">Metas Estratégicas</h1>
+            <p className="text-[var(--text-secondary)] font-medium text-base md:text-lg italic flex items-center gap-2">
               Planeje grandes objetivos e acompanhe o progresso.
-              <span className="inline-block w-1 h-1 rounded-full bg-white/20 mx-1" />
-              <span className="text-white/30 text-xs font-black uppercase tracking-tighter border border-white/5 px-2 py-0.5 rounded-md">Foco no Longo Prazo</span>
+              <span className="inline-block w-1 h-1 rounded-full bg-[var(--border-subtle)] mx-1" />
+              <span className="text-[var(--text-muted)] text-xs font-black uppercase tracking-tighter border border-[var(--border-subtle)] px-2 py-0.5 rounded-md">Foco no Longo Prazo</span>
             </p>
           </div>
         </div>
         
         <button 
           onClick={() => { setEditingGoal(null); setShowAddModal(true); }}
-          className="bg-white text-black px-6 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-neutral-200 transition-all active:scale-95 shadow-xl shrink-0"
+          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-6 py-4 rounded-2xl font-black flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-xl shrink-0"
         >
           <Plus size={20} />
           Nova Meta
@@ -319,7 +351,7 @@ export default function GoalsPage() {
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
                {[1, 2].map(i => (
-                 <div key={i} className="h-64 rounded-[40px] bg-white/[0.02] border border-white/10 animate-pulse" />
+             <div key={i} className="h-64 rounded-[40px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)] animate-pulse" />
                ))}
             </div>
           ) : groupedGoals.map((group, groupIdx) => {
@@ -368,17 +400,17 @@ export default function GoalsPage() {
 
       {/* Empty State */}
       {!isLoading && goals?.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 bg-white/[0.02] border border-dashed border-white/10 rounded-[48px] space-y-6">
-           <div className="w-20 h-20 bg-white/5 rounded-[32px] flex items-center justify-center">
-              <Target className="text-white/20 w-10 h-10" />
+        <div className="flex flex-col items-center justify-center py-20 bg-[var(--bg-overlay)] border border-dashed border-[var(--border-subtle)] rounded-[48px] space-y-6">
+           <div className="w-20 h-20 bg-[var(--bg-overlay)] rounded-[32px] flex items-center justify-center border border-[var(--border-subtle)]">
+              <Target className="text-[var(--text-muted)] w-10 h-10" />
            </div>
            <div className="text-center space-y-2">
-              <h3 className="text-2xl font-black">Nenhuma meta estratégica definida</h3>
-              <p className="text-white/40 font-medium">Crie seu primeiro grande objetivo para começar a trilhar o progresso.</p>
+              <h3 className="text-2xl font-black text-[var(--text-primary)]">Nenhuma meta estratégica definida</h3>
+              <p className="text-[var(--text-muted)] font-medium">Crie seu primeiro grande objetivo para começar a trilhar o progresso.</p>
            </div>
            <button 
              onClick={() => setShowAddModal(true)}
-             className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all"
+             className="bg-[var(--bg-overlay)] hover:opacity-80 text-[var(--text-primary)] border border-[var(--border-subtle)] px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all"
            >
              Começar Agora
            </button>
