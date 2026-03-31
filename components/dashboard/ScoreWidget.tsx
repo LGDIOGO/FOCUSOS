@@ -30,16 +30,16 @@ export default function ScoreWidget({ score, selectedDate = new Date() }: { scor
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="col-span-1 bg-[var(--text-primary)] rounded-2xl p-4 flex flex-col gap-1 transition-colors duration-300"
+        className="col-span-1 bg-[var(--text-primary)] rounded-2xl p-4 flex flex-col gap-1 transition-colors duration-300 shadow-xl"
       >
-        <span className="text-[12px] font-semibold uppercase tracking-widest text-[var(--bg-primary)]/80">Score</span>
-        <span className="text-2xl font-extrabold tracking-tighter text-[var(--bg-primary)]">{combined}%</span>
-        <span className="text-[13px] text-[var(--bg-primary)]/90">
-          {combined >= 70 ? 'No caminho!' : combined >= 40 ? 'Pode melhorar' : 'Vamos lá!'}
+        <span className="text-[12px] font-bold uppercase tracking-widest text-black/40">Score</span>
+        <span className="text-3xl font-black tracking-tighter text-black">{combined}%</span>
+        <span className="text-[13px] font-medium text-black/60">
+          {combined >= 80 ? 'Excelente performance!' : combined >= 50 ? 'Bom progresso' : 'Continue focado'}
         </span>
-        <div className="h-0.5 bg-[var(--bg-primary)]/10 rounded-full mt-1 overflow-hidden">
+        <div className="h-1 bg-black/10 rounded-full mt-2 overflow-hidden">
           <motion.div
-            className="h-full bg-[var(--bg-primary)] rounded-full"
+            className="h-full bg-black rounded-full"
             initial={{ width: 0 }}
             animate={{ width: `${combined}%` }}
             transition={{ duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
