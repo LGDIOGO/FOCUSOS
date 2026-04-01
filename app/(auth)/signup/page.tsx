@@ -11,12 +11,14 @@ import {
   updateProfile
 } from 'firebase/auth'
 import { auth, db } from '@/lib/firebase/config'
-import { doc, setDoc } from 'firebase/firestore'
+import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { validateCPF, formatCPF } from '@/lib/utils/subscription'
 
 export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
+  const [cpf, setCpf] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -28,21 +30,41 @@ export default function SignupPage() {
     setError(null)
 
     try {
+      // 1. Validate CPF locally
+      const cleanCPF = cpf.replace(/\D/g, '')
+      if (!validateCPF(cleanCPF)) {
+        throw new Error('CPF inválido. Verifique os números.')
+      }
+
+      // 2. Check CPF uniqueness in Firestore
+      const cpfDoc = await getDoc(doc(db, 'cpfs', cleanCPF))
+      if (cpfDoc.exists()) {
+        throw new Error('Este CPF já está vinculado a outra conta.')
+      }
+
+      // 3. Create Auth User
       const userCredential = await createUserWithEmailAndPassword(auth, email, password)
       const user = userCredential.user
 
       // Update name
       await updateProfile(user, { displayName: fullName })
 
-      // Create profile in Firestore
-      await setDoc(doc(db, 'profiles', user.uid), {
-        id: user.uid,
-        full_name: fullName,
-        email: email,
-        created_at: new Date().toISOString(),
-        trial_started_at: new Date().toISOString(),
-        is_paid: false,
-      })
+      // 4. Create profile and lock CPF
+      await Promise.all([
+        setDoc(doc(db, 'profiles', user.uid), {
+          id: user.uid,
+          full_name: fullName,
+          email: email,
+          cpf: cleanCPF,
+          created_at: new Date().toISOString(),
+          trial_started_at: new Date().toISOString(),
+          is_paid: false,
+        }),
+        setDoc(doc(db, 'cpfs', cleanCPF), {
+          uid: user.uid,
+          created_at: new Date().toISOString()
+        })
+      ])
 
       setSuccess(true)
       setTimeout(() => router.push('/dashboard'), 2000)
@@ -118,6 +140,19 @@ export default function SignupPage() {
                 onChange={(e) => setFullName(e.target.value)}
                 className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-white/20 focus:bg-white/[0.05] transition-all"
                 placeholder="Seu Nome"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[12px] uppercase tracking-widest font-black text-white/50 px-1">CPF (apenas um por conta)</label>
+              <input 
+                type="text" 
+                value={cpf}
+                onChange={(e) => setCpf(formatCPF(e.target.value))}
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-white/20 focus:bg-white/[0.05] transition-all"
+                placeholder="000.000.000-00"
+                maxLength={14}
                 required
               />
             </div>
