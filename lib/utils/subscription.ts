@@ -33,6 +33,20 @@ export function isTrialExpired(trialStartedAt: string): boolean {
 }
 
 /**
+ * Verifica se o período de carência (ex: 2 dias) passou
+ * @param startDate ISO string da data de início
+ * @param graceDays Número de dias de carência
+ */
+export function isGracePeriodOver(startDate: string, graceDays: number = 2): boolean {
+  if (!startDate) return true
+  const start = new Date(startDate)
+  const current = new Date()
+  const diffTime = current.getTime() - start.getTime()
+  const diffDays = diffTime / (1000 * 60 * 60 * 24)
+  return diffDays >= graceDays
+}
+
+/**
  * Formata CPF para exibição (XXX.XXX.XXX-XX)
  */
 export function formatCPF(cpf: string): string {

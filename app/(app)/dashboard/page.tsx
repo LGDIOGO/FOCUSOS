@@ -1,4 +1,4 @@
-'use client'
+uye'use client'
 // Force build v2.3 (Global Bubble Manager fix)
 
 import { useState, useEffect, useMemo } from 'react'
@@ -18,8 +18,8 @@ import { useEventsToday, useLogEvent, useUpdateEvent, useDeleteEvent } from '@/l
 import { HabitStatus, Habit, Task, CalendarEvent, TaskStatus } from '@/types'
 import { generateLocalInsights } from '@/lib/services/aiService'
 import SeedData from '@/components/dashboard/SeedData'
-import { 
-  Zap, TrendingUp, Target, Clock, Calendar, Trash2, Plus, 
+import {
+  Zap, TrendingUp, Target, Clock, Calendar, Trash2, Plus,
   ChevronRight, ArrowLeft, ArrowRight, RefreshCcw,
   Check, Minus, X, Circle, Search, Bell, Award, MoreHorizontal
 } from 'lucide-react'
@@ -37,30 +37,30 @@ import { usePerformanceMetrics } from '@/lib/hooks/usePerformance'
 const CYCLE: HabitStatus[] = ['none', 'done', 'partial', 'failed']
 
 function calcScore(habits: Habit[], tasks: Task[], events: CalendarEvent[]) {
-  const done    = habits.filter((h: Habit) => h.status === 'done').length
+  const done = habits.filter((h: Habit) => h.status === 'done').length
   const partial = habits.filter((h: Habit) => h.status === 'partial').length
-  const total   = habits.length
-  
+  const total = habits.length
+
   const tasksDone = tasks.filter(t => t.done).length
   const tasksTotal = tasks.length
 
   const combined = calculateProgress(habits, tasks, events)
-  
-  return { 
-    habitPct: total > 0 ? Math.round((done + partial * 0.5) / total * 100) : 0, 
+
+  return {
+    habitPct: total > 0 ? Math.round((done + partial * 0.5) / total * 100) : 0,
     taskPct: tasksTotal > 0 ? Math.round(tasksDone / tasksTotal * 100) : 0,
     eventPct: events.length > 0 ? Math.round((events.filter(e => e.status === 'done').length + events.filter(e => e.status === 'partial').length * 0.5) / events.length * 100) : 0,
-    combined, 
-    done, 
-    partial, 
-    total, 
-    tasksDone, 
+    combined,
+    done,
+    partial,
+    total,
+    tasksDone,
     tasksTotal,
     eventsDone: events.filter(e => e.status === 'done').length,
     eventsTotal: events.length
   }
 }
-  
+
 function getDateLabel(date: Date) {
   if (isToday(date)) return 'HOJE'
   if (isTomorrow(date)) return 'AMANHÃ'
@@ -84,7 +84,7 @@ export default function DashboardPage() {
   useEffect(() => {
     setSelectedDate(new Date())
   }, [])
-  
+
   const { data: habitsData, isLoading: loadingHabits } = useHabitsToday(selectedDate)
   const { data: tasksData, isLoading: loadingTasks } = useTasksToday(selectedDate)
   const { data: eventsToday, isLoading: loadingEvents } = useEventsToday(selectedDate)
@@ -96,11 +96,11 @@ export default function DashboardPage() {
   const { mutateAsync: deleteTask } = useDeleteTask()
   const { mutateAsync: deleteHabit } = useDeleteHabit()
   const { mutateAsync: deleteEvent } = useDeleteEvent()
-  
+
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [weekOffset, setWeekOffset] = useState(0)
   const [loading, setLoading] = useState(false)
-  
+
   const { data: metrics } = usePerformanceMetrics(weekOffset)
   const dailyScores = metrics?.dailyScores || {}
   const [selectedItems, setSelectedItems] = useState<{ id: string; type: 'habit' | 'task' | 'event' }[]>([])
@@ -119,7 +119,7 @@ export default function DashboardPage() {
     const timer = setInterval(() => {
       const now = new Date();
       setCurrentTime(now);
-      
+
       // Auto-refresh today when it's midnight
       if (isToday(selectedDate) && now.getDate() !== selectedDate.getDate()) {
         setSelectedDate(now);
@@ -168,10 +168,10 @@ export default function DashboardPage() {
   const toggleSelection = (id: string, type: 'habit' | 'task' | 'event') => {
     setSelectedItems(prev => {
       const isSelected = prev.some(item => item.id === id)
-      const next = isSelected 
-        ? prev.filter(item => item.id !== id) 
+      const next = isSelected
+        ? prev.filter(item => item.id !== id)
         : [...prev, { id, type }]
-      
+
       if (next.length === 0) setIsSelectionMode(false)
       return next
     })
@@ -210,9 +210,9 @@ export default function DashboardPage() {
         if (item.type === 'event') return deleteEvent(item.id)
         return Promise.resolve()
       })
-      
+
       await Promise.all(promises)
-      
+
       setSelectedItems([])
       setIsSelectionMode(false)
       setToast('Itens excluídos com sucesso!')
@@ -234,7 +234,7 @@ export default function DashboardPage() {
   const [eventToReschedule, setEventToReschedule] = useState<CalendarEvent | null>(null)
 
   const [toast, setToast] = useState<string | null>(null)
-  
+
   const todayStr = format(selectedDate, 'yyyy-MM-dd')
   const todayDay = getDay(selectedDate)
   const isViewingToday = isToday(selectedDate)
@@ -263,17 +263,17 @@ export default function DashboardPage() {
       if (timeA && timeB) {
         const passedA = isToday(selectedDate) && isAfter(now, timeA)
         const passedB = isToday(selectedDate) && isAfter(now, timeB)
-        
+
         if (passedA && !passedB) return 1
         if (!passedA && passedB) return -1
-        
+
         // Both passed or both upcoming, sort by time
         return timeA.getTime() - timeB.getTime()
       }
       return 0
     })
   }, [eventsToday, currentTime, selectedDate])
-  
+
   const { data: allGoals, isLoading: loadingGoals } = useGoals()
   const goals = useMemo(() => allGoals || [], [allGoals])
 
@@ -295,7 +295,7 @@ export default function DashboardPage() {
 
   function setEventStatus(id: string, status: any, date?: string) {
     logEvent({ eventId: id, status, logDate: date || todayStr })
-    
+
     if (status === 'partial') {
       const ev = todayEvents.find(e => e.id === id)
       if (ev) {
@@ -320,27 +320,27 @@ export default function DashboardPage() {
   // Set habit status directly: none, done, partial, failed
   function setHabitStatus(id: string, nextStatus: HabitStatus) {
     const habit = habits.find(h => h.id === id)
-    logHabit({ 
-      habitId: id, 
+    logHabit({
+      habitId: id,
       status: nextStatus,
       logDate: todayStr,
       linkedGoalId: habit?.linked_goal_id,
       goalImpact: habit?.goal_impact
     })
-    
-    const labels: Record<HabitStatus, string> = { 
-      done: '✓ Marcado como feito!', 
-      partial: '½ Parcialmente feito.', 
-      failed: '✗ Registrado como falha.', 
-      none: 'Desmarcado.' 
+
+    const labels: Record<HabitStatus, string> = {
+      done: '✓ Marcado como feito!',
+      partial: '½ Parcialmente feito.',
+      failed: '✗ Registrado como falha.',
+      none: 'Desmarcado.'
     }
     setToast(labels[nextStatus])
   }
-  
+
   function handleQuickAddTask(e: React.FormEvent) {
     e.preventDefault()
     if (!newTaskTitle.trim()) return
-    
+
     addTask({
       title: newTaskTitle.trim(),
       emoji: '',
@@ -359,18 +359,18 @@ export default function DashboardPage() {
   }
   // Update task status: done, todo, partial, failed
   function updateTaskStatus(id: string, nextStatus: TaskStatus) {
-    updateTask({ 
-      id, 
-      status: nextStatus, 
+    updateTask({
+      id,
+      status: nextStatus,
       completed_at: nextStatus === 'done' ? new Date().toISOString() : undefined,
       done: nextStatus === 'done'
     })
-    
-    const labels: Partial<Record<TaskStatus, string>> = { 
-      done: '✓ Tarefa concluída!', 
-      partial: '½ Tarefa marcada como parcial.', 
-      failed: '✗ Tarefa marcada como falha.', 
-      todo: 'Tarefa pendente.' 
+
+    const labels: Partial<Record<TaskStatus, string>> = {
+      done: '✓ Tarefa concluída!',
+      partial: '½ Tarefa marcada como parcial.',
+      failed: '✗ Tarefa marcada como falha.',
+      todo: 'Tarefa pendente.'
     }
     if (labels[nextStatus]) setToast(labels[nextStatus])
   }
@@ -391,18 +391,18 @@ export default function DashboardPage() {
 
       {/* ─── Top Bar ─── */}
       {/* Header */}
-      <motion.div 
+      <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 px-6 pt-4 md:px-10 md:pt-6 lg:px-14 max-w-[1600px] mx-auto w-full"
       >
         <div className="flex items-center gap-6">
-           <div>
-              <p className="text-[12px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] mb-1">FocusOS Dashboard</p>
-              <h1 className="text-4xl font-black tracking-tighter text-[var(--text-primary)]">Olá, {auth.currentUser?.displayName?.split(' ')[0] || 'Usuário'}</h1>
-           </div>
+          <div>
+            <p className="text-[12px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] mb-1">FocusOS Dashboard</p>
+            <h1 className="text-4xl font-black tracking-tighter text-[var(--text-primary)]">Olá, {auth.currentUser?.displayName?.split(' ')[0] || 'Usuário'}</h1>
+          </div>
         </div>
-        
+
         <div className="flex flex-col md:flex-row md:items-center gap-8 md:gap-12">
           <PerformanceHeader manualDailyScore={score.combined} />
           <RealTimeClock />
@@ -427,19 +427,19 @@ export default function DashboardPage() {
                 {weekOffset === 0 ? 'Semana atual' : weekOffset < 0 ? `${Math.abs(weekOffset)} semanas atrás` : `${weekOffset} semanas à frente`}
               </p>
               <div className="flex items-center gap-1">
-                <button 
+                <button
                   onClick={() => setWeekOffset(prev => prev - 1)}
                   className="p-1 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-white"
                 >
                   <ArrowLeft size={12} />
                 </button>
-                <button 
+                <button
                   onClick={() => setWeekOffset(0)}
                   className="px-2 py-0.5 hover:bg-white/10 rounded-lg transition-colors text-[10px] font-bold text-white/40 hover:text-white uppercase"
                 >
                   Hoje
                 </button>
-                <button 
+                <button
                   onClick={() => setWeekOffset(prev => prev + 1)}
                   className="p-1 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-white"
                 >
@@ -448,7 +448,7 @@ export default function DashboardPage() {
               </div>
             </div>
             {!isViewingToday && (
-              <button 
+              <button
                 onClick={() => {
                   setSelectedDate(new Date())
                   setWeekOffset(0)
@@ -463,21 +463,21 @@ export default function DashboardPage() {
             {weekDays.map((d, i) => {
               const isActive = isSameDay(d, selectedDate)
               const isTodayActual = isToday(d)
-              
+
               return (
                 <motion.div
                   key={i}
                   whileTap={{ scale: 0.93 }}
                   onClick={() => setSelectedDate(d)}
                   className={`flex-none flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl border cursor-pointer min-w-[46px] transition-all
-                    ${isActive 
-                      ? 'bg-[var(--text-primary)] border-transparent shadow-lg scale-105' 
+                    ${isActive
+                      ? 'bg-[var(--text-primary)] border-transparent shadow-lg scale-105'
                       : 'bg-[var(--bg-overlay)] border-[var(--border-subtle)]'
                     }
-                    ${d < new Date() && !isTodayActual 
-                      ? (dailyScores[format(d, 'yyyy-MM-dd')] >= 80 
-                          ? 'border-green-500/30 shadow-[0_0_10px_rgba(34,197,94,0.1)]' 
-                          : 'border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.1)]')
+                    ${d < new Date() && !isTodayActual
+                      ? (dailyScores[format(d, 'yyyy-MM-dd')] >= 80
+                        ? 'border-green-500/30 shadow-[0_0_10px_rgba(34,197,94,0.1)]'
+                        : 'border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.1)]')
                       : ''}
                   `}
                 >
@@ -488,7 +488,7 @@ export default function DashboardPage() {
                     {format(d, 'd')}
                   </span>
                   <div className={`w-1 h-1 rounded-full transition-opacity 
-                    ${isTodayActual ? 'bg-red-600 opacity-100' : 
+                    ${isTodayActual ? 'bg-red-600 opacity-100' :
                       (d < new Date() ? 'bg-white/20 opacity-100' : 'opacity-0')}
                     ${isActive && isTodayActual ? 'bg-red-700' : ''}
                   `} />
@@ -501,213 +501,213 @@ export default function DashboardPage() {
         {/* ─── Score Cards ─── */}
         <ScoreWidget score={score} selectedDate={selectedDate} />
 
-          <div className="space-y-10 max-w-[1600px] mx-auto w-full">
-            {/* ─── Today's Agenda ─── */}
-            <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                 <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
-                    <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Compromissos</p>
-                    <div className="flex items-center gap-3">
-                      <Link href="/dashboard/agenda?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
-                        <Plus size={14} />
-                      </Link>
-                      <Link href="/dashboard/agenda" className="text-sm text-white/60 hover:text-white flex items-center gap-0.5 transition-colors">
-                        Ver todos <ChevronRight size={12} />
-                      </Link>
-                    </div>
-                 </div>
-                 <div className="flex flex-col gap-2">
-                    {todayEvents.map(event => (
-                      <AgendaItem 
-                        key={event.id} 
-                        event={event} 
-                        onStatusChange={status => setEventStatus(event.id, status, event.date)}
-                        onReschedule={() => {
-                          setEventToReschedule(event)
-                          setIsRescheduleOpen(true)
-                        }}
-                        isSelectionMode={isSelectionMode}
-                        isSelected={selectedItems.some(item => item.id === event.id)}
-                        onSelect={() => toggleSelection(event.id, 'event')}
-                        onEdit={() => window.location.href = `/dashboard/agenda?edit=${event.id}`}
-                        onContextMenu={() => {
-                          setIsSelectionMode(true)
-                          toggleSelection(event.id, 'event')
-                        }}
-                        onOpenBubble={(position) => setActiveBubble({
-                          id: event.id,
-                          position,
-                          options: AGENDA_OPTIONS,
-                          onSelect: (status) => {
-                            if (status === 'reschedule') {
-                              setEventToReschedule(event)
-                              setIsRescheduleOpen(true)
-                            } else {
-                              setEventStatus(event.id, status)
-                            }
-                            setActiveBubble(null)
-                          }
-                        })}
-                        currentTime={currentTime}
-                      />
-                    ))}
-                     {todayEvents.length === 0 && (
-                       <p className="text-sm text-white/30 italic px-4 py-2">Nenhum compromisso para {getDateLabel(selectedDate).toLowerCase()}.</p>
-                     )}
-                  </div>
-               </section>
-
-            {/* ─── Positive Habits ─── */}
-            <section>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Hábitos</p>
-                <div className="flex items-center gap-3">
-                  <Link href="/dashboard/habits?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
-                    <Plus size={14} />
-                  </Link>
-                  <Link href="/dashboard/habits" className="text-sm text-white/60 hover:text-white flex items-center gap-0.5 transition-colors">
-                    Ver todos <ChevronRight size={12} />
-                  </Link>
-                </div>
+        <div className="space-y-10 max-w-[1600px] mx-auto w-full">
+          {/* ─── Today's Agenda ─── */}
+          <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
+              <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Compromissos</p>
+              <div className="flex items-center gap-3">
+                <Link href="/dashboard/agenda?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
+                  <Plus size={14} />
+                </Link>
+                <Link href="/dashboard/agenda" className="text-sm text-white/60 hover:text-white flex items-center gap-0.5 transition-colors">
+                  Ver todos <ChevronRight size={12} />
+                </Link>
               </div>
-              <div className="flex flex-col gap-2">
-                  {positive.map((h: Habit) => (
-                    <HabitCard 
-                      key={h.id} 
-                      habit={h} 
-                      onStatusChange={status => setHabitStatus(h.id, status)}
-                      isSelectionMode={isSelectionMode}
-                      isSelected={selectedItems.some(item => item.id === h.id)}
-                      onSelect={() => toggleSelection(h.id, 'habit')}
-                      onEdit={() => window.location.href = `/dashboard/habits?edit=${h.id}`}
-                      onContextMenu={() => {
-                        setIsSelectionMode(true)
-                        toggleSelection(h.id, 'habit')
-                      }}
-                      onOpenBubble={(position) => setActiveBubble({
-                        id: h.id,
-                        position,
-                        options: HABIT_OPTIONS,
-                      onSelect: (status) => {
-                        setHabitStatus(h.id, status)
-                        setActiveBubble(null)
+            </div>
+            <div className="flex flex-col gap-2">
+              {todayEvents.map(event => (
+                <AgendaItem
+                  key={event.id}
+                  event={event}
+                  onStatusChange={status => setEventStatus(event.id, status, event.date)}
+                  onReschedule={() => {
+                    setEventToReschedule(event)
+                    setIsRescheduleOpen(true)
+                  }}
+                  isSelectionMode={isSelectionMode}
+                  isSelected={selectedItems.some(item => item.id === event.id)}
+                  onSelect={() => toggleSelection(event.id, 'event')}
+                  onEdit={() => window.location.href = `/dashboard/agenda?edit=${event.id}`}
+                  onContextMenu={() => {
+                    setIsSelectionMode(true)
+                    toggleSelection(event.id, 'event')
+                  }}
+                  onOpenBubble={(position) => setActiveBubble({
+                    id: event.id,
+                    position,
+                    options: AGENDA_OPTIONS,
+                    onSelect: (status) => {
+                      if (status === 'reschedule') {
+                        setEventToReschedule(event)
+                        setIsRescheduleOpen(true)
+                      } else {
+                        setEventStatus(event.id, status)
                       }
-                    })}
-                    isToday={isViewingToday}
-                  />
-                  ))}
-              </div>
-            </section>
+                      setActiveBubble(null)
+                    }
+                  })}
+                  currentTime={currentTime}
+                />
+              ))}
+              {todayEvents.length === 0 && (
+                <p className="text-sm text-white/30 italic px-4 py-2">Nenhum compromisso para {getDateLabel(selectedDate).toLowerCase()}.</p>
+              )}
+            </div>
+          </section>
 
-            {/* ─── Negative Habits ─── */}
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#b80000]" />
-                <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[#b80000]">A Evitar</p>
+          {/* ─── Positive Habits ─── */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Hábitos</p>
+              <div className="flex items-center gap-3">
+                <Link href="/dashboard/habits?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
+                  <Plus size={14} />
+                </Link>
+                <Link href="/dashboard/habits" className="text-sm text-white/60 hover:text-white flex items-center gap-0.5 transition-colors">
+                  Ver todos <ChevronRight size={12} />
+                </Link>
               </div>
-              <div className="flex flex-col gap-2">
-                {negative.map((h: Habit) => (
-                  <HabitCard 
-                    key={h.id} 
-                    habit={h} 
-                    onStatusChange={status => setHabitStatus(h.id, status)} 
-                    isNegative 
-                    isSelectionMode={isSelectionMode}
-                    isSelected={selectedItems.some(item => item.id === h.id)}
-                    onSelect={() => toggleSelection(h.id, 'habit')}
-                    onEdit={() => window.location.href = `/dashboard/habits?edit=${h.id}`}
-                    onContextMenu={() => {
-                      setIsSelectionMode(true)
-                      toggleSelection(h.id, 'habit')
-                    }}
-                    onOpenBubble={(position) => setActiveBubble({
-                      id: h.id,
-                      position,
-                      options: HABIT_OPTIONS,
-                      onSelect: (status) => {
-                        setHabitStatus(h.id, status)
-                        setActiveBubble(null)
-                      }
-                    })}
-                    isToday={isViewingToday}
-                  />
-                ))}
-              </div>
-            </section>
+            </div>
+            <div className="flex flex-col gap-2">
+              {positive.map((h: Habit) => (
+                <HabitCard
+                  key={h.id}
+                  habit={h}
+                  onStatusChange={status => setHabitStatus(h.id, status)}
+                  isSelectionMode={isSelectionMode}
+                  isSelected={selectedItems.some(item => item.id === h.id)}
+                  onSelect={() => toggleSelection(h.id, 'habit')}
+                  onEdit={() => window.location.href = `/dashboard/habits?edit=${h.id}`}
+                  onContextMenu={() => {
+                    setIsSelectionMode(true)
+                    toggleSelection(h.id, 'habit')
+                  }}
+                  onOpenBubble={(position) => setActiveBubble({
+                    id: h.id,
+                    position,
+                    options: HABIT_OPTIONS,
+                    onSelect: (status) => {
+                      setHabitStatus(h.id, status)
+                      setActiveBubble(null)
+                    }
+                  })}
+                  isToday={isViewingToday}
+                />
+              ))}
+            </div>
+          </section>
 
-            {/* ─── Tasks ─── */}
-            <section>
-              <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
-                <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Rascunho</p>
-                <span className="text-[13px] text-white/50">{score.tasksDone}/{score.tasksTotal} concluídas</span>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <form onSubmit={handleQuickAddTask} className="mb-2 relative group">
-                  <input 
-                    type="text"
-                    placeholder="Adicionar tarefa rápida..."
-                    value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-white/20 focus:bg-white/[0.05] transition-all placeholder:text-white/20 pr-12 group-hover:border-white/10"
-                  />
-                  <button 
-                    type="submit"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white text-white hover:text-black transition-all active:scale-90"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </form>
-                 {tasks.map((t: Task) => (
-                  <TaskItem 
-                    key={t.id} 
-                    task={t} 
-                    onToggle={() => toggleTask(t.id, t.done)}
-                    onStatusChange={(status) => {
+          {/* ─── Negative Habits ─── */}
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#b80000]" />
+              <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[#b80000]">A Evitar</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              {negative.map((h: Habit) => (
+                <HabitCard
+                  key={h.id}
+                  habit={h}
+                  onStatusChange={status => setHabitStatus(h.id, status)}
+                  isNegative
+                  isSelectionMode={isSelectionMode}
+                  isSelected={selectedItems.some(item => item.id === h.id)}
+                  onSelect={() => toggleSelection(h.id, 'habit')}
+                  onEdit={() => window.location.href = `/dashboard/habits?edit=${h.id}`}
+                  onContextMenu={() => {
+                    setIsSelectionMode(true)
+                    toggleSelection(h.id, 'habit')
+                  }}
+                  onOpenBubble={(position) => setActiveBubble({
+                    id: h.id,
+                    position,
+                    options: HABIT_OPTIONS,
+                    onSelect: (status) => {
+                      setHabitStatus(h.id, status)
+                      setActiveBubble(null)
+                    }
+                  })}
+                  isToday={isViewingToday}
+                />
+              ))}
+            </div>
+          </section>
+
+          {/* ─── Tasks ─── */}
+          <section>
+            <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
+              <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Rascunho</p>
+              <span className="text-[13px] text-white/50">{score.tasksDone}/{score.tasksTotal} concluídas</span>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <form onSubmit={handleQuickAddTask} className="mb-2 relative group">
+                <input
+                  type="text"
+                  placeholder="Adicionar tarefa rápida..."
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-white/20 focus:bg-white/[0.05] transition-all placeholder:text-white/20 pr-12 group-hover:border-white/10"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white text-white hover:text-black transition-all active:scale-90"
+                >
+                  <Plus size={16} />
+                </button>
+              </form>
+              {tasks.map((t: Task) => (
+                <TaskItem
+                  key={t.id}
+                  task={t}
+                  onToggle={() => toggleTask(t.id, t.done)}
+                  onStatusChange={(status) => {
+                    if (status === 'done') toggleTask(t.id, false)
+                    else if (status === 'todo') toggleTask(t.id, true)
+                    else updateTaskStatus(t.id, status)
+                  }}
+                  isSelectionMode={isSelectionMode}
+                  isSelected={selectedItems.some(item => item.id === t.id)}
+                  onSelect={() => toggleSelection(t.id, 'task')}
+                  onContextMenu={() => {
+                    setIsSelectionMode(true)
+                    toggleSelection(t.id, 'task')
+                  }}
+                  onEdit={() => window.location.href = `/dashboard/tasks?edit=${t.id}`}
+                  onDelete={() => deleteTask(t.id)}
+                  onOpenBubble={(position) => setActiveBubble({
+                    id: t.id,
+                    position,
+                    options: TASK_OPTIONS,
+                    onSelect: (status) => {
                       if (status === 'done') toggleTask(t.id, false)
                       else if (status === 'todo') toggleTask(t.id, true)
                       else updateTaskStatus(t.id, status)
-                    }}
-                    isSelectionMode={isSelectionMode}
-                    isSelected={selectedItems.some(item => item.id === t.id)}
-                    onSelect={() => toggleSelection(t.id, 'task')}
-                    onContextMenu={() => {
-                      setIsSelectionMode(true)
-                      toggleSelection(t.id, 'task')
-                    }}
-                    onEdit={() => window.location.href = `/dashboard/tasks?edit=${t.id}`}
-                    onDelete={() => deleteTask(t.id)}
-                    onOpenBubble={(position) => setActiveBubble({
-                      id: t.id,
-                      position,
-                      options: TASK_OPTIONS,
-                      onSelect: (status) => {
-                        if (status === 'done') toggleTask(t.id, false)
-                        else if (status === 'todo') toggleTask(t.id, true)
-                        else updateTaskStatus(t.id, status)
-                        setActiveBubble(null)
-                      }
-                    })}
-                  />
-                ))}
-              </div>
-            </section>
-          </div>
+                      setActiveBubble(null)
+                    }
+                  })}
+                />
+              ))}
+            </div>
+          </section>
+        </div>
 
         {/* ─── AI Insight ─── */}
 
         <SeedData />
 
-        <AIInsightBanner 
-          habits={habits} 
-          tasks={tasks} 
-          events={todayEvents} 
-          goals={goals} 
-          score={score} 
+        <AIInsightBanner
+          habits={habits}
+          tasks={tasks}
+          events={todayEvents}
+          goals={goals}
+          score={score}
         />
       </main>
 
       <AnimatePresence>
         {isSelectionMode && (
-          <motion.div 
+          <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
@@ -729,7 +729,7 @@ export default function DashboardPage() {
                 { label: 'Hábitos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
                 { label: 'A Evitar', icon: Target, onClick: () => handleSelectGroup('negative') },
               ].map(btn => (
-                <button 
+                <button
                   key={btn.label}
                   onClick={btn.onClick}
                   className="relative flex flex-col items-center group/sel pt-1"
@@ -747,7 +747,7 @@ export default function DashboardPage() {
             <div className="h-10 md:h-12 w-px bg-white/10" />
 
             <div className="flex items-center gap-3 md:gap-6">
-              <button 
+              <button
                 onClick={handleBulkDelete}
                 disabled={selectedItems.length === 0 || loading}
                 className="relative flex flex-col items-center group/del disabled:opacity-20"
@@ -756,8 +756,8 @@ export default function DashboardPage() {
                   {loading ? <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Trash2 size={18} />}
                 </div>
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => {
                   setIsSelectionMode(false)
                   setSelectedItems([])
@@ -844,9 +844,9 @@ export default function DashboardPage() {
           </div>
         )}
       </AnimatePresence>
-      <TutorialModal 
-        isOpen={isTutorialOpen} 
-        onClose={handleCloseTutorial} 
+      <TutorialModal
+        isOpen={isTutorialOpen}
+        onClose={handleCloseTutorial}
       />
     </div>
   )

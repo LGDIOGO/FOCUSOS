@@ -11,7 +11,7 @@ import { useSettings } from '@/lib/hooks/useSettings'
 import { useProfile } from '@/lib/hooks/useProfile'
 import { CpfOnboarding } from '@/components/auth/CpfOnboarding'
 import { SubscriptionWall } from '@/components/auth/SubscriptionWall'
-import { isTrialExpired } from '@/lib/utils/subscription'
+import { isTrialExpired, isGracePeriodOver } from '@/lib/utils/subscription'
 
 export default function AppLayout({
   children,
@@ -66,7 +66,7 @@ export default function AppLayout({
   }
 
   // PAYWALL LOGIC
-  const showCpfOnboarding = profile && !profile.cpf
+  const showCpfOnboarding = profile && !profile.cpf && isGracePeriodOver(profile.trial_started_at, 2)
   const showPaywall = profile && !profile.is_paid && isTrialExpired(profile.trial_started_at)
 
   return (
