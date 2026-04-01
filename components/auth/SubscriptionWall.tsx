@@ -112,7 +112,7 @@ export function SubscriptionWall() {
         <div className="flex flex-col items-center gap-10 pt-10">
           <div className="max-w-md mx-auto text-center space-y-4">
             <p className="text-[13px] font-medium text-white/20 italic">
-              "Para desbloqueio manual após transferência (PIX), entre em contato com o suporte enviando seu CPF e o comprovante."
+              &quot;Para desbloqueio manual após transferência (PIX), entre em contato com o suporte enviando seu CPF e o comprovante.&quot;
             </p>
           </div>
 

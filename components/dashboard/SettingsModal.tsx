@@ -32,6 +32,33 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const [newCat, setNewCat] = useState({ name: '', icon: '🏷️', color: '#0A84FF', type: 'habits' as any })
   const [showAddForm, setShowAddForm] = useState(false)
+  const [isUpgrading, setIsUpgrading] = useState(false)
+
+  const handlePlanUpgrade = async (planType: string, price: number) => {
+    if (!profile?.id) return
+    setIsUpgrading(true)
+    try {
+      const res = await fetch('/api/checkout/mercado-pago', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: profile.id,
+          planType,
+          price
+        })
+      })
+      const data = await res.json()
+      if (data.init_point) {
+        window.location.href = data.init_point
+      } else {
+        throw new Error(data.error || 'Erro ao gerar checkout')
+      }
+    } catch (err: any) {
+      alert('Erro: ' + err.message)
+    } finally {
+      setIsUpgrading(false)
+    }
+  }
 
   const handleAddCategory = () => {
     if (!newCat.name) return
@@ -430,16 +457,24 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <h5 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Gerenciar Assinatura</h5>
                     <div className="grid grid-cols-2 gap-3">
                       <button 
-                        onClick={() => alert('Em breve: Redirecionando para o portal de pagamento...')}
-                        className="flex-1 bg-white/5 border border-white/10 text-white font-bold py-3 rounded-xl text-xs hover:bg-white/10 transition-all active:scale-95 shadow-xl"
+                        disabled={isUpgrading}
+                        onClick={() => handlePlanUpgrade('Mensal', 29.90)}
+                        className={cn(
+                          "flex-1 bg-white/5 border border-white/10 text-white font-bold py-3 rounded-xl text-xs hover:bg-white/10 transition-all active:scale-95 shadow-xl disabled:opacity-50",
+                          isUpgrading && "cursor-wait"
+                        )}
                       >
-                        Alterar Plano
+                        {isUpgrading ? 'Aguarde...' : 'Plano Mensal'}
                       </button>
                       <button 
-                        onClick={() => alert('Em breve: Entre em contato com o suporte para cancelar.')}
-                        className="flex-1 bg-white/5 border border-white/10 text-red-400/60 font-bold py-3 rounded-xl text-xs hover:bg-red-400/10 hover:text-red-400 transition-all active:scale-95"
+                        disabled={isUpgrading}
+                        onClick={() => handlePlanUpgrade('Anual', 299.00)}
+                        className={cn(
+                          "flex-1 bg-white/5 border border-white/10 text-white font-bold py-3 rounded-xl text-xs hover:bg-white/10 transition-all active:scale-95 shadow-xl disabled:opacity-50",
+                          isUpgrading && "cursor-wait"
+                        )}
                       >
-                        Cancelar
+                        {isUpgrading ? 'Aguarde...' : 'Plano Anual (-15%)'}
                       </button>
                     </div>
                   </div>
