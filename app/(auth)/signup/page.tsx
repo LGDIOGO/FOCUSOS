@@ -40,6 +40,8 @@ export default function SignupPage() {
         full_name: fullName,
         email: email,
         created_at: new Date().toISOString(),
+        trial_started_at: new Date().toISOString(),
+        is_paid: false,
       })
 
       setSuccess(true)
@@ -68,6 +70,8 @@ export default function SignupPage() {
         email: user.email,
         avatar_url: user.photoURL,
         updated_at: new Date().toISOString(),
+        trial_started_at: new Date().toISOString(), // Only set if it doesn't exist
+        is_paid: false,
       }, { merge: true })
 
       router.push('/dashboard')
