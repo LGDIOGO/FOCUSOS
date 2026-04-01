@@ -6,8 +6,9 @@ import Link from 'next/link'
 import { 
   Check, ChevronRight, Brain, Target, Calendar, RefreshCcw,
   BarChart3, Bell, Sparkles, Shield, Zap, ArrowRight, Star,
-  Clock, TrendingUp, Flame, CheckCircle2, SlidersHorizontal, X
+  Clock, TrendingUp, Flame, CheckCircle2, SlidersHorizontal, X, Minus
 } from 'lucide-react'
+import { cn } from '@/lib/utils/cn'
 
 // ─── Logo Component ────────────────────────────────────────────
 function FocusOSLogo({ size = 32, className = '' }: { size?: number; className?: string }) {
@@ -109,47 +110,65 @@ const FEATURES_ALL = [
 // ─── Mock App Screens ─────────────────────────────────────────
 function MockDashboard() {
   const habits = [
-    { name: 'Meditar 10 min', status: 'done', color: '#32D74B', emoji: '🧘' },
-    { name: 'Treinar musculação', status: 'done', color: '#0A84FF', emoji: '🏋️' },
-    { name: 'Leitura 30 min', status: 'none', color: '#FF9F0A', emoji: '📚' },
-    { name: 'Beber 2L de água', status: 'partial', color: '#5E5CE6', emoji: '💧' },
+    { name: 'Meditar 10 min', status: 'done', emoji: '🧘' },
+    { name: 'Treinar musculação', status: 'done', emoji: '🏋️' },
+    { name: 'Leitura 30 min', status: 'none', emoji: '📚' },
   ]
-  const events = [
-    { time: '09:00', title: 'Reunião de planejamento', done: true },
-    { time: '12:00', title: 'Almoço estratégico', done: true },
-    { time: '15:30', title: 'Call com investidores', done: false, active: true },
-    { time: '18:00', title: 'Revisão de métricas', done: false },
+  const avoid = [
+    { name: 'Frituras no almoço', status: 'failed', emoji: '🍟' },
   ]
+  
   return (
-    <div className="bg-[#0F0F0F] rounded-[24px] p-4 space-y-3 text-white w-full">
+    <div className="bg-[#0F0F0F] border border-white/5 rounded-[24px] p-5 space-y-4 text-white w-full shadow-2xl">
       {/* Score */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-white/30 font-black">Performance Hoje</p>
-          <p className="text-3xl font-black text-white leading-none mt-0.5">87<span className="text-lg text-white/30">%</span></p>
+          <p className="text-[10px] uppercase font-black tracking-widest text-white/20 mb-1">Performance Hoje</p>
+          <p className="text-4xl font-black text-white leading-none tracking-tighter">87<span className="text-xl text-white/20 ml-0.5">%</span></p>
         </div>
-        <div className="w-12 h-12 rounded-full border-2 border-green-500/30 flex items-center justify-center">
-          <span className="text-xl">🔥</span>
+        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
+          <Flame size={22} className="text-amber-500" />
         </div>
       </div>
-      {/* Mini chart */}
-      <div className="flex items-end gap-1 h-8">
-        {[40, 65, 55, 80, 70, 87, 82].map((v, i) => (
-          <div key={i} className="flex-1 rounded-sm" style={{ height: `${v}%`, backgroundColor: i === 5 ? '#32D74B' : 'rgba(255,255,255,0.08)' }} />
-        ))}
-      </div>
-      {/* Habits */}
-      <div className="space-y-1.5 pt-1">
-        {habits.map((h, i) => (
-          <div key={i} className="flex items-center gap-2.5 py-1.5 px-2 rounded-xl bg-white/[0.03]">
-            <span className="text-sm">{h.emoji}</span>
-            <span className="flex-1 text-[11px] font-semibold text-white/70 truncate">{h.name}</span>
-            <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${h.status === 'done' ? 'bg-green-500' : h.status === 'partial' ? 'bg-amber-400' : 'border border-white/10'}`}>
-              {h.status === 'done' && <Check size={10} strokeWidth={3} className="text-white" />}
-              {h.status === 'partial' && <div className="w-1.5 h-0.5 bg-white rounded-full" />}
-            </div>
+
+      <div className="space-y-4">
+        {/* Habits */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Hábitos</p>
+          <div className="space-y-2">
+            {habits.map((h, i) => (
+              <div key={i} className="flex items-center gap-3 py-2.5 px-3 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
+                <span className="text-sm">{h.emoji}</span>
+                <span className="flex-1 text-[11px] font-bold text-white/70 truncate">{h.name}</span>
+                <div className={cn(
+                  "w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0",
+                  h.status === 'done' ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]" : "border border-white/10"
+                )}>
+                  {h.status === 'done' && <Check size={10} strokeWidth={4} className="text-white" />}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
+
+        {/* Avoid */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-600" />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-red-600">A Evitar</p>
+          </div>
+          <div className="space-y-2">
+            {avoid.map((h, i) => (
+              <div key={i} className="flex items-center gap-3 py-2.5 px-3 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
+                <span className="text-sm">{h.emoji}</span>
+                <span className="flex-1 text-[11px] font-bold text-white/70 truncate">{h.name}</span>
+                <div className="w-5 h-5 rounded-full bg-red-600 shadow-[0_0_10px_rgba(224,32,32,0.3)] flex items-center justify-center flex-shrink-0">
+                  <X size={10} strokeWidth={4} className="text-white" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -157,56 +176,64 @@ function MockDashboard() {
 
 function MockAgenda() {
   const events = [
-    { time: '09:00', title: 'Reunião de planejamento', done: true, color: '#32D74B' },
-    { time: '12:00', title: 'Almoço estratégico', done: true, color: '#32D74B' },
-    { time: '15:30', title: 'Call com investidores', done: false, active: true, color: '#FF453A' },
-    { time: '18:00', title: 'Revisão de métricas', done: false, color: '#8E8E93' },
+    { time: '09:00', title: 'Reunião de planejamento', status: 'done' },
+    { time: '12:00', title: 'Almoço estratégico', status: 'done' },
+    { time: '15:30', title: 'Call com investidores', status: 'partial' },
+    { time: '18:00', title: 'Revisão de métricas', status: 'todo' },
   ]
   return (
-    <div className="bg-[#0F0F0F] rounded-[24px] p-4 space-y-2 text-white w-full">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px] uppercase tracking-widest text-white/30 font-black">Agenda · Hoje</p>
-        <span className="text-[10px] font-black text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full">Ter, 31 Mar</span>
+    <div className="bg-[#0F0F0F] border border-white/5 rounded-[24px] p-5 space-y-4 text-white w-full shadow-2xl">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Compromissos</p>
+        <span className="text-[10px] font-black text-red-500 px-2 py-0.5 bg-red-500/10 rounded-full">Hoje</span>
       </div>
-      {events.map((e, i) => (
-        <motion.div 
-          key={i} 
-          initial={{ opacity: 0, x: -10 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          transition={{ delay: i * 0.1 }}
-          className={`flex items-center gap-3 py-2 px-3 rounded-2xl ${e.active ? 'bg-red-500/10 border border-red-500/20' : 'bg-white/[0.03]'}`}
-        >
-          <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${e.done ? 'bg-green-500 border-green-500' : e.active ? 'border-red-500/50' : 'border-white/10'}`}>
-            {e.done && <Check size={12} strokeWidth={3} className="text-white" />}
-            {e.active && <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
+      <div className="space-y-2.5">
+        {events.map((e, i) => (
+          <div key={i} className="flex items-center gap-3.5 py-3 px-4 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
+            <div className={cn(
+               "w-6 h-6 rounded-full border flex items-center justify-center flex-shrink-0",
+               e.status === 'done' ? "bg-green-500 border-green-500" :
+               e.status === 'partial' ? "bg-amber-400 border-amber-400" :
+               "border-white/10"
+            )}>
+              {e.status === 'done' && <Check size={12} strokeWidth={4} className="text-white" />}
+              {e.status === 'partial' && <Minus size={12} strokeWidth={4} className="text-white" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn(
+                "text-[11px] font-bold truncate",
+                e.status === 'done' ? "text-white/30 line-through" : "text-white/90"
+              )}>{e.title}</p>
+            </div>
+            <span className="text-[10px] font-black tracking-tighter text-white/20">{e.time}</span>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className={`text-[11px] font-bold truncate ${e.done ? 'line-through text-white/30' : e.active ? 'text-white' : 'text-white/60'}`}>{e.title}</p>
-          </div>
-          <span className={`text-[10px] font-black ${e.active ? 'text-red-400' : 'text-white/20'}`}>{e.time}</span>
-        </motion.div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }
 
 function MockGoals() {
   const goals = [
-    { title: 'Receita Mensal', pct: 68, color: '#32D74B', emoji: '💰' },
-    { title: 'Horas de Treino', pct: 45, color: '#0A84FF', emoji: '🏋️' },
-    { title: 'Leituras do Ano', pct: 83, color: '#FF9F0A', emoji: '📚' },
+    { title: 'Meta Mensal', pct: 68, color: '#32D74B', icon: Target },
+    { title: 'Progresso Semanal', pct: 45, color: '#0A84FF', icon: TrendingUp },
   ]
   return (
-    <div className="bg-[#0F0F0F] rounded-[24px] p-4 space-y-3 text-white w-full">
-      <p className="text-[10px] uppercase tracking-widest text-white/30 font-black mb-3">Metas Estratégicas</p>
+    <div className="bg-[#0F0F0F] border border-white/5 rounded-[24px] p-5 space-y-5 text-white w-full shadow-2xl">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Metas Estratégicas</p>
+        <Sparkles size={14} className="text-blue-400" />
+      </div>
       {goals.map((g, i) => (
-        <div key={i} className="space-y-1.5">
+        <div key={i} className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-sm">{g.emoji}</span>
-              <span className="text-[11px] font-bold text-white/70">{g.title}</span>
+              <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center border border-white/5">
+                <g.icon size={12} style={{ color: g.color }} />
+              </div>
+              <span className="text-[11px] font-bold text-white/90">{g.title}</span>
             </div>
-            <span className="text-[11px] font-black" style={{ color: g.color }}>{g.pct}%</span>
+            <span className="text-[11px] font-black tracking-tighter" style={{ color: g.color }}>{g.pct}%</span>
           </div>
           <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
             <motion.div
@@ -214,7 +241,10 @@ function MockGoals() {
               whileInView={{ width: `${g.pct}%` }}
               transition={{ duration: 1, delay: i * 0.2, ease: 'easeOut' }}
               className="h-full rounded-full"
-              style={{ backgroundColor: g.color }}
+              style={{ 
+                backgroundColor: g.color,
+                boxShadow: `0 0 10px ${g.color}30`
+              }}
             />
           </div>
         </div>

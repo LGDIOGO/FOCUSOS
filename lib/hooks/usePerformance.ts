@@ -101,6 +101,8 @@ export function usePerformanceMetrics(weekOffset: number = 0) {
       return { daily, weekly, dailyScores }
     },
     enabled: !!user,
-    staleTime: 2_000,
+    staleTime: 300_000, // 5 minutes
+    gcTime: 600_000, // 10 minutes
+    refetchOnWindowFocus: false,
   })
 }
