@@ -1,4 +1,4 @@
-uye'use client'
+'use client'
 // Force build v2.3 (Global Bubble Manager fix)
 
 import { useState, useEffect, useMemo } from 'react'
