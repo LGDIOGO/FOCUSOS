@@ -84,9 +84,8 @@ export default function SignupPage() {
         className="w-full max-w-[380px] space-y-10"
       >
         <div className="text-center space-y-4">
-          <Link href="/" className="inline-block px-12 py-12 rounded-3xl bg-white/5 border border-white/10 mb-2 relative group overflow-hidden">
-            <div className="absolute inset-0 bg-white/10 scale-0 group-hover:scale-100 transition-transform duration-500 rounded-3xl" />
-            <div className="w-8 h-8 bg-white rounded-lg relative z-10" />
+          <Link href="/" className="inline-flex items-center justify-center w-24 h-24 rounded-[32px] bg-white text-black mb-4 relative group overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_40px_rgba(255,255,255,0.1)]">
+            <div className="w-8 h-8 bg-black rounded-[8px] rotate-45 transition-transform group-hover:rotate-[135deg] duration-700" />
           </Link>
           <h1 className="text-4xl font-black tracking-tightest">Criar Conta</h1>
           <p className="text-white/60 text-[15px] font-medium leading-relaxed">Sua jornada rumo ao foco absoluto começa aqui.</p>

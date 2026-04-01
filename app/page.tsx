@@ -15,12 +15,12 @@ function FocusOSLogo({ size = 32, className = '' }: { size?: number; className?:
   const innerSize = Math.round(size * 0.38)
   return (
     <div 
-      className={`bg-black flex items-center justify-center flex-shrink-0 border border-white/10 ${className}`}
+      className={`bg-white flex items-center justify-center flex-shrink-0 border border-black/10 ${className}`}
       style={{ width: size, height: size, borderRadius: radius }}
     >
       <div 
-        className="bg-white"
-        style={{ width: innerSize, height: innerSize, borderRadius: 3, transform: 'rotate(45deg)' }}
+        className="bg-black"
+        style={{ width: innerSize, height: innerSize, borderRadius: 2, transform: 'rotate(45deg)' }}
       />
     </div>
   )
