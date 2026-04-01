@@ -9,6 +9,7 @@ export interface UserProfile {
   cpf?: string
   trial_started_at: string
   is_paid: boolean
+  subscription_plan?: 'Mensal' | 'Trimestral' | 'Semestral' | 'Anual' | null
   subscription_expires_at?: string
   created_at: string
 }

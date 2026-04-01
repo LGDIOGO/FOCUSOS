@@ -30,16 +30,19 @@ export default function SignupPage() {
     setError(null)
 
     try {
-      // 1. Validate CPF locally
-      const cleanCPF = cpf.replace(/\D/g, '')
-      if (!validateCPF(cleanCPF)) {
-        throw new Error('CPF inválido. Verifique os números.')
-      }
+      let cleanCPF = ''
+      if (cpf) {
+        // 1. Validate CPF locally
+        cleanCPF = cpf.replace(/\D/g, '')
+        if (!validateCPF(cleanCPF)) {
+          throw new Error('CPF inválido. Verifique os números.')
+        }
 
-      // 2. Check CPF uniqueness in Firestore
-      const cpfDoc = await getDoc(doc(db, 'cpfs', cleanCPF))
-      if (cpfDoc.exists()) {
-        throw new Error('Este CPF já está vinculado a outra conta.')
+        // 2. Check CPF uniqueness in Firestore
+        const cpfDoc = await getDoc(doc(db, 'cpfs', cleanCPF))
+        if (cpfDoc.exists()) {
+          throw new Error('Este CPF já está vinculado a outra conta.')
+        }
       }
 
       // 3. Create Auth User
@@ -49,22 +52,32 @@ export default function SignupPage() {
       // Update name
       await updateProfile(user, { displayName: fullName })
 
-      // 4. Create profile and lock CPF
-      await Promise.all([
-        setDoc(doc(db, 'profiles', user.uid), {
-          id: user.uid,
-          full_name: fullName,
-          email: email,
-          cpf: cleanCPF,
-          created_at: new Date().toISOString(),
-          trial_started_at: new Date().toISOString(),
-          is_paid: false,
-        }),
-        setDoc(doc(db, 'cpfs', cleanCPF), {
-          uid: user.uid,
-          created_at: new Date().toISOString()
-        })
-      ])
+      // 4. Create profile and lock CPF (if provided)
+      const profileData: any = {
+        id: user.uid,
+        full_name: fullName,
+        email: email,
+        created_at: new Date().toISOString(),
+        trial_started_at: new Date().toISOString(),
+        is_paid: false,
+        subscription_plan: null,
+      }
+
+      const promises = [
+        setDoc(doc(db, 'profiles', user.uid), profileData)
+      ]
+
+      if (cleanCPF) {
+        profileData.cpf = cleanCPF
+        promises.push(
+          setDoc(doc(db, 'cpfs', cleanCPF), {
+            uid: user.uid,
+            created_at: new Date().toISOString()
+          })
+        )
+      }
+
+      await Promise.all(promises)
 
       setSuccess(true)
       setTimeout(() => router.push('/dashboard'), 2000)
@@ -153,7 +166,6 @@ export default function SignupPage() {
                 className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-white/20 focus:bg-white/[0.05] transition-all"
                 placeholder="000.000.000-00"
                 maxLength={14}
-                required
               />
             </div>
             

@@ -9,6 +9,7 @@ import {
 import { TutorialModal } from '@/components/dashboard/TutorialModal'
 import { useCategories, useAddCategory, useDeleteCategory } from '@/lib/hooks/useCategories'
 import { useSettings, useUpdateSettings } from '@/lib/hooks/useSettings'
+import { useProfile } from '@/lib/hooks/useProfile'
 import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
 import { cn } from '@/lib/utils/cn'
 
@@ -24,6 +25,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false)
   const { data: categories, isLoading } = useCategories()
   const { data: settings } = useSettings()
+  const { data: profile } = useProfile()
   const updateSettings = useUpdateSettings()
   const addCategory = useAddCategory()
   const deleteCategory = useDeleteCategory()
@@ -90,11 +92,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             ))}
           </nav>
 
-          <div className="mt-auto p-4 bg-white/5 rounded-[24px] border border-white/5">
+          <div className="mt-auto p-4 bg-white/5 rounded-[24px] border border-white/5 transition-all">
              <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-2">Seu Plano</p>
-             <div className="flex items-center gap-2 text-red-500">
-               <Sparkles size={14} />
-               <span className="text-xs font-bold">FocusOS Pro Max</span>
+             <div className={cn(
+               "flex items-center gap-2",
+               profile?.is_paid ? "text-red-500" : "text-white/30"
+             )}>
+               {profile?.is_paid ? <Sparkles size={14} /> : <Shield size={14} />}
+               <span className="text-xs font-bold uppercase tracking-tight">
+                 {profile?.is_paid 
+                   ? `FocusOS (${profile?.subscription_plan || 'Pro'})` 
+                   : 'Focus OS Free'}
+               </span>
              </div>
           </div>
         </div>
@@ -402,21 +411,41 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Fuso Horário</label>
-                    <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between">
+                    <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between pointer-events-none opacity-60">
                       <span className="font-bold text-sm">Brasília (GMT-3)</span>
                       <ChevronRight size={16} className="text-white/20" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Meta Diária Padrão</label>
-                    <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between">
+                    <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between pointer-events-none opacity-60">
                       <span className="font-bold text-sm">80% de Conclusão</span>
                       <ChevronRight size={16} className="text-white/20" />
                     </div>
                   </div>
+
+                  <div className="h-px bg-white/5 my-6" />
+
+                  <div className="space-y-4">
+                    <h5 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Gerenciar Assinatura</h5>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button 
+                        onClick={() => alert('Em breve: Redirecionando para o portal de pagamento...')}
+                        className="flex-1 bg-white/5 border border-white/10 text-white font-bold py-3 rounded-xl text-xs hover:bg-white/10 transition-all active:scale-95 shadow-xl"
+                      >
+                        Alterar Plano
+                      </button>
+                      <button 
+                        onClick={() => alert('Em breve: Entre em contato com o suporte para cancelar.')}
+                        className="flex-1 bg-white/5 border border-white/10 text-red-400/60 font-bold py-3 rounded-xl text-xs hover:bg-red-400/10 hover:text-red-400 transition-all active:scale-95"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="pt-4">
+                <div className="pt-6">
                   <button className="w-full bg-white/10 text-white font-black py-4 rounded-2xl hover:bg-white/20 transition-all">
                     Salvar Alterações
                   </button>
