@@ -29,7 +29,7 @@ export function isTrialExpired(trialStartedAt?: string | null): boolean {
   const currentDate = new Date()
   const diffTime = Math.abs(currentDate.getTime() - startDate.getTime())
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  return diffDays > 30
+  return diffDays > 90 // Buffer safety (30 + 60 grace)
 }
 
 /**

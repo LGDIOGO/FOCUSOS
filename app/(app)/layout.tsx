@@ -66,8 +66,12 @@ export default function AppLayout({
   }
 
   // PAYWALL LOGIC
-  const showCpfOnboarding = profile && !profile.cpf && isGracePeriodOver(profile.trial_started_at, 2)
-  const showPaywall = profile && !profile.is_paid && isTrialExpired(profile.trial_started_at)
+  // CPF is mandatory only after 15 days of trial (grace period)
+  const showCpfOnboarding = profile && !profile.cpf && isGracePeriodOver(profile.trial_started_at, 15)
+  
+  // Subscription required only after 30 days (currently set to 90 for safety during launch)
+  const isExpired = isTrialExpired(profile?.trial_started_at)
+  const showPaywall = profile && !profile.is_paid && isExpired
 
   return (
     <div className="flex min-h-screen bg-[var(--bg-primary)] transition-colors duration-300 font-sans relative">
