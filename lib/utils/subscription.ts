@@ -23,8 +23,8 @@ export function validateCPF(cpf: string): boolean {
  * Verifica se o trial de 30 dias expirou
  * @param trialStartedAt ISO string da data de início
  */
-export function isTrialExpired(trialStartedAt: string): boolean {
-  if (!trialStartedAt) return true
+export function isTrialExpired(trialStartedAt?: string | null): boolean {
+  if (!trialStartedAt) return false // No date means they haven't started or are old; don't block yet.
   const startDate = new Date(trialStartedAt)
   const currentDate = new Date()
   const diffTime = Math.abs(currentDate.getTime() - startDate.getTime())
@@ -37,8 +37,8 @@ export function isTrialExpired(trialStartedAt: string): boolean {
  * @param startDate ISO string da data de início
  * @param graceDays Número de dias de carência
  */
-export function isGracePeriodOver(startDate: string, graceDays: number = 2): boolean {
-  if (!startDate) return true
+export function isGracePeriodOver(startDate?: string | null, graceDays: number = 2): boolean {
+  if (!startDate) return false // No date = don't block. Wait for data to be set.
   const start = new Date(startDate)
   const current = new Date()
   const diffTime = current.getTime() - start.getTime()

@@ -98,16 +98,25 @@ export default function SignupPage() {
       const result = await signInWithPopup(auth, provider)
       const user = result.user
       
-      // Create/Update profile
-      await setDoc(doc(db, 'profiles', user.uid), {
+      // 4. Create/Update profile safely
+      const profileRef = doc(db, 'profiles', user.uid)
+      const profileSnap = await getDoc(profileRef)
+      
+      const profileData: any = {
         id: user.uid,
         full_name: user.displayName,
         email: user.email,
         avatar_url: user.photoURL,
         updated_at: new Date().toISOString(),
-        trial_started_at: new Date().toISOString(), // Only set if it doesn't exist
-        is_paid: false,
-      }, { merge: true })
+      }
+
+      // Only set trial_started_at if this is a NEW user or field is missing
+      if (!profileSnap.exists() || !profileSnap.data()?.trial_started_at) {
+        profileData.trial_started_at = new Date().toISOString()
+        profileData.is_paid = false
+      }
+
+      await setDoc(profileRef, profileData, { merge: true })
 
       router.push('/dashboard')
     } catch (err: any) {
