@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle
+  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle, History
 } from 'lucide-react'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
 import { useEvents, useDeleteEvent } from '@/lib/hooks/useEvents'
@@ -174,6 +174,7 @@ export default function AgendaPage() {
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
 
   // Update logic for real-time visual alerts
   useEffect(() => {
@@ -341,6 +342,26 @@ export default function AgendaPage() {
     return grouped
   }, [events, currentMonth, logs, currentTime])
 
+  const pastEventsGrouped = useMemo(() => {
+    if (!events) return {}
+    const todayStr = format(new Date(), 'yyyy-MM-dd')
+    const past = events.filter(e => e.date < todayStr)
+    
+    const grouped: Record<string, CalendarEvent[]> = {}
+    past.forEach(e => {
+      if (!grouped[e.date]) grouped[e.date] = []
+      grouped[e.date].push({
+        ...e,
+        status: (logs.get(`${e.id}_${e.date}`) || 'none') as CalendarEvent['status']
+      })
+    })
+
+    // Sort dates in descending order (most recent first)
+    return Object.fromEntries(
+      Object.entries(grouped).sort((a, b) => b[0].localeCompare(a[0]))
+    )
+  }, [events, logs])
+
   return (
     <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10">
       {/* Header */}
@@ -387,6 +408,68 @@ export default function AgendaPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
         <div className="lg:col-span-2 space-y-10 md:space-y-14">
+          {/* Aba de Compromissos Passados (Histórico) */}
+          {!isLoading && Object.keys(pastEventsGrouped).length > 0 && (
+            <div className="space-y-4">
+              <button 
+                onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+                className="flex items-center gap-4 px-2 w-full group"
+              >
+                <div className="flex items-center gap-2 text-base font-black uppercase tracking-widest text-white/20 group-hover:text-white/40 transition-colors">
+                  <History size={16} />
+                  Compromissos Passados
+                  <span className="ml-2 px-2 py-0.5 bg-white/5 rounded-md text-[10px]">{Object.values(pastEventsGrouped).flat().length}</span>
+                </div>
+                <div className="flex-1 border-t border-white/[0.03]" />
+                <ChevronRight 
+                  size={16} 
+                  className={cn(
+                    "text-white/20 transition-transform duration-300",
+                    isHistoryOpen ? "rotate-90" : ""
+                  )} 
+                />
+              </button>
+
+              <AnimatePresence>
+                {isHistoryOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden space-y-8"
+                  >
+                    {Object.entries(pastEventsGrouped).map(([date, eventList]: [string, CalendarEvent[]]) => (
+                      <div key={date} className="space-y-4 opacity-50 hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-4 px-2">
+                           <h2 className="text-[12px] font-black uppercase tracking-widest text-white/20">
+                             {format(parseISO(date), "dd/MM/yyyy • EEEE", { locale: ptBR })}
+                           </h2>
+                           <div className="flex-1 border-t border-white/[0.01]" />
+                        </div>
+                        <div className="space-y-3">
+                          {eventList.map(event => (
+                            <EventItem 
+                              key={event.id}
+                              event={event}
+                              isSelectionMode={isSelectionMode}
+                              isSelected={selectedIds.includes(event.id)}
+                              toggleSelection={toggleSelection}
+                              openEditModal={openEditModal}
+                              setIsSelectionMode={setIsSelectionMode}
+                              onDelete={(id) => deleteEvent.mutate(id)}
+                              currentTime={currentTime}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="pt-4 border-b border-white/[0.03]" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
           <AnimatePresence mode="popLayout">
             {isLoading ? (
               [1, 2].map(i => (

@@ -12,6 +12,7 @@ import ScoreWidget from '@/components/dashboard/ScoreWidget'
 import AIInsightBanner from '@/components/dashboard/AIInsightBanner'
 import { useHabitsToday, useLogHabit, useDeleteHabit } from '@/lib/hooks/useHabits'
 import { useTasksToday, useUpdateTask, useAddTask, useDeleteTask } from '@/lib/hooks/useTasks'
+import { useProfile } from '@/lib/hooks/useProfile'
 import { useGoals } from '@/lib/hooks/useGoals'
 import { RealTimeClock } from '@/components/dashboard/RealTimeClock'
 import { useEventsToday, useLogEvent, useUpdateEvent, useDeleteEvent } from '@/lib/hooks/useEvents'
@@ -101,6 +102,7 @@ export default function DashboardPage() {
   const [weekOffset, setWeekOffset] = useState(0)
   const [loading, setLoading] = useState(false)
 
+  const { data: profile } = useProfile()
   const { data: metrics } = usePerformanceMetrics(weekOffset)
   const dailyScores = metrics?.dailyScores || {}
   const [selectedItems, setSelectedItems] = useState<{ id: string; type: 'habit' | 'task' | 'event' }[]>([])
@@ -475,7 +477,7 @@ export default function DashboardPage() {
                       : 'bg-[var(--bg-overlay)] border-[var(--border-subtle)]'
                     }
                     ${d < new Date() && !isTodayActual
-                      ? (dailyScores[format(d, 'yyyy-MM-dd')] >= 80
+                      ? (dailyScores[format(d, 'yyyy-MM-dd')] >= (profile?.daily_goal || 80)
                         ? 'border-green-500/30 shadow-[0_0_10px_rgba(34,197,94,0.1)]'
                         : 'border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.1)]')
                       : ''}

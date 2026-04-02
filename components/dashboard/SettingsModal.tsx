@@ -9,7 +9,7 @@ import {
 import { TutorialModal } from '@/components/dashboard/TutorialModal'
 import { useCategories, useAddCategory, useDeleteCategory } from '@/lib/hooks/useCategories'
 import { useSettings, useUpdateSettings } from '@/lib/hooks/useSettings'
-import { useProfile } from '@/lib/hooks/useProfile'
+import { useProfile, useUpdateProfile } from '@/lib/hooks/useProfile'
 import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
 import { cn } from '@/lib/utils/cn'
 
@@ -27,38 +27,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { data: settings } = useSettings()
   const { data: profile } = useProfile()
   const updateSettings = useUpdateSettings()
+  const updateProfile = useUpdateProfile()
   const addCategory = useAddCategory()
   const deleteCategory = useDeleteCategory()
 
   const [newCat, setNewCat] = useState({ name: '', icon: '🏷️', color: '#0A84FF', type: 'habits' as any })
   const [showAddForm, setShowAddForm] = useState(false)
   const [isUpgrading, setIsUpgrading] = useState(false)
-
-  const handlePlanUpgrade = async (planType: string, price: number) => {
-    if (!profile?.id) return
-    setIsUpgrading(true)
-    try {
-      const res = await fetch('/api/checkout/mercado-pago', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: profile.id,
-          planType,
-          price
-        })
-      })
-      const data = await res.json()
-      if (data.init_point) {
-        window.location.href = data.init_point
-      } else {
-        throw new Error(data.error || 'Erro ao gerar checkout')
-      }
-    } catch (err: any) {
-      alert('Erro: ' + err.message)
-    } finally {
-      setIsUpgrading(false)
-    }
-  }
 
   const handleAddCategory = () => {
     if (!newCat.name) return
@@ -125,7 +100,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                "flex items-center gap-2",
                profile?.is_paid ? "text-red-500" : "text-white/30"
              )}>
-               {profile?.is_paid ? <Sparkles size={14} /> : <Shield size={14} />}
+               <Shield size={14} />
                <span className="text-xs font-bold uppercase tracking-tight">
                  {profile?.is_paid 
                    ? `FocusOS (${profile?.subscription_plan || 'Pro'})` 
@@ -363,29 +338,29 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                        <div className="space-y-3">
                           <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Som de Alerta</label>
                           <div className="flex gap-2 relative">
-                             {['apple', 'none'].map((s) => (
+                             {['focus', 'none'].map((s) => (
                                <button
                                  key={s}
                                  onClick={() => updateSettings.mutate({
                                    notifications: { ...settings?.notifications!, sound: s as any }
                                  })}
                                  className={cn(
-                                   "flex-1 py-3 rounded-xl border font-bold text-sm transition-all capitalize",
+                                   "flex-1 h-12 rounded-xl border font-bold text-xs flex items-center justify-center transition-all capitalize",
                                    settings?.notifications?.sound === s 
                                      ? "bg-white text-black border-white" 
                                      : "bg-white/5 text-white/40 border-white/5"
                                  )}
                                >
-                                 {s === 'apple' ? (
+                                 {s === 'focus' ? (
                                    <div className="flex items-center gap-2">
-                                     <Sparkles size={14} className="text-red-500" />
-                                     <span>Apple Style</span>
+                                     <Bell size={14} className="text-red-500" />
+                                     <span>Focus Style</span>
                                    </div>
                                  ) : 'Mudo'}
                                </button>
                              ))}
                              
-                             {settings?.notifications?.sound === 'apple' && (
+                             {settings?.notifications?.sound === 'focus' && (
                                <button 
                                  onClick={(e) => {
                                    e.stopPropagation()
@@ -393,7 +368,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                    audio.volume = 0.5
                                    audio.play()
                                  }}
-                                 className="absolute -right-12 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl bg-red-600/10 border border-red-500/20 text-red-500 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all active:scale-95 shadow-xl"
+                                 className="flex-shrink-0 w-12 h-12 rounded-2xl bg-red-600/10 border border-red-500/20 text-red-500 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all active:scale-95 shadow-xl"
                                  title="Testar Som"
                                >
                                  <Play size={16} fill="currentColor" />
@@ -422,15 +397,15 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             {activeTab === 'profile' && (
               <div className="space-y-8 max-w-sm">
                 <div className="flex items-center gap-6">
-                  <div className="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-4xl group relative overflow-hidden">
+                  <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-4xl group relative overflow-hidden">
                     👤
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Plus className="text-white" size={24} />
                     </div>
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold">Usuário Focus</h4>
-                    <p className="text-sm text-white/40 font-medium">focus@example.com</p>
+                    <h4 className="text-xl font-bold">{profile?.full_name || 'Usuário Focus'}</h4>
+                    <p className="text-sm text-white/40 font-medium">{profile?.email || 'focus@example.com'}</p>
                     <button className="mt-2 text-[10px] font-black uppercase tracking-widest text-blue-400">Alterar Foto</button>
                   </div>
                 </div>
@@ -438,52 +413,69 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Fuso Horário</label>
-                    <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between pointer-events-none opacity-60">
-                      <span className="font-bold text-sm">Brasília (GMT-3)</span>
-                      <ChevronRight size={16} className="text-white/20" />
-                    </div>
+                    <select 
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-red-500/50 transition-all appearance-none cursor-pointer"
+                      value={profile?.timezone || 'Brasília (GMT-3)'}
+                      onChange={(e) => updateProfile.mutate({ timezone: e.target.value })}
+                    >
+                      <option className="bg-black text-white">Brasília (GMT-3)</option>
+                      <option className="bg-black text-white">Lisboa (GMT+0)</option>
+                      <option className="bg-black text-white">New York (GMT-5)</option>
+                    </select>
                   </div>
+
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Meta Diária Padrão</label>
-                    <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between pointer-events-none opacity-60">
-                      <span className="font-bold text-sm">80% de Conclusão</span>
-                      <ChevronRight size={16} className="text-white/20" />
+                    <div className="flex items-center gap-4">
+                      <input 
+                        type="range" min="50" max="95" step="5"
+                        className="flex-1 accent-red-500 bg-white/5 h-2 rounded-full appearance-none cursor-pointer"
+                        value={profile?.daily_goal || 80}
+                        onChange={(e) => updateProfile.mutate({ daily_goal: parseInt(e.target.value) })}
+                      />
+                      <span className="text-sm font-black text-white min-w-[40px]">{profile?.daily_goal || 80}%</span>
                     </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Idioma</label>
+                    <select 
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-red-500/50 transition-all appearance-none cursor-pointer"
+                      value={profile?.language || 'Português'}
+                      onChange={(e) => updateProfile.mutate({ language: e.target.value })}
+                    >
+                      <option className="bg-black text-white">Português</option>
+                      <option className="bg-black text-white">English</option>
+                      <option className="bg-black text-white">Español</option>
+                    </select>
                   </div>
 
                   <div className="h-px bg-white/5 my-6" />
 
                   <div className="space-y-4">
                     <h5 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Gerenciar Assinatura</h5>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3">
+                      {profile?.is_paid && (
+                        <button 
+                          className="w-full bg-red-500/10 border border-red-500/20 text-red-500 font-bold py-3 rounded-xl text-xs hover:bg-red-500 hover:text-white transition-all active:scale-95"
+                          onClick={() => {
+                            if (confirm('Tem certeza que deseja cancelar seu plano? Para processamento imediato, entre em contato com o suporte.')) {
+                              window.open('https://wa.me/seu_numero', '_blank')
+                            }
+                          }}
+                        >
+                          Cancelar meu plano
+                        </button>
+                      )}
                       <button 
                         disabled={isUpgrading}
-                        onClick={() => handlePlanUpgrade('Mensal', 29.90)}
-                        className={cn(
-                          "flex-1 bg-white/5 border border-white/10 text-white font-bold py-3 rounded-xl text-xs hover:bg-white/10 transition-all active:scale-95 shadow-xl disabled:opacity-50",
-                          isUpgrading && "cursor-wait"
-                        )}
+                        onClick={() => window.location.href = '/plans'}
+                        className="w-full bg-white text-black font-black py-4 rounded-xl text-xs hover:bg-neutral-200 transition-all active:scale-95 shadow-xl"
                       >
-                        {isUpgrading ? 'Aguarde...' : 'Plano Mensal'}
-                      </button>
-                      <button 
-                        disabled={isUpgrading}
-                        onClick={() => handlePlanUpgrade('Anual', 299.00)}
-                        className={cn(
-                          "flex-1 bg-white/5 border border-white/10 text-white font-bold py-3 rounded-xl text-xs hover:bg-white/10 transition-all active:scale-95 shadow-xl disabled:opacity-50",
-                          isUpgrading && "cursor-wait"
-                        )}
-                      >
-                        {isUpgrading ? 'Aguarde...' : 'Plano Anual (-15%)'}
+                        {isUpgrading ? 'Aguarde...' : 'Escolher meu plano'}
                       </button>
                     </div>
                   </div>
-                </div>
-
-                <div className="pt-6">
-                  <button className="w-full bg-white/10 text-white font-black py-4 rounded-2xl hover:bg-white/20 transition-all">
-                    Salvar Alterações
-                  </button>
                 </div>
               </div>
             )}
@@ -503,7 +495,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </div>
                     </div>
                   </div>
-
 
                   <div className="h-px bg-[var(--border-subtle)]" />
 
@@ -551,7 +542,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           <p className="text-sm font-medium text-white/40 mt-1">Relembre as funcionalidades essenciais, arraste, status e modo de seleção do FocusOS.</p>
                        </div>
                     </div>
-                    {/* Placeholder for future tutorials */}
                     <div className="flex-1 border border-dashed border-white/10 rounded-[32px] flex flex-col items-center justify-center p-8 text-center bg-white/[0.01]">
                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/20 mb-4">
                          <Sparkles size={20} />

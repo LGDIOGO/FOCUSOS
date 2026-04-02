@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { ptBR, enUS } from 'date-fns/locale'
 import { useSettings } from '@/lib/hooks/useSettings'
+import { useProfile } from '@/lib/hooks/useProfile'
 
 export function RealTimeClock() {
   const { data: settings } = useSettings()
+  const { data: profile } = useProfile()
   const [time, setTime] = useState(new Date())
 
   useEffect(() => {
@@ -16,21 +18,37 @@ export function RealTimeClock() {
     return () => clearInterval(timer)
   }, [])
 
-  const locale = settings?.dateFormat === 'US' ? enUS : ptBR
-  const timeFormat = settings?.timeFormat === '12h' ? 'hh:mm:ss a' : 'HH:mm:ss'
-  const dateFormat = settings?.dateFormat === 'US' ? 'MM/dd/yyyy' : 'dd/MM/yyyy'
+  // Mapeamento de fusos amigáveis para IANA
+  const tzMap: Record<string, string> = {
+    'Brasília (GMT-3)': 'America/Sao_Paulo',
+    'Lisboa (GMT+0)': 'Europe/Lisbon',
+    'New York (GMT-5)': 'America/New_York'
+  }
 
-  // Timezone handling can be complex, for now we reflect the browser local time 
-  // which matches "Horário de Brasília" if the user is in Brazil.
-  // Advanced timezone logic can be added via date-fns-tz if needed.
+  const selectedTz = tzMap[profile?.timezone || 'Brasília (GMT-3)'] || 'America/Sao_Paulo'
+  const selectedLang = profile?.language === 'English' ? 'en-US' : profile?.language === 'Español' ? 'es-ES' : 'pt-BR'
 
   return (
     <div className="flex flex-col items-end">
       <span className="text-[32px] font-black tracking-tighter tabular-nums leading-none text-[var(--text-primary)]">
-        {format(time, timeFormat)}
+        {time.toLocaleTimeString(selectedLang, { 
+          timeZone: selectedTz,
+          hour12: settings?.timeFormat === '12h',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        })}
       </span>
       <span className="text-[12px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-1">
-        {format(time, "EEEE", { locale }).toUpperCase()} • {format(time, dateFormat)}
+        {time.toLocaleDateString(selectedLang, { 
+          timeZone: selectedTz,
+          weekday: 'long'
+        }).toUpperCase()} • {time.toLocaleDateString(selectedLang, { 
+          timeZone: selectedTz,
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        })}
       </span>
     </div>
   )

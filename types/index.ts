@@ -73,7 +73,7 @@ export interface UserSettings {
     agenda: boolean;
     drafts: boolean;
     leadTimeMinutes: number; // ex: 5, 15, 30
-    sound: 'apple' | 'none';
+    sound: 'focus' | 'none';
   };
   updated_at: string;
   theme: 'light' | 'dark';

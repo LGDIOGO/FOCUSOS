@@ -7,11 +7,15 @@ import { TrendingUp, Target, Award } from 'lucide-react'
 import { useMemo } from 'react'
 import { cn } from '@/lib/utils/cn'
 
+import { useProfile } from '@/lib/hooks/useProfile'
+
 export function PerformanceHeader({ manualDailyScore }: { manualDailyScore?: number }) {
   const { data: metrics, isLoading } = usePerformanceMetrics()
+  const { data: profile } = useProfile()
   
   const daily = manualDailyScore !== undefined ? manualDailyScore : (metrics?.daily || 0)
   const weekly = metrics?.weekly || 0
+  const threshold = profile?.daily_goal || 80
   
   const paretoMessage = useMemo(() => {
     // Atualiza a cada 2 horas (2 * 60 * 60 * 1000 ms)
@@ -50,7 +54,7 @@ export function PerformanceHeader({ manualDailyScore }: { manualDailyScore?: num
         <div className="flex flex-col items-end">
           <div className="flex items-center gap-2 mb-0.5">
             <span className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">SEMANA</span>
-            <TrendingUp size={14} className={cn(weekly >= 80 ? "text-green-500" : "text-[var(--text-muted)]")} />
+            <TrendingUp size={14} className={cn(weekly >= threshold ? "text-green-500" : "text-[var(--text-muted)]")} />
           </div>
           <div className="flex items-baseline gap-1">
             <span className={cn(
@@ -64,7 +68,7 @@ export function PerformanceHeader({ manualDailyScore }: { manualDailyScore?: num
                animate={{ width: `${weekly}%` }}
                className={cn(
                  "h-full transition-all duration-1000",
-                 weekly >= 80 ? "bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.4)]" : "bg-[var(--text-primary)]/60"
+                 weekly >= threshold ? "bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.4)]" : "bg-[var(--text-primary)]/60"
                )}
              />
           </div>

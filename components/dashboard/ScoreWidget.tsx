@@ -3,6 +3,8 @@
 import { motion } from 'framer-motion'
 import { isToday, isTomorrow, isYesterday, format } from 'date-fns'
 
+import { useProfile } from '@/lib/hooks/useProfile'
+
 interface ScoreData {
   combined: number
   habitPct: number
@@ -25,6 +27,8 @@ function getDateLabel(date: Date) {
 
 export default function ScoreWidget({ score, selectedDate = new Date() }: { score: ScoreData, selectedDate?: Date }) {
   const { combined, done, partial, total, eventsDone, eventsTotal } = score
+  const { data: profile } = useProfile()
+  const threshold = profile?.daily_goal || 80
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-2.5">
@@ -37,7 +41,7 @@ export default function ScoreWidget({ score, selectedDate = new Date() }: { scor
         <span className="text-[12px] font-bold uppercase tracking-widest text-black/40">SCORE</span>
         <span className="text-3xl font-black tracking-tighter text-black">{combined}%</span>
         <span className="text-[13px] font-medium text-black/60">
-          {combined >= 80 ? 'Excelente performance!' : combined >= 50 ? 'Bom progresso' : 'Continue focado'}
+          {combined >= threshold ? 'Excelente performance!' : combined >= 50 ? 'Bom progresso' : 'Continue focado'}
         </span>
         <div className="h-1 bg-black/10 rounded-full mt-2 overflow-hidden">
           <motion.div

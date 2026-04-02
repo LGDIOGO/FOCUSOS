@@ -11,6 +11,9 @@ export interface UserProfile {
   is_paid: boolean
   subscription_plan?: 'Mensal' | 'Trimestral' | 'Semestral' | 'Anual' | null
   subscription_expires_at?: string
+  daily_goal?: number // 50-95
+  timezone?: string
+  language?: string
   created_at: string
 }
 
