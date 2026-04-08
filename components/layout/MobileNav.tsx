@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Calendar, RefreshCcw, Target, Brain } from 'lucide-react'
+import { LayoutDashboard, Calendar, RefreshCcw, Target, Brain, Wallet } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 const NAV_ITEMS = [
@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { label: 'Agenda',    icon: Calendar,        href: '/dashboard/agenda' },
   { label: 'Hábitos',   icon: RefreshCcw,       href: '/dashboard/habits' },
   { label: 'Metas',    icon: Target,          href: '/dashboard/goals' },
-  { label: 'Insights', icon: Brain,           href: '/dashboard/insights' },
+  { label: 'Finanças', icon: Wallet,          href: '/dashboard/finance' },
 ]
 
 export default function MobileNav() {

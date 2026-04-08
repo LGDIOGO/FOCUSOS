@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Calendar, RefreshCcw, Target, Brain, Settings } from 'lucide-react'
+import { LayoutDashboard, Calendar, RefreshCcw, Target, Brain, Settings, Wallet } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { SettingsModal } from '@/components/dashboard/SettingsModal'
 
@@ -13,7 +13,8 @@ const NAV_ITEMS = [
   { label: 'Agenda',    icon: Calendar,        href: '/dashboard/agenda' },
   { label: 'Hábitos',   icon: RefreshCcw,       href: '/dashboard/habits' },
   { label: 'Metas',    icon: Target,          href: '/dashboard/goals' },
-  { label: 'IA Insights', icon: Brain,           href: '/dashboard/insights' },
+  { label: 'Insights', icon: Brain,           href: '/dashboard/insights' },
+  { label: 'Finanças',  icon: Wallet,          href: '/dashboard/finance' },
 ]
 
 export default function Sidebar() {
