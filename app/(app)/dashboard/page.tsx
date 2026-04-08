@@ -33,6 +33,8 @@ import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
 import { TutorialModal } from '@/components/dashboard/TutorialModal'
 import { calculateProgress } from '@/lib/utils/performance'
 import { usePerformanceMetrics } from '@/lib/hooks/usePerformance'
+import { NotificationsCenter } from '@/components/dashboard/NotificationsCenter'
+import { useNotifications, useAddNotification } from '@/lib/hooks/useNotifications'
 
 // ─── Utilidades ─────────────────────────────────────────────
 const CYCLE: HabitStatus[] = ['none', 'done', 'partial', 'failed']
@@ -113,6 +115,11 @@ export default function DashboardPage() {
     options: any[];
     onSelect: (status: any) => void;
   } | null>(null);
+
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const { data: persistentNotifs } = useNotifications();
+  const { mutate: addPersistentNotif } = useAddNotification();
+  const unreadCount = persistentNotifs?.filter(n => !n.is_read).length || 0;
 
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -276,6 +283,29 @@ export default function DashboardPage() {
     })
   }, [eventsToday, currentTime, selectedDate])
 
+  // Sync AI Insights to Persistent Notifications
+  const currentInsights = useMemo(() => generateLocalInsights(habits, tasks), [habits, tasks])
+  
+  useEffect(() => {
+    if (!currentInsights.length || !persistentNotifs) return
+
+    // Solo agregar si el insight no existe ya hoy (evitar spam)
+    currentInsights.forEach(insight => {
+       const alreadyExists = persistentNotifs.some(n => 
+         n.title === insight.title && 
+         isToday(new Date(n.created_at))
+       )
+
+       if (!alreadyExists) {
+         addPersistentNotif({
+           title: insight.title,
+           body: insight.body,
+           type: 'insight'
+         })
+       }
+    })
+  }, [currentInsights, persistentNotifs, addPersistentNotif])
+
   const { data: allGoals, isLoading: loadingGoals } = useGoals()
   const goals = useMemo(() => allGoals || [], [allGoals])
 
@@ -402,9 +432,14 @@ export default function DashboardPage() {
           <PerformanceHeader manualDailyScore={score.combined} />
           <RealTimeClock />
           <div className="flex items-center gap-2.5">
-            <button className="w-12 h-12 rounded-2xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] flex items-center justify-center hover:bg-[var(--bg-overlay)]/80 transition-all group relative">
+            <button 
+              onClick={() => setIsNotificationsOpen(true)}
+              className="w-12 h-12 rounded-2xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] flex items-center justify-center hover:bg-[var(--bg-overlay)]/80 transition-all group relative"
+            >
               <Bell size={20} className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors" />
-              <div className="absolute top-3 right-3 w-2 h-2 bg-red-600 rounded-full border-2 border-[var(--bg-primary)]" />
+              {unreadCount > 0 && (
+                <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-600 rounded-full border-2 border-[var(--bg-primary)] animate-pulse" />
+              )}
             </button>
           </div>
         </div>
@@ -791,6 +826,11 @@ export default function DashboardPage() {
           />
         )}
       </AnimatePresence>
+      
+      <NotificationsCenter 
+        isOpen={isNotificationsOpen} 
+        onClose={() => setIsNotificationsOpen(false)} 
+      />
       <AnimatePresence>
         {isBulkDeleteModalOpen && (
           <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">

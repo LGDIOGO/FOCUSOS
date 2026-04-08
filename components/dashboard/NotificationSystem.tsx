@@ -9,6 +9,7 @@ import { useHabitsToday } from '@/lib/hooks/useHabits'
 import { useTasksToday } from '@/lib/hooks/useTasks'
 import { format, parse, isAfter, isBefore, addMinutes, subMinutes } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
+import { useAddNotification } from '@/lib/hooks/useNotifications'
 
 interface Notification {
   id: string
@@ -27,6 +28,7 @@ export function NotificationSystem() {
   const { data: habits } = useHabitsToday(mounted ? new Date() : null as any)
   const { data: tasks } = useTasksToday(mounted ? new Date() : null as any)
   
+  const { mutate: addPersistentNotif } = useAddNotification()
   const [activeNotifications, setActiveNotifications] = useState<Notification[]>([])
   const [notifiedIds, setNotifiedIds] = useState<Set<string>>(new Set())
 
@@ -48,13 +50,21 @@ export function NotificationSystem() {
     
     setActiveNotifications(prev => [...prev, item])
     setNotifiedIds(prev => new Set(prev).add(item.id))
+    
+    // Persist to history
+    addPersistentNotif({
+      title: item.title,
+      body: item.body,
+      type: item.type === 'habits' ? 'habit' : 'agenda'
+    })
+
     playSound()
 
     // Auto-remove after 6 seconds
     setTimeout(() => {
       setActiveNotifications(prev => prev.filter(n => n.id !== item.id))
     }, 6000)
-  }, [notifiedIds, playSound])
+  }, [notifiedIds, playSound, addPersistentNotif])
 
   useEffect(() => {
     if (!settings?.notifications?.enabled) return

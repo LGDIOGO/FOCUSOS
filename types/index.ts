@@ -167,9 +167,13 @@ export interface FinancePote {
   created_at: string;
 }
 
-export interface FinanceRoadmap {
+export interface FocusNotification {
   id: string;
   user_id: string;
-  updated_at: string;
-  plan_json: string; // stringified JSON from AI
+  title: string;
+  body: string;
+  type: 'agenda' | 'habit' | 'insight' | 'system';
+  is_read: boolean;
+  created_at: string;
+  data?: any;
 }
