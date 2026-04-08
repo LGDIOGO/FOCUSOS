@@ -13,14 +13,19 @@ import {
 } from '@/lib/hooks/useFinance'
 import { useAddEvent } from '@/lib/hooks/useEvents'
 
-import { format, isSameMonth, isSameWeek, isSameYear, parseISO, subDays, startOfWeek, endOfWeek, differenceInDays } from 'date-fns'
+import { 
+  format, isSameMonth, isSameWeek, isSameYear, parseISO, subDays, startOfWeek, endOfWeek, 
+  differenceInDays, isWithinInterval, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear 
+} from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 export default function FinancePage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'potes' | 'roadmap'>('overview')
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
-  const [historyPeriod, setHistoryPeriod] = useState<'week' | 'month' | 'year' | 'all'>('all')
+  const [historyPeriod, setHistoryPeriod] = useState<'week' | 'month' | 'year' | 'all' | 'custom'>('all')
   const [historyType, setHistoryType] = useState<'all' | 'income' | 'expense'>('all')
+  const [historyStartDate, setHistoryStartDate] = useState<string>('')
+  const [historyEndDate, setHistoryEndDate] = useState<string>('')
 
   // DATA HOOKS
   const { data: transactions = [], isLoading: isLoadingTx } = useFinanceTransactions()
@@ -119,10 +124,14 @@ export default function FinancePage() {
       // Filter by Type
       if (historyType !== 'all' && t.type !== historyType) return false
       
-      // Filter by Period
-      if (historyPeriod !== 'all') {
-        const tDate = parseISO(t.date)
-        const now = new Date()
+      // Filter by Period/Range
+      const tDate = parseISO(t.date)
+      const now = new Date()
+
+      if (historyPeriod === 'custom') {
+        if (historyStartDate && t.date < historyStartDate) return false
+        if (historyEndDate && t.date > historyEndDate) return false
+      } else if (historyPeriod !== 'all') {
         if (historyPeriod === 'week') {
            if (!isSameWeek(tDate, now, { locale: ptBR })) return false
         } else if (historyPeriod === 'month') {
@@ -133,7 +142,7 @@ export default function FinancePage() {
       }
       return true
     })
-  }, [sortedTransactions, historyPeriod, historyType])
+  }, [sortedTransactions, historyPeriod, historyType, historyStartDate, historyEndDate])
 
   const historyIncomeTotal = filteredHistory.filter((t: any) => t.type === 'income').reduce((acc: number, t: any) => acc + t.amount, 0)
   const historyExpenseTotal = filteredHistory.filter((t: any) => t.type === 'expense').reduce((acc: number, t: any) => acc + t.amount, 0)
@@ -459,24 +468,80 @@ export default function FinancePage() {
                       <div className="pt-8 pb-4 space-y-8">
                         {/* Control Panel: Filters */}
                         <div className="flex flex-col md:flex-row gap-4 items-center justify-between p-6 bg-[var(--bg-overlay)] rounded-3xl border border-[var(--border-subtle)]">
-                          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 [scrollbar-width:none]">
-                            {[
-                              { id: 'all', label: 'Todo o Período' },
-                              { id: 'week', label: 'Esta Semana' },
-                              { id: 'month', label: 'Este Mês' },
-                              { id: 'year', label: 'Este Ano' }
-                            ].map(btn => (
-                              <button 
-                                key={btn.id}
-                                onClick={() => setHistoryPeriod(btn.id as any)}
-                                className={cn(
-                                  "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all",
-                                  historyPeriod === btn.id ? "bg-white text-black" : "bg-white/5 text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-primary)]"
-                                )}
+                          <div className="flex flex-col gap-4 w-full">
+                            <div className="flex items-center gap-2 overflow-x-auto w-full pb-2 [scrollbar-width:none]">
+                              {[
+                                { id: 'all', label: 'Todo o Período' },
+                                { id: 'month', label: 'Este Mês' },
+                                { id: 'last_month', label: 'Mês Passado' },
+                                { id: 'year', label: 'Este Ano' },
+                                { id: 'custom', label: 'Personalizado' }
+                              ].map(btn => (
+                                <button 
+                                  key={btn.id}
+                                  onClick={() => {
+                                    setHistoryPeriod(btn.id as any)
+                                    if (btn.id === 'last_month') {
+                                      const last = subMonths(new Date(), 1)
+                                      setHistoryStartDate(format(startOfMonth(last), 'yyyy-MM-dd'))
+                                      setHistoryEndDate(format(endOfMonth(last), 'yyyy-MM-dd'))
+                                      setHistoryPeriod('custom')
+                                    } else if (btn.id === 'month') {
+                                      setHistoryStartDate(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
+                                      setHistoryEndDate(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
+                                      setHistoryPeriod('custom')
+                                    } else if (btn.id === 'year') {
+                                      setHistoryStartDate(format(startOfYear(new Date()), 'yyyy-MM-dd'))
+                                      setHistoryEndDate(format(endOfYear(new Date()), 'yyyy-MM-dd'))
+                                      setHistoryPeriod('custom')
+                                    }
+                                  }}
+                                  className={cn(
+                                    "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all",
+                                    (historyPeriod === btn.id || (btn.id === 'custom' && historyPeriod === 'custom')) ? "bg-white text-black" : "bg-white/5 text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-primary)]"
+                                  )}
+                                >
+                                  {btn.label}
+                                </button>
+                              ))}
+                            </div>
+
+                            {historyPeriod === 'custom' && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex flex-wrap items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10"
                               >
-                                {btn.label}
-                              </button>
-                            ))}
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Início</label>
+                                  <input 
+                                    type="date" 
+                                    value={historyStartDate}
+                                    onChange={(e) => setHistoryStartDate(e.target.value)}
+                                    className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Fim</label>
+                                  <input 
+                                    type="date" 
+                                    value={historyEndDate}
+                                    onChange={(e) => setHistoryEndDate(e.target.value)}
+                                    className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
+                                  />
+                                </div>
+                                <button 
+                                  onClick={() => {
+                                    setHistoryStartDate('')
+                                    setHistoryEndDate('')
+                                    setHistoryPeriod('all')
+                                  }}
+                                  className="mt-5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                >
+                                  Limpar
+                                </button>
+                              </motion.div>
+                            )}
                           </div>
                           
                           <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 [scrollbar-width:none]">

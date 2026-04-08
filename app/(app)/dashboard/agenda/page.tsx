@@ -12,7 +12,10 @@ import { db, auth } from '@/lib/firebase/config'
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { CalendarEvent, EventType } from '@/types'
 import { cn } from '@/lib/utils/cn'
-import { format, isToday, isTomorrow, parseISO, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, differenceInWeeks, differenceInDays, parse } from 'date-fns'
+import { 
+  format, isToday, isTomorrow, parseISO, addMonths, subMonths, startOfMonth, endOfMonth, 
+  eachDayOfInterval, getDay, differenceInWeeks, differenceInDays, parse, startOfYear, endOfYear 
+} from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { isAfter, subMinutes } from 'date-fns'
@@ -175,6 +178,9 @@ export default function AgendaPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+  const [historyStartDate, setHistoryStartDate] = useState<string>('')
+  const [historyEndDate, setHistoryEndDate] = useState<string>('')
+  const [historyPeriod, setHistoryPeriod] = useState<'all' | 'custom'>('all')
 
   // Update logic for real-time visual alerts
   useEffect(() => {
@@ -344,8 +350,16 @@ export default function AgendaPage() {
 
   const pastEventsGrouped = useMemo(() => {
     if (!events) return {}
-    const todayStr = format(new Date(), 'yyyy-MM-dd')
-    const past = events.filter(e => e.date < todayStr)
+    const todayStr = format(currentTime, 'yyyy-MM-dd')
+    const past = events.filter(e => {
+      if (e.date >= todayStr) return false
+      
+      if (historyPeriod === 'custom') {
+        if (historyStartDate && e.date < historyStartDate) return false
+        if (historyEndDate && e.date > historyEndDate) return false
+      }
+      return true
+    })
     
     const grouped: Record<string, CalendarEvent[]> = {}
     past.forEach(e => {
@@ -360,7 +374,7 @@ export default function AgendaPage() {
     return Object.fromEntries(
       Object.entries(grouped).sort((a, b) => b[0].localeCompare(a[0]))
     )
-  }, [events, logs])
+  }, [events, logs, currentTime, historyStartDate, historyEndDate, historyPeriod])
 
   return (
     <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10">
@@ -438,6 +452,87 @@ export default function AgendaPage() {
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden space-y-8"
                   >
+                    {/* Filter Bar */}
+                    <div className="flex flex-col gap-4 p-6 bg-[var(--bg-overlay)] rounded-3xl border border-[var(--border-subtle)]">
+                        <div className="flex items-center gap-2 overflow-x-auto w-full pb-2 [scrollbar-width:none]">
+                          {[
+                            { id: 'all', label: 'Todo o Período' },
+                            { id: 'month', label: 'Este Mês' },
+                            { id: 'last_month', label: 'Mês Passado' },
+                            { id: 'year', label: 'Este Ano' },
+                            { id: 'custom', label: 'Personalizado' }
+                          ].map(btn => (
+                            <button 
+                              key={btn.id}
+                              onClick={() => {
+                                if (btn.id === 'all') {
+                                  setHistoryPeriod('all')
+                                  setHistoryStartDate('')
+                                  setHistoryEndDate('')
+                                } else if (btn.id === 'last_month') {
+                                  const last = subMonths(new Date(), 1)
+                                  setHistoryStartDate(format(startOfMonth(last), 'yyyy-MM-dd'))
+                                  setHistoryEndDate(format(endOfMonth(last), 'yyyy-MM-dd'))
+                                  setHistoryPeriod('custom')
+                                } else if (btn.id === 'month') {
+                                  setHistoryStartDate(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
+                                  setHistoryEndDate(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
+                                  setHistoryPeriod('custom')
+                                } else if (btn.id === 'year') {
+                                   setHistoryStartDate(format(startOfYear(new Date()), 'yyyy-MM-dd'))
+                                   setHistoryEndDate(format(endOfYear(new Date()), 'yyyy-MM-dd'))
+                                   setHistoryPeriod('custom')
+                                } else {
+                                  setHistoryPeriod('custom')
+                                }
+                              }}
+                              className={cn(
+                                "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all",
+                                (historyPeriod === btn.id || (btn.id === 'custom' && historyPeriod === 'custom')) ? "bg-white text-black" : "bg-white/5 text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-primary)]"
+                              )}
+                            >
+                              {btn.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {historyPeriod === 'custom' && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex flex-wrap items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10"
+                          >
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Início</label>
+                              <input 
+                                type="date" 
+                                value={historyStartDate}
+                                onChange={(e) => setHistoryStartDate(e.target.value)}
+                                className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Fim</label>
+                              <input 
+                                type="date" 
+                                value={historyEndDate}
+                                onChange={(e) => setHistoryEndDate(e.target.value)}
+                                className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
+                              />
+                            </div>
+                            <button 
+                              onClick={() => {
+                                setHistoryStartDate('')
+                                setHistoryEndDate('')
+                                setHistoryPeriod('all')
+                              }}
+                              className="mt-4 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                            >
+                              Limpar
+                            </button>
+                          </motion.div>
+                        )}
+                    </div>
                     {Object.entries(pastEventsGrouped).map(([date, eventList]: [string, CalendarEvent[]]) => (
                       <div key={date} className="space-y-4 opacity-50 hover:opacity-100 transition-opacity">
                         <div className="flex items-center gap-4 px-2">
