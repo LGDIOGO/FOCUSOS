@@ -15,7 +15,8 @@ import { useAddEvent } from '@/lib/hooks/useEvents'
 
 import { 
   format, isSameMonth, isSameWeek, isSameYear, parseISO, subDays, startOfWeek, endOfWeek, 
-  differenceInDays, isWithinInterval, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear 
+  differenceInDays, isWithinInterval, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear,
+  addMonths
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -55,6 +56,7 @@ export default function FinancePage() {
   const [aportePoteId, setAportePoteId] = useState<string | null>(null)
   
   const [isGeneratingAI, setIsGeneratingAI] = useState(false)
+  const [isInstallment, setIsInstallment] = useState(false)
 
   // ONBOARDING WIZARD STATE
   const [showWizard, setShowWizard] = useState(false)
@@ -89,7 +91,14 @@ export default function FinancePage() {
           income: totalIncome,
           fixedCosts: totalFixedCosts,
           variableExpenses: totalExpense,
-          potes: potes.map(p => ({ title: p.title, percent: p.allocation_type === 'percentage' ? p.allocation_value : 0 }))
+          potes: potes.map(p => ({ title: p.title, percent: p.allocation_type === 'percentage' ? p.allocation_value : 0 })),
+          // Enviar projeções futuras conhecidas
+          futureTransactions: transactions.filter(t => t.date > new Date().toISOString().split('T')[0]).map(t => ({
+            title: t.title,
+            amount: t.amount,
+            date: t.date,
+            type: t.type
+          }))
         })
       })
 
@@ -840,29 +849,73 @@ export default function FinancePage() {
       <AnimatePresence>
         {isTransactionModalOpen && (
           <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-2xl relative">
-              <button onClick={() => setTransactionModalOpen(false)} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"><X size={20}/></button>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+              <button 
+                onClick={() => {
+                  setTransactionModalOpen(false)
+                  setIsInstallment(false)
+                }} 
+                className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"
+              >
+                <X size={20}/>
+              </button>
+              
               <h2 className="text-2xl font-black text-[var(--text-primary)] mb-6">Nova Movimentação</h2>
+              
               <form onSubmit={async (e) => {
                 e.preventDefault()
                 const fd = new FormData(e.currentTarget)
-                await addTransaction.mutateAsync({
-                  title: fd.get('title') as string,
-                  amount: parseFloat(fd.get('amount') as string),
-                  type: fd.get('type') as any,
-                  category: fd.get('category') as any,
-                  date: new Date().toISOString().split('T')[0]
-                })
+                const baseDateStr = (fd.get('date') as string) || new Date().toISOString().split('T')[0]
+                const installments = isInstallment ? parseInt(fd.get('installments') as string) : 1
+                const amount = parseFloat(fd.get('amount') as string)
+                
+                const title = fd.get('title') as string
+                const type = fd.get('type') as any
+                const category = fd.get('category') as any
+
+                if (isInstallment && installments > 1) {
+                  const installmentAmount = amount / installments
+                  const baseDate = parseISO(baseDateStr)
+                  
+                  for (let i = 0; i < installments; i++) {
+                    const currentDate = addMonths(baseDate, i)
+                    await addTransaction.mutateAsync({
+                      title: `${title} (${i + 1}/${installments})`,
+                      amount: installmentAmount,
+                      type,
+                      category,
+                      date: format(currentDate, 'yyyy-MM-dd')
+                    })
+                  }
+                } else {
+                  await addTransaction.mutateAsync({
+                    title,
+                    amount,
+                    type,
+                    category,
+                    date: baseDateStr
+                  })
+                }
+                
                 setTransactionModalOpen(false)
+                setIsInstallment(false)
               }} className="space-y-4">
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Descrição do Movimento</label>
-                  <input name="title" required placeholder="Ex: Renda Extra ou Monster na Padaria..." className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Descrição</label>
+                  <input name="title" required placeholder="Ex: Renda Extra ou Custo Específico..." className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                 </div>
-                <div>
-                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Valor (R$)</label>
-                  <input name="amount" type="number" step="0.01" required placeholder="0.00" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Valor {isInstallment ? 'Total' : '(R$)'}</label>
+                    <input name="amount" type="number" step="0.01" required placeholder="0.00" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Data Base</label>
+                    <input name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                  </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Movimento</label>
@@ -880,7 +933,30 @@ export default function FinancePage() {
                     </select>
                   </div>
                 </div>
-                <button type="submit" disabled={addTransaction.isPending} className="w-full py-4 mt-2 bg-white hover:bg-white/90 text-black font-black rounded-xl transition-all shadow-xl">Cadastrar</button>
+
+                <div className="flex flex-col gap-2 p-4 bg-white/5 border border-white/10 rounded-2xl">
+                   <label className="flex items-center gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={isInstallment}
+                        onChange={(e) => setIsInstallment(e.target.checked)}
+                        className="w-5 h-5 accent-red-500 rounded-md" 
+                      />
+                      <div className="flex-1">
+                        <span className="text-sm font-bold text-[var(--text-primary)]">Parcelar este lançamento</span>
+                        <p className="text-[9px] uppercase font-black tracking-widest text-[var(--text-muted)]">O valor total será dividido pelos meses</p>
+                      </div>
+                   </label>
+
+                   {isInstallment && (
+                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="pt-4 border-t border-white/10 mt-2">
+                        <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Número de Parcelas</label>
+                        <input name="installments" type="number" min="2" max="60" defaultValue="2" className="w-full bg-[var(--bg-primary)] border border-red-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                     </motion.div>
+                   )}
+                </div>
+
+                <button type="submit" disabled={addTransaction.isPending} className="w-full py-4 mt-2 bg-white hover:bg-white/90 text-black font-black rounded-xl transition-all shadow-xl">Confirmar Lançamento</button>
               </form>
             </motion.div>
           </div>
