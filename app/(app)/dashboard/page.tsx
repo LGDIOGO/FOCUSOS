@@ -380,14 +380,7 @@ export default function DashboardPage() {
   const positive = habits.filter((h: Habit) => h.type === 'positive')
   const negative = habits.filter((h: Habit) => h.type === 'negative')
 
-  if (loadingHabits || loadingTasks || loadingEvents) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-      </div>
-    )
-  }
-
+  // Removed the full screen blocking spinner so the UI shell renders instantaneously
   return (
     <div className="min-h-screen bg-[var(--bg-workspace)] text-[var(--text-primary)] pb-24 font-sans transition-colors duration-300">
 
@@ -552,7 +545,7 @@ export default function DashboardPage() {
                   currentTime={currentTime}
                 />
               ))}
-              {todayEvents.length === 0 && (
+              {todayEvents.length === 0 && !loadingEvents && (
                 <p className="text-sm text-white/30 italic px-4 py-2">Nenhum compromisso para {getDateLabel(selectedDate).toLowerCase()}.</p>
               )}
             </div>

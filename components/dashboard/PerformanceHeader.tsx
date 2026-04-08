@@ -24,7 +24,34 @@ export function PerformanceHeader({ manualDailyScore }: { manualDailyScore?: num
     return getParetoMessage(seed)
   }, [])
 
-  if (isLoading) return <div className="h-12 w-48 bg-[var(--bg-overlay)] animate-pulse rounded-2xl" />
+  // Only show the full skeleton if we have neither manual score nor cached metrics
+  if (isLoading && manualDailyScore === undefined) return (
+    <div className="flex flex-col items-end gap-3.5 pr-2 animate-pulse opacity-50">
+      <div className="flex items-center gap-10">
+        <div className="flex flex-col items-end">
+          <div className="flex items-center gap-2 mb-0.5">
+            <div className="w-10 h-3 bg-[var(--bg-overlay)] rounded" />
+            <div className="w-3.5 h-3.5 bg-[var(--bg-overlay)] rounded-full" />
+          </div>
+          <div className="w-16 h-9 bg-[var(--bg-overlay)] rounded mt-1" />
+          <div className="w-20 h-1.5 bg-[var(--bg-overlay)] rounded-full mt-1.5" />
+        </div>
+
+        <div className="flex flex-col items-end">
+          <div className="flex items-center gap-2 mb-0.5">
+            <div className="w-14 h-3 bg-[var(--bg-overlay)] rounded" />
+            <div className="w-3.5 h-3.5 bg-[var(--bg-overlay)] rounded-full" />
+          </div>
+          <div className="w-16 h-9 bg-[var(--bg-overlay)] rounded mt-1" />
+          <div className="w-20 h-1.5 bg-[var(--bg-overlay)] rounded-full mt-1.5" />
+        </div>
+      </div>
+
+      <div className="w-80 h-8 bg-[var(--bg-overlay)] rounded-full mt-2 inline-block" />
+    </div>
+  )
+
+  const isWeeklyLoading = isLoading && !metrics;
 
   return (
     <div className="flex flex-col items-end gap-3.5 pr-2">
@@ -57,10 +84,14 @@ export function PerformanceHeader({ manualDailyScore }: { manualDailyScore?: num
             <TrendingUp size={14} className={cn(weekly >= threshold ? "text-green-500" : "text-[var(--text-muted)]")} />
           </div>
           <div className="flex items-baseline gap-1">
-            <span className={cn(
-              "text-3xl font-black tracking-tighter text-[var(--text-primary)]",
-              weekly < 50 && "opacity-50"
-            )}>{weekly}%</span>
+            {isWeeklyLoading ? (
+              <span className="text-3xl font-black tracking-tighter text-[var(--text-muted)] opacity-50 animate-pulse">--%</span>
+            ) : (
+              <span className={cn(
+                "text-3xl font-black tracking-tighter text-[var(--text-primary)]",
+                weekly < 50 && "opacity-50"
+              )}>{weekly}%</span>
+            )}
           </div>
           <div className="w-20 h-1.5 bg-[var(--bg-overlay)] rounded-full mt-1.5 overflow-hidden">
              <motion.div 
