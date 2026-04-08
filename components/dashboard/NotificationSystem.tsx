@@ -66,7 +66,10 @@ export function NotificationSystem() {
       // 1. Check Agenda
       if (settings.notifications.agenda && events) {
         events.forEach(event => {
-          if ((event.status !== 'todo' && event.status !== 'none') || !event.time) return
+          // Only notify if event is for today and not completed
+          if (event.status === 'done' || !event.time) return
+          if (event.date !== format(now, 'yyyy-MM-dd')) return
+
           const eventTime = parse(event.time, 'HH:mm', now)
           const notifyTime = subMinutes(eventTime, leadTime)
           

@@ -136,6 +136,7 @@ export interface FinanceTransaction {
   title: string;
   type: 'income' | 'expense';
   category?: 'variable' | 'fixed' | 'investment' | 'extra';
+  nature?: 'necessidade' | 'urgencia' | 'desejo';
   date: string; // ISO yyyy-MM-dd
   created_at: string;
 }

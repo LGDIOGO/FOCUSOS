@@ -59,7 +59,12 @@ function EventItem({
   )
 
   const timeStatus = useMemo(() => {
-    if (!event.time || event.isOverdue) return { approaching: false, passed: event.isOverdue }
+    if (!event.time || event.isOverdue || event.status === 'done') return { approaching: false, passed: !!event.isOverdue }
+    
+    // Check if event is for today
+    const eventDate = parseISO(event.date)
+    if (!isToday(eventDate)) return { approaching: false, passed: false }
+
     const now = currentTime || new Date()
     try {
       const eventTime = parse(event.time, 'HH:mm', now)
@@ -69,7 +74,7 @@ function EventItem({
     } catch (e) {
       return { approaching: false, passed: false }
     }
-  }, [event.time, event.isOverdue, currentTime])
+  }, [event.time, event.isOverdue, event.status, event.date, currentTime])
 
   return (
     <motion.div

@@ -22,6 +22,7 @@ import { ptBR } from 'date-fns/locale'
 
 export default function FinancePage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'expenses' | 'potes' | 'roadmap'>('overview')
+  const [selectedNature, setSelectedNature] = useState<'necessidade' | 'urgencia' | 'desejo' | null>(null)
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const [historyPeriod, setHistoryPeriod] = useState<'week' | 'month' | 'year' | 'all' | 'custom'>('all')
   const [historyType, setHistoryType] = useState<'all' | 'income' | 'expense'>('all')
@@ -97,7 +98,8 @@ export default function FinancePage() {
             title: t.title,
             amount: t.amount,
             date: t.date,
-            type: t.type
+            type: t.type,
+            nature: t.nature
           }))
         })
       })
@@ -397,7 +399,19 @@ export default function FinancePage() {
                        {recentTransactions.map(t => (
                          <div key={t.id} className="p-4 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] flex items-center justify-between group">
                             <div>
-                              <p className="font-bold text-[var(--text-primary)] text-sm">{t.title}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-bold text-[var(--text-primary)] text-sm">{t.title}</p>
+                                {t.nature && (
+                                  <span className={cn(
+                                    "text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded",
+                                    t.nature === 'necessidade' ? "bg-blue-500/10 text-blue-400" :
+                                    t.nature === 'urgencia' ? "bg-red-500/10 text-red-500" :
+                                    "bg-amber-500/10 text-amber-500"
+                                  )}>
+                                    {t.nature[0]}
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mt-1">{t.category || 'Geral'} • {format(parseISO(t.date), 'dd MMM yyyy', { locale: ptBR })}</p>
                             </div>
                             <div className="flex items-center gap-4">
@@ -742,16 +756,28 @@ export default function FinancePage() {
                                <div>
                                   <div className="flex items-center gap-3">
                                     <p className="font-bold text-[var(--text-primary)] text-lg">{t.title}</p>
-                                    <span className={cn(
-                                      "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md",
-                                      t.category === 'investment' ? "bg-indigo-500/10 text-indigo-400" :
-                                      t.category === 'extra' ? "bg-amber-500/10 text-amber-500" :
-                                      "bg-white/5 text-[var(--text-muted)]"
-                                    )}>
-                                      {t.category === 'variable' ? 'Variável' : 
-                                       t.category === 'extra' ? 'Extra' : 
-                                       t.category === 'investment' ? 'Investimento' : 'Outro'}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span className={cn(
+                                        "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md",
+                                        t.category === 'investment' ? "bg-indigo-500/10 text-indigo-400" :
+                                        t.category === 'extra' ? "bg-amber-500/10 text-amber-500" :
+                                        "bg-white/5 text-[var(--text-muted)]"
+                                      )}>
+                                        {t.category === 'variable' ? 'Variável' : 
+                                         t.category === 'extra' ? 'Extra' : 
+                                         t.category === 'investment' ? 'Investimento' : 'Outro'}
+                                      </span>
+                                      {t.nature && (
+                                        <span className={cn(
+                                          "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md",
+                                          t.nature === 'necessidade' ? "bg-blue-500/20 text-blue-400 border border-blue-500/20" :
+                                          t.nature === 'urgencia' ? "bg-red-500/20 text-red-500 border border-red-500/20" :
+                                          "bg-amber-500/20 text-amber-500 border border-amber-500/20"
+                                        )}>
+                                          {t.nature}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                   <p className="text-[10px] items-center gap-1 font-black uppercase tracking-widest text-[var(--text-muted)] mt-1.5 flex">
                                     {format(parseISO(t.date), 'dd/MM/yyyy')} 
@@ -1005,6 +1031,7 @@ export default function FinancePage() {
                       amount: installmentAmount,
                       type,
                       category,
+                      nature: selectedNature || undefined,
                       date: format(currentDate, 'yyyy-MM-dd')
                     })
                   }
@@ -1014,12 +1041,14 @@ export default function FinancePage() {
                     amount,
                     type,
                     category,
+                    nature: selectedNature || undefined,
                     date: baseDateStr
                   })
                 }
                 
                 setTransactionModalOpen(false)
                 setIsInstallment(false)
+                setSelectedNature(null)
               }} className="space-y-4">
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Descrição</label>
@@ -1053,6 +1082,31 @@ export default function FinancePage() {
                       <option value="investment">Investimento Rápido</option>
                     </select>
                   </div>
+                </div>
+
+                <div className="space-y-3">
+                   <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] block">Natureza da Saída (Opcional)</label>
+                   <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'necessidade', label: 'Necessidade', color: 'blue' },
+                        { id: 'urgencia', label: 'Urgência', color: 'red' },
+                        { id: 'desejo', label: 'Desejo', color: 'amber' }
+                      ].map(nat => (
+                        <button 
+                          key={nat.id}
+                          type="button"
+                          onClick={() => setSelectedNature(selectedNature === nat.id ? null : nat.id as any)}
+                          className={cn(
+                            "py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all",
+                            selectedNature === nat.id 
+                              ? `bg-${nat.color}-500/20 border-${nat.color}-500 text-${nat.color}-500 shadow-[0_0_15px_rgba(${nat.color === 'blue' ? '59,130,246' : nat.color === 'red' ? '239,68,68' : '245,158,11'},0.3)]`
+                              : "bg-white/5 border-white/5 text-[var(--text-muted)] hover:bg-white/10"
+                          )}
+                        >
+                          {nat.label}
+                        </button>
+                      ))}
+                   </div>
                 </div>
 
                 <div className="flex flex-col gap-2 p-4 bg-white/5 border border-white/10 rounded-2xl">
