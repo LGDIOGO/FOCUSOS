@@ -17,8 +17,31 @@ import {
   Timestamp,
   increment 
 } from 'firebase/firestore'
-import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks } from 'date-fns'
+import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, subDays } from 'date-fns'
 import { Habit } from '@/types'
+
+export function useHabitsHistory() {
+  const user = auth.currentUser
+  return useQuery({
+    queryKey: ['habits', 'history', user?.uid],
+    queryFn: async () => {
+      if (!user) return []
+      // Get logs from the last 30 days
+      const thirtyDaysAgo = format(subDays(new Date(), 30), 'yyyy-MM-dd')
+      
+      const q = query(
+        collection(db, 'habit_logs'),
+        where('user_id', '==', user.uid),
+        where('log_date', '>=', thirtyDaysAgo)
+      )
+      const snap = await getDocs(q)
+      const logs = snap.docs.map(d => d.data())
+      return logs.filter(l => l.status === 'done' || l.status === 'partial')
+    },
+    enabled: !!user,
+    staleTime: 5_000,
+  })
+}
 
 // For the management page (full list)
 export function useHabits() {

@@ -4,14 +4,14 @@ import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Plus, Trash2, Zap, ShieldAlert, Sparkles, TrendingUp, RefreshCcw
+  Plus, Trash2, Zap, ShieldAlert, Sparkles, TrendingUp, RefreshCcw, History, ChevronRight, CheckCircle2
 } from 'lucide-react'
 import { HabitModal } from '@/components/dashboard/HabitModal'
-import { useHabits, useDeleteHabit } from '@/lib/hooks/useHabits'
+import { useHabits, useDeleteHabit, useHabitsHistory } from '@/lib/hooks/useHabits'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { Habit } from '@/types'
 import { cn } from '@/lib/utils/cn'
-import { format, isToday } from 'date-fns'
+import { format, isToday, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { getEffectiveOfensiva } from '@/lib/utils/scoring'
 import { useLongPress } from '@/lib/hooks/useLongPress'
@@ -154,6 +154,7 @@ function HabitGridItem({
 
 export default function HabitsPage() {
   const { data: habits, isLoading } = useHabits()
+  const { data: historyLogs } = useHabitsHistory()
   const { data: categories } = useCategories()
   const deleteHabit = useDeleteHabit()
 
@@ -162,6 +163,7 @@ export default function HabitsPage() {
   const [habitToEdit, setHabitToEdit] = useState<Habit | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
 
   const groupedHabits = useMemo(() => {
     if (!habits) return []
@@ -241,6 +243,24 @@ export default function HabitsPage() {
     if (ids.length > 0) setIsSelectionMode(true)
   }
 
+  // Group history logs by date
+  const groupedHistory = useMemo(() => {
+    if (!historyLogs || !habits) return []
+    const MAP = new Map<string, any[]>()
+    
+    // Sort logs descending
+    const sortedLogs = [...historyLogs].sort((a, b) => b.log_date.localeCompare(a.log_date))
+    
+    sortedLogs.forEach(log => {
+      const h = habits.find(h => h.id === log.habit_id)
+      if (!h) return
+      if (!MAP.has(log.log_date)) MAP.set(log.log_date, [])
+      MAP.get(log.log_date)?.push({ ...log, habit: h })
+    })
+    
+    return Array.from(MAP.entries()).map(([date, items]) => ({ date, items }))
+  }, [historyLogs, habits])
+
   return (
     <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display',sans-serif]">
       {/* Header */}
@@ -308,6 +328,76 @@ export default function HabitsPage() {
               </div>
             </motion.div>
           ))}
+        </AnimatePresence>
+      </div>
+
+      {/* HISTÓRICO EXPANSÍVEL (HABITS) */}
+      <div className="pt-4 border-t border-[var(--border-subtle)]">
+        <button 
+          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+          className="w-full flex items-center gap-4 group hover:bg-white/5 p-4 rounded-3xl transition-colors"
+        >
+          <div className="flex items-center justify-center w-10 h-10 rounded-2xl bg-white/5 border border-white/10 group-hover:bg-white group-hover:text-black transition-colors">
+            <History size={18} />
+          </div>
+          <div className="flex flex-col items-start text-left flex-1">
+            <span className="text-base font-black text-[var(--text-primary)]">Histórico de Hábitos Concluídos</span>
+            <span className="text-[10px] uppercase font-black tracking-widest text-[var(--text-muted)] group-hover:text-white/50 transition-colors">Últimos 30 dias de conquistas</span>
+          </div>
+          <div className="flex items-center gap-3">
+             <span className="text-[10px] uppercase font-black text-white/20 bg-white/5 px-2 py-1 rounded-md">
+               {historyLogs?.length || 0} Registros
+             </span>
+             <ChevronRight 
+              size={20} 
+              className={cn(
+                "text-[var(--text-muted)] transition-transform duration-500",
+                isHistoryOpen ? "rotate-90" : ""
+              )} 
+            />
+          </div>
+        </button>
+
+        <AnimatePresence>
+          {isHistoryOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-6 pb-4 space-y-8 pl-16">
+                 {groupedHistory.length === 0 ? (
+                    <div className="text-[var(--text-muted)] text-sm font-medium">Nenhum hábito concluído nos últimos 30 dias.</div>
+                 ) : (
+                   groupedHistory.map(group => (
+                     <div key={group.date} className="relative space-y-4">
+                        <div className="absolute -left-12 top-1.5 w-3 h-3 rounded-full bg-[var(--border-subtle)] border-2 border-[var(--bg-primary)] z-10" />
+                        <div className="absolute -left-10.5 top-3 w-px h-full bg-[var(--border-subtle)] -translate-x-[5px]" />
+                        
+                        <h4 className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                          {format(parseISO(group.date), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                        </h4>
+                        
+                        <div className="space-y-2">
+                           {group.items.map((item, i) => (
+                             <div key={i} className="flex items-center gap-3 px-4 py-3 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl w-fit pr-8">
+                                <div className="w-6 h-6 rounded-md bg-green-500/10 text-green-500 flex items-center justify-center">
+                                  <CheckCircle2 size={12} strokeWidth={3} />
+                                </div>
+                                <div>
+                                  <span className="text-sm font-bold text-[var(--text-primary)]">{item.habit.name}</span>
+                                  {item.note && <span className="text-[10px] text-[var(--text-muted)] ml-2 italic">&quot;{item.note}&quot;</span>}
+                                </div>
+                             </div>
+                           ))}
+                        </div>
+                     </div>
+                   ))
+                 )}
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 

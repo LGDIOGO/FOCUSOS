@@ -1,31 +1,26 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Wallet, TrendingUp, Target, Shield, BookOpen, Plane, Crown, Play, CheckCircle2, ChevronRight, Plus, Rocket, X, Zap, ArrowRight, Check
+  Wallet, TrendingUp, Target, Shield, BookOpen, Plane, Crown, Play, CheckCircle2, ChevronRight, Plus, Rocket, X, Zap, ArrowRight, Check, History, Trash2
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { 
   useFinanceTransactions, useFinanceRecurringCosts, useFinancePotes, useFinanceRoadmap,
   useAddFinanceTransaction, useAddFinanceRecurringCost, useAddFinancePote, useUpdateFinanceRoadmap,
-  useDeleteFinanceTransaction, useDeleteFinanceRecurringCost, useDeleteFinancePote
+  useDeleteFinanceTransaction, useDeleteFinanceRecurringCost, useDeleteFinancePote, useUpdateFinancePote
 } from '@/lib/hooks/useFinance'
+import { useAddEvent } from '@/lib/hooks/useEvents'
 
-// Mock icons mapped to string IDs for DB storage
-const POTE_ICONS: Record<string, any> = { crown: Crown, plane: Plane, wallet: Wallet, target: Target, book: BookOpen, rocket: Rocket }
-const ICON_KEYS = Object.keys(POTE_ICONS)
-
-const GRADIENT_THEMES = [
-  'from-amber-400 to-orange-600',
-  'from-emerald-400 to-green-600',
-  'from-blue-400 to-indigo-600',
-  'from-rose-400 to-pink-600',
-  'from-purple-400 to-violet-600'
-]
+import { format, isSameMonth, isSameWeek, isSameYear, parseISO, subDays, startOfWeek, endOfWeek, differenceInDays } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 export default function FinancePage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'potes' | 'roadmap'>('overview')
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+  const [historyPeriod, setHistoryPeriod] = useState<'week' | 'month' | 'year' | 'all'>('all')
+  const [historyType, setHistoryType] = useState<'all' | 'income' | 'expense'>('all')
 
   // DATA HOOKS
   const { data: transactions = [], isLoading: isLoadingTx } = useFinanceTransactions()
@@ -44,11 +39,16 @@ export default function FinancePage() {
   const deleteTransaction = useDeleteFinanceTransaction()
   const deleteCost = useDeleteFinanceRecurringCost()
   const deletePote = useDeleteFinancePote()
+  const updatePote = useUpdateFinancePote()
+  const addEvent = useAddEvent()
 
   // MODAL STATES
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false)
   const [isCostModalOpen, setCostModalOpen] = useState(false)
   const [isPoteModalOpen, setPoteModalOpen] = useState(false)
+  const [isAporteModalOpen, setIsAporteModalOpen] = useState(false)
+  const [aportePoteId, setAportePoteId] = useState<string | null>(null)
+  
   const [isGeneratingAI, setIsGeneratingAI] = useState(false)
 
   // ONBOARDING WIZARD STATE
@@ -84,7 +84,7 @@ export default function FinancePage() {
           income: totalIncome,
           fixedCosts: totalFixedCosts,
           variableExpenses: totalExpense,
-          potes: potes.map(p => ({ title: p.title, percent: p.percentage_goal }))
+          potes: potes.map(p => ({ title: p.title, percent: p.allocation_type === 'percentage' ? p.allocation_value : 0 }))
         })
       })
 
@@ -105,6 +105,38 @@ export default function FinancePage() {
   }
 
   const formatBRL = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
+
+  // FILTERING LOGIC
+  // Sort all transactions by date descending
+  const sortedTransactions = [...transactions].sort((a, b) => b.date.localeCompare(a.date))
+  
+  // Recent transactions for the main "Diário de Caixa" (limit to top 10 most recent)
+  const recentTransactions = sortedTransactions.slice(0, 10)
+
+  // Filtered transactions for the History view
+  const filteredHistory = useMemo(() => {
+    return sortedTransactions.filter(t => {
+      // Filter by Type
+      if (historyType !== 'all' && t.type !== historyType) return false
+      
+      // Filter by Period
+      if (historyPeriod !== 'all') {
+        const tDate = parseISO(t.date)
+        const now = new Date()
+        if (historyPeriod === 'week') {
+           if (!isSameWeek(tDate, now, { locale: ptBR })) return false
+        } else if (historyPeriod === 'month') {
+           if (!isSameMonth(tDate, now)) return false
+        } else if (historyPeriod === 'year') {
+           if (!isSameYear(tDate, now)) return false
+        }
+      }
+      return true
+    })
+  }, [sortedTransactions, historyPeriod, historyType])
+
+  const historyIncomeTotal = filteredHistory.filter((t: any) => t.type === 'income').reduce((acc: number, t: any) => acc + t.amount, 0)
+  const historyExpenseTotal = filteredHistory.filter((t: any) => t.type === 'expense').reduce((acc: number, t: any) => acc + t.amount, 0)
 
   if (dataIsLoading) {
     return <div className="p-10 text-center text-[var(--text-muted)] animate-pulse">Carregando Finanças...</div>
@@ -206,10 +238,12 @@ export default function FinancePage() {
                   const fd = new FormData(e.currentTarget);
                   await addPote.mutateAsync({
                     title: fd.get('title') as string,
-                    percentage_goal: parseFloat(fd.get('percentage') as string),
-                    current_amount: 0,
-                    color_theme: 'from-blue-400 to-indigo-600',
-                    icon_name: 'target'
+                    target_amount: 0,
+                    saved_amount: 0,
+                    allocation_type: 'percentage',
+                    allocation_value: parseFloat(fd.get('percentage') as string),
+                    emoji: '🎯',
+                    color: 'text-blue-500'
                   });
                   setShowWizard(false); // Done
                 }} className="space-y-4">
@@ -333,17 +367,17 @@ export default function FinancePage() {
                      <button onClick={() => setTransactionModalOpen(true)} className="text-xs font-bold bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors text-[var(--text-secondary)]">Adicionar Novo</button>
                    </div>
                    
-                   {transactions.length === 0 ? (
+                   {recentTransactions.length === 0 ? (
                       <div className="p-8 text-center border border-dashed border-[var(--border-subtle)] rounded-2xl">
-                          <p className="text-[var(--text-muted)] font-medium text-sm">Nenhuma transação do dia-a-dia registrada hoje.</p>
+                          <p className="text-[var(--text-muted)] font-medium text-sm">Nenhuma movimentação recente registrada.</p>
                       </div>
                    ) : (
                      <div className="space-y-3">
-                       {transactions.map(t => (
+                       {recentTransactions.map(t => (
                          <div key={t.id} className="p-4 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] flex items-center justify-between group">
                             <div>
                               <p className="font-bold text-[var(--text-primary)] text-sm">{t.title}</p>
-                              <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mt-1">{t.category || 'Geral'} • {t.date}</p>
+                              <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mt-1">{t.category || 'Geral'} • {format(parseISO(t.date), 'dd MMM yyyy', { locale: ptBR })}</p>
                             </div>
                             <div className="flex items-center gap-4">
                               <span className={cn("font-black tracking-tight", t.type === 'income' ? "text-green-500" : "text-[var(--text-primary)]")}>
@@ -391,6 +425,159 @@ export default function FinancePage() {
                 </div>
 
               </div>
+
+              {/* HISTÓRICO EXPANSÍVEL (FINANCE) */}
+              <div className="pt-8">
+                <button 
+                  onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+                  className="w-full flex items-center gap-4 px-4 py-8 group bg-gradient-to-r from-[var(--bg-overlay)] to-transparent rounded-[32px] border border-[var(--border-subtle)] hover:border-[var(--text-primary)]/20 transition-all"
+                >
+                  <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-white/5 border border-white/10 group-hover:bg-white group-hover:text-black transition-colors">
+                    <TrendingUp size={20} />
+                  </div>
+                  <div className="flex flex-col items-start text-left flex-1">
+                    <span className="text-xl font-black text-[var(--text-primary)]">Histórico & Extrato Completo</span>
+                    <span className="text-[10px] uppercase font-black tracking-widest text-[var(--text-muted)] group-hover:text-white/50 transition-colors">Analise suas métricas de semanas/meses e anos passados</span>
+                  </div>
+                  <ChevronRight 
+                    size={24} 
+                    className={cn(
+                      "text-[var(--text-muted)] transition-transform duration-500",
+                      isHistoryOpen ? "rotate-90" : ""
+                    )} 
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {isHistoryOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-8 pb-4 space-y-8">
+                        {/* Control Panel: Filters */}
+                        <div className="flex flex-col md:flex-row gap-4 items-center justify-between p-6 bg-[var(--bg-overlay)] rounded-3xl border border-[var(--border-subtle)]">
+                          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 [scrollbar-width:none]">
+                            {[
+                              { id: 'all', label: 'Todo o Período' },
+                              { id: 'week', label: 'Esta Semana' },
+                              { id: 'month', label: 'Este Mês' },
+                              { id: 'year', label: 'Este Ano' }
+                            ].map(btn => (
+                              <button 
+                                key={btn.id}
+                                onClick={() => setHistoryPeriod(btn.id as any)}
+                                className={cn(
+                                  "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all",
+                                  historyPeriod === btn.id ? "bg-white text-black" : "bg-white/5 text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-primary)]"
+                                )}
+                              >
+                                {btn.label}
+                              </button>
+                            ))}
+                          </div>
+                          
+                          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 [scrollbar-width:none]">
+                             {[
+                              { id: 'all', label: 'Geral', colorClass: 'text-[var(--text-primary)]' },
+                              { id: 'income', label: 'Entradas (+)', colorClass: 'text-green-500' },
+                              { id: 'expense', label: 'Saídas (-)', colorClass: 'text-[var(--text-primary)]' }
+                            ].map(btn => (
+                              <button 
+                                key={btn.id}
+                                onClick={() => setHistoryType(btn.id as any)}
+                                className={cn(
+                                  "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all",
+                                  historyType === btn.id ? "bg-white/10 ring-1 ring-white/20" : "bg-transparent text-[var(--text-muted)] hover:bg-white/5",
+                                  historyType === btn.id ? btn.colorClass : ""
+                                )}
+                              >
+                                {btn.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Visual Summary */}
+                        <div className="grid grid-cols-2 gap-6">
+                           <div className="p-6 bg-green-500/5 border border-green-500/10 rounded-3xl">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-green-500/50 mb-1">Total Entradas (Filtro)</p>
+                              <p className="text-2xl font-black text-green-500">{formatBRL(historyIncomeTotal)}</p>
+                           </div>
+                           <div className="p-6 bg-white/5 border border-[var(--border-subtle)] rounded-3xl">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">Total Saídas (Filtro)</p>
+                              <p className="text-2xl font-black text-[var(--text-primary)]">- {formatBRL(historyExpenseTotal)}</p>
+                           </div>
+                        </div>
+
+                        {/* History List */}
+                        <div className="bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-[40px] p-6 lg:p-10">
+                          {filteredHistory.length === 0 ? (
+                            <div className="text-center py-10 opacity-50">
+                              <History className="mx-auto text-[var(--text-muted)] mb-4" size={40} />
+                              <p className="font-bold text-[var(--text-primary)]">Nenhum registro encontrado</p>
+                              <p className="text-sm font-medium text-[var(--text-muted)]">Nenhum histórico disponível para este filtro.</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                               {filteredHistory.map((t: any, i: number) => {
+                                 // Group by Date logically (just basic map for now, keeping it elegant)
+                                 const isIncome = t.type === 'income'
+                                 const fDate = format(parseISO(t.date), "EEEE, dd 'de' MMM", { locale: ptBR })
+                                 const prevDate = i > 0 ? format(parseISO(filteredHistory[i-1].date), "EEEE, dd 'de' MMM", { locale: ptBR }) : null
+                                 const showHeader = fDate !== prevDate
+
+                                 return (
+                                   <div key={t.id}>
+                                     {showHeader && (
+                                       <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-8 mb-4 border-b border-[var(--border-subtle)] pb-2">{fDate}</h4>
+                                     )}
+                                     <div className="group flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                          <div className={cn(
+                                            "w-10 h-10 rounded-xl flex items-center justify-center",
+                                            isIncome ? "bg-green-500/10 text-green-500" : "bg-white/5 text-[var(--text-primary)]"
+                                          )}>
+                                            {isIncome ? <TrendingUp size={18} /> : <Wallet size={18} />}
+                                          </div>
+                                          <div>
+                                            <p className="font-bold text-[var(--text-primary)] text-sm">{t.title}</p>
+                                            <p className="text-[10px] uppercase font-black tracking-widest text-[var(--text-muted)] opacity-60">
+                                              {t.category || 'Geral'}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-4">
+                                          <span className={cn(
+                                            "font-black text-lg",
+                                            isIncome ? "text-green-500" : "text-[var(--text-primary)]"
+                                          )}>
+                                            {isIncome ? '+' : '-'}{formatBRL(t.amount)}
+                                          </span>
+                                          <button 
+                                            onClick={() => deleteTransaction.mutate(t.id)} 
+                                            className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                                            title="Excluir Transação do Histórico"
+                                          >
+                                            <Trash2 size={16}/>
+                                          </button>
+                                        </div>
+                                     </div>
+                                   </div>
+                                 )
+                               })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
             </div>
           )}
 
@@ -422,49 +609,67 @@ export default function FinancePage() {
                ) : (
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    {potes.map((pote, i) => {
-                     const IconComponent = POTE_ICONS[pote.icon_name] || Wallet
-                     const poteAllocationValue = (monthlyRemnant > 0 ? monthlyRemnant : 0) * (pote.percentage_goal / 100)
+                     const poteAllocationValue = pote.allocation_type === 'percentage' 
+                       ? (monthlyRemnant > 0 ? monthlyRemnant : 0) * (pote.allocation_value / 100)
+                       : pote.allocation_value
 
                      return (
-                       <motion.div 
-                         key={pote.id}
-                         initial={{ opacity: 0, scale: 0.95 }}
-                         animate={{ opacity: 1, scale: 1 }}
-                         transition={{ delay: i * 0.1 }}
-                         className="p-8 rounded-[40px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)] relative overflow-hidden group"
-                       >
-                         {/* Background Glow */}
-                         <div className={cn("absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br rounded-full blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity duration-500", pote.color_theme)} />
-                         
-                         <div className="relative z-10 flex flex-col h-full justify-between gap-10">
-                           <div className="flex justify-between items-start">
-                             <div className="w-14 h-14 rounded-2xl flex items-center justify-center border border-white/5 bg-white/5 text-white/80 shrink-0">
-                               <IconComponent size={26} />
-                             </div>
-                             <div className="flex flex-col items-end">
-                               <button onClick={() => deletePote.mutate(pote.id)} className="mb-2 p-1 text-[var(--text-muted)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"><X size={16}/></button>
-                               <span className="text-3xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60" style={ { backgroundImage: `linear-gradient(to right, white, rgba(255,255,255,0.6))` } }>{pote.percentage_goal}%</span>
-                               <div className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-1">Fatia da Sobra</div>
-                             </div>
-                           </div>
-                           
-                           <div>
-                             <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-2">{pote.title}</h3>
-                             <div className="flex items-center justify-between mt-6">
-                               <span className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)]">Depósito Projetado</span>
-                               <span className="text-2xl font-black text-[var(--text-primary)]">{formatBRL(poteAllocationValue)}</span>
-                             </div>
-                             <div className="mt-3 w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                               <motion.div 
-                                 initial={{ width: 0 }}
-                                 animate={{ width: `${pote.percentage_goal}%` }}
-                                 transition={{ duration: 1, delay: 0.5 }}
-                                 className={cn("h-full bg-gradient-to-r", pote.color_theme)} 
-                               />
-                             </div>
-                           </div>
-                         </div>
-                       </motion.div>
+                        <motion.div 
+                          key={pote.id}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: i * 0.1 }}
+                          className="p-8 rounded-[40px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)] relative overflow-hidden group"
+                        >
+                          {/* Background Glow */}
+                          <div className={cn("absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br rounded-full blur-[80px] opacity-10 group-hover:opacity-20 transition-opacity duration-500", "from-red-500/50 to-orange-500/50")} />
+                          
+                          <div className="relative z-10 flex flex-col h-full justify-between gap-10">
+                            <div className="flex justify-between items-start">
+                              <div className="w-14 h-14 rounded-2xl flex items-center justify-center border border-white/5 bg-white/5 text-3xl shrink-0">
+                                {pote.emoji || '🎯'}
+                              </div>
+                              <div className="flex flex-col items-end">
+                                <button onClick={() => deletePote.mutate(pote.id)} className="mb-2 p-1 text-[var(--text-muted)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"><X size={16}/></button>
+                                <span className="text-3xl font-black tracking-tighter text-[var(--text-primary)]">
+                                  {pote.allocation_type === 'percentage' ? `${pote.allocation_value}%` : formatBRL(pote.allocation_value)}
+                                </span>
+                                <div className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-1">
+                                  {pote.allocation_type === 'percentage' ? 'Fatia da Sobra' : 'Aporte Fixo'}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-2">{pote.title}</h3>
+                              <div className="flex items-center justify-between mt-6">
+                                <span className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)]">Depósito Projetado</span>
+                                <span className="text-2xl font-black text-[var(--text-primary)]">{formatBRL(poteAllocationValue)}</span>
+                              </div>
+                              {/* Barra de Progresso Real (Saldo Salvo no Pote vs Meta) */}
+                              {pote.target_amount > 0 && (
+                                <div className="mt-4">
+                                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">
+                                    <span>Saldo Atual ({formatBRL(pote.saved_amount)})</span>
+                                    <span>{formatBRL(pote.target_amount)}</span>
+                                  </div>
+                                  <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                    <motion.div 
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${Math.min((pote.saved_amount / pote.target_amount) * 100, 100)}%` }}
+                                      transition={{ duration: 1, delay: 0.5 }}
+                                      className="h-full bg-gradient-to-r from-red-500 to-orange-500" 
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <button onClick={() => { setAportePoteId(pote.id); setIsAporteModalOpen(true); }} className="w-full mt-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2">
+                                <Plus size={16} /> Aportar Valor
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
                      )
                    })}
                  </div>
@@ -625,41 +830,101 @@ export default function FinancePage() {
               <form onSubmit={async (e) => {
                 e.preventDefault()
                 const fd = new FormData(e.currentTarget)
+                
+                const title = fd.get('title') as string
+                const amount = parseFloat(fd.get('amount') as string)
+                const category = fd.get('category') as string
+                const billing_cycle = fd.get('billing_cycle') as any
+                const due_day = parseInt(fd.get('due_day') as string) || 1
+                const auto_appointment = fd.get('auto_appointment') === 'on'
+
+                // 1. Add Recurring Cost
                 await addCost.mutateAsync({
-                  title: fd.get('title') as string,
-                  amount: parseFloat(fd.get('amount') as string),
-                  category: fd.get('category') as any,
-                  billing_cycle: fd.get('billing_cycle') as any
+                  title,
+                  amount,
+                  category,
+                  billing_cycle,
+                  due_day,
+                  auto_appointment
                 })
+
+                // 2. Add Agenda Commitment if checked
+                if (auto_appointment) {
+                  let freq: any = 'monthly'
+                  let interval = 1
+                  
+                  if (billing_cycle === 'weekly') { freq = 'weekly'; interval = 1; }
+                  if (billing_cycle === 'biweekly') { freq = 'weekly'; interval = 2; }
+                  if (billing_cycle === 'yearly') { freq = 'yearly'; interval = 1; }
+                  
+                  // Construct base date (current month/year + due_day)
+                  const now = new Date()
+                  const eventDate = format(new Date(now.getFullYear(), now.getMonth(), due_day), 'yyyy-MM-dd')
+
+                  await addEvent.mutateAsync({
+                    title: `Pagar: ${title}`,
+                    type: 'task',
+                    date: eventDate,
+                    status: 'todo',
+                    emoji: '💸',
+                    recurrence: { frequency: freq, interval }
+                  })
+                }
+
                 setCostModalOpen(false)
               }} className="space-y-4">
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Nome do Custo Mensal</label>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Nome do Custo</label>
                   <input name="title" required placeholder="Ex: Streaming, Aluguel, Provedor..." className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Valor Cheio (R$)</label>
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Valor (R$)</label>
                     <input name="amount" type="number" step="0.01" required placeholder="0.00" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                   </div>
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Cobrança</label>
                     <select name="billing_cycle" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500">
                       <option value="monthly">Mensal</option>
+                      <option value="biweekly">Quinzenal</option>
+                      <option value="weekly">Semanal</option>
                       <option value="yearly">Anual</option>
+                      <option value="custom">Personalizado</option>
                     </select>
                   </div>
                 </div>
-                <div>
-                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Grupo de Custos</label>
-                  <select name="category" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500">
-                    <option value="assinatura">Software / Serviço Fechado</option>
-                    <option value="divida">Parcela ou Dívida Ativa</option>
-                    <option value="basico">Moradia e Essencial</option>
-                    <option value="seguro">Saúde ou Seguros</option>
-                    <option value="conhecimento">Custos em Aprendizado</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Dia de Vencimento</label>
+                    <input name="due_day" type="number" min="1" max="31" defaultValue="10" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Grupo de Custos</label>
+                    <select name="category" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500">
+                      <option value="assinatura">Software / Assinatura</option>
+                      <option value="moradia">Moradia e Aluguel</option>
+                      <option value="alimentacao">Alimentação / Mercado</option>
+                      <option value="transporte">Transporte / Carro</option>
+                      <option value="saude">Saúde / Farmácia</option>
+                      <option value="educacao">Educação / Cursos</option>
+                      <option value="lazer">Lazer / Estilo de Vida</option>
+                      <option value="imposto">Impostos / Taxas</option>
+                      <option value="pessoal">Gastos Pessoais</option>
+                      <option value="divida">Dívida / Empréstimo</option>
+                      <option value="seguro">Seguros / Proteção</option>
+                      <option value="outro">Outros Custos</option>
+                    </select>
+                  </div>
                 </div>
+                
+                <label className="flex items-center gap-3 p-4 bg-red-500/5 border border-red-500/10 rounded-2xl cursor-pointer hover:bg-red-500/10 transition-colors">
+                  <input type="checkbox" name="auto_appointment" className="w-5 h-5 accent-red-500 rounded-md" />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-[var(--text-primary)]">Criar compromisso na Agenda</span>
+                    <span className="text-[10px] text-[var(--text-muted)]">Cria lembrete recorrente automaticamente</span>
+                  </div>
+                </label>
+
                 <button type="submit" disabled={addCost.isPending} className="w-full py-4 mt-2 bg-red-500 hover:bg-red-400 text-white font-black rounded-xl transition-all shadow-xl">Implantar Custo Fixo</button>
               </form>
             </motion.div>
@@ -667,50 +932,96 @@ export default function FinancePage() {
         )}
 
         {/* 3. Modal Potes */}
+        {/* 3. Modal Potes */}
         {isPoteModalOpen && (
           <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md bg-[var(--bg-primary)] border border-blue-500/20 rounded-3xl p-6 shadow-[0_0_50px_rgba(59,130,246,0.1)] relative">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md bg-[var(--bg-primary)] border border-red-500/20 rounded-3xl p-6 shadow-[0_0_50px_rgba(239,68,68,0.1)] relative">
               <button onClick={() => setPoteModalOpen(false)} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"><X size={20}/></button>
-              <h2 className="text-2xl font-black text-blue-400 mb-6 flex items-center gap-2"><Target size={24}/> Criar Novo Pote</h2>
+              <h2 className="text-2xl font-black text-red-500 mb-6 flex items-center gap-2"><Target size={24}/> Criar Novo Pote</h2>
               <form onSubmit={async (e) => {
                 e.preventDefault()
                 const fd = new FormData(e.currentTarget)
                 await addPote.mutateAsync({
                   title: fd.get('title') as string,
-                  percentage_goal: parseFloat(fd.get('percentage') as string),
-                  current_amount: 0,
-                  color_theme: fd.get('theme') as string,
-                  icon_name: fd.get('icon') as string
+                  target_amount: parseFloat(fd.get('target_amount') as string) || 0,
+                  saved_amount: 0,
+                  allocation_type: fd.get('allocation_type') as any,
+                  allocation_value: parseFloat(fd.get('allocation_value') as string),
+                  color: 'text-red-500',
+                  emoji: (fd.get('emoji') as string) || '🎯',
                 })
                 setPoteModalOpen(false)
               }} className="space-y-4">
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Objetivo do Pote</label>
-                  <input name="title" required placeholder="Ex: Viagem, Fundo de Oportunidades..." className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500" />
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Objetivo do Pote (Emoji & Nome)</label>
+                  <div className="flex gap-2">
+                    <input name="emoji" maxLength={2} placeholder="🎯" defaultValue="🎯" className="w-16 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-2 py-3 text-center text-xl text-white focus:outline-none focus:border-red-500" />
+                    <input name="title" required placeholder="Ex: Viagem, Fundo de Oportunidades..." className="flex-1 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                  </div>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Fatía (%) Destinada do Fluxo Sobrante</label>
-                  <input name="percentage" type="number" step="0.1" max="100" required placeholder="Ex: 25" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500" />
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Custo Total / Meta (Opcional)</label>
+                  <input name="target_amount" type="number" step="0.01" placeholder="Ex: 5000.00" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Estilo da Aura</label>
-                    <select name="theme" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500">
-                      {GRADIENT_THEMES.map((th, i) => (
-                        <option key={i} value={th}>Aura {i + 1}</option>
-                      ))}
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Tipo de Depósito</label>
+                    <select name="allocation_type" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500">
+                      <option value="percentage">% da Sobra do Mês</option>
+                      <option value="fixed_value">Valor Fixo (R$)</option>
                     </select>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Ícone Visual</label>
-                    <select name="icon" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500">
-                      {ICON_KEYS.map((k) => (
-                        <option key={k} value={k}>{k}</option>
-                      ))}
-                    </select>
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Fatia / Valor</label>
+                    <input name="allocation_value" type="number" step="0.01" required placeholder="Ex: 25" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                   </div>
                 </div>
-                <button type="submit" disabled={addPote.isPending} className="w-full py-4 mt-2 bg-blue-500 hover:bg-blue-400 text-white font-black rounded-xl transition-all shadow-xl">Gênesis do Pote</button>
+                <button type="submit" disabled={addPote.isPending} className="w-full py-4 mt-2 bg-red-500 hover:bg-red-400 text-white font-black rounded-xl transition-all shadow-xl">Gênesis do Pote</button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
+        {/* 4. Modal Aporte Pote (Adding manual funds + creating transaction) */}
+        {isAporteModalOpen && aportePoteId && (
+          <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[var(--bg-primary)] border border-red-500/20 rounded-3xl p-6 shadow-[0_0_50px_rgba(239,68,68,0.1)] relative">
+              <button onClick={() => {setIsAporteModalOpen(false); setAportePoteId(null)}} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"><X size={20}/></button>
+              <h2 className="text-2xl font-black text-red-500 mb-6 flex items-center gap-2"><Plus size={24}/> Fazer Aporte</h2>
+              <form onSubmit={async (e) => {
+                e.preventDefault()
+                const fd = new FormData(e.currentTarget)
+                const value = parseFloat(fd.get('amount') as string)
+                if (value <= 0) return;
+
+                const targetPote = potes.find(p => p.id === aportePoteId)
+                if (!targetPote) return;
+
+                await updatePote.mutateAsync({
+                  id: aportePoteId,
+                  saved_amount: (targetPote.saved_amount || 0) + value
+                })
+
+                await addTransaction.mutateAsync({
+                  title: `Aporte: Pote ${targetPote.title}`,
+                  amount: value,
+                  type: 'expense',
+                  category: 'investment',
+                  date: new Date().toISOString()
+                })
+
+                setIsAporteModalOpen(false)
+                setAportePoteId(null)
+              }} className="space-y-4">
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Valor do Aporte (R$)</label>
+                  <input name="amount" type="number" step="0.01" required placeholder="Ex: 100.00" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                </div>
+                <div className="flex items-start gap-2 p-3 bg-white/5 border border-white/5 rounded-xl text-xs text-[var(--text-secondary)]">
+                  <span className="text-red-400 mt-0.5"><Target size={14}/></span>
+                  <p>Um lançamento de despesa será criado automaticamente no fluxo geral como Investimento.</p>
+                </div>
+                <button type="submit" disabled={updatePote.isPending || addTransaction.isPending} className="w-full py-4 mt-2 bg-red-500 hover:bg-red-400 text-white font-black rounded-xl transition-all shadow-xl">Aportar e Deduzir</button>
               </form>
             </motion.div>
           </div>

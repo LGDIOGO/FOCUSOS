@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Target, Plus, Trash2, Calendar, TrendingUp, Check, ChevronRight, Sparkles, Zap } from 'lucide-react'
+import { Target, Plus, Trash2, Calendar, TrendingUp, Check, ChevronRight, Sparkles, Zap, History } from 'lucide-react'
 import { useGoals, useDeleteGoal } from '@/lib/hooks/useGoals'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { Goal } from '@/types'
@@ -226,6 +226,7 @@ export default function GoalsPage() {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
 
   const handleOpenEdit = (goal: Goal) => {
     setEditingGoal(goal)
@@ -287,13 +288,21 @@ export default function GoalsPage() {
     }
   }
 
-  const groupedGoals = useMemo(() => {
-    if (!goals) return []
+  const { activeGoals, completedGoals } = useMemo(() => {
+    if (!goals) return { activeGoals: [], completedGoals: [] }
+    return {
+      activeGoals: goals.filter(g => (g.progress_pct || 0) < 100),
+      completedGoals: goals.filter(g => (g.progress_pct || 0) >= 100)
+    }
+  }, [goals])
+
+  const groupedActiveGoals = useMemo(() => {
+    if (!activeGoals) return []
     
     // Category -> Year -> Goals[]
     const categoryMap = new Map<string, Map<number, Goal[]>>()
 
-    goals.forEach(g => {
+    activeGoals.forEach(g => {
       const cid = g.category_id || 'UNCATEGORIZED'
       const year = g.end_date ? new Date(g.end_date).getFullYear() : 9999
 
@@ -330,7 +339,7 @@ export default function GoalsPage() {
       if (b.categoryId === 'UNCATEGORIZED') return -1
       return (a.category?.name || '').localeCompare(b.category?.name || '')
     })
-  }, [goals, categories])
+  }, [activeGoals, categories])
 
   return (
     <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display',sans-serif]">
@@ -372,7 +381,7 @@ export default function GoalsPage() {
                  <div key={i} className="h-64 rounded-[40px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)] animate-pulse" />
                ))}
             </div>
-          ) : groupedGoals.map((group) => {
+          ) : groupedActiveGoals.map((group) => {
              const categoryName = group.category ? group.category.name : 'Sem Categoria'
              const categoryColor = group.category ? group.category.color : '#FFFFFF'
 
@@ -427,23 +436,90 @@ export default function GoalsPage() {
       </div>
 
       {/* Empty State */}
-      {!isLoading && goals?.length === 0 && (
+      {!isLoading && activeGoals?.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 bg-[var(--bg-overlay)] border border-dashed border-[var(--border-subtle)] rounded-[48px] space-y-6">
            <div className="w-20 h-20 bg-[var(--bg-overlay)] rounded-[32px] flex items-center justify-center border border-[var(--border-subtle)]">
               <Target className="text-[var(--text-muted)] w-10 h-10" />
            </div>
            <div className="text-center space-y-2">
-              <h3 className="text-2xl font-black text-[var(--text-primary)]">Nenhuma meta estratégica definida</h3>
-              <p className="text-[var(--text-muted)] font-medium">Crie seu primeiro grande objetivo para começar a trilhar o progresso.</p>
+              <h3 className="text-2xl font-black text-[var(--text-primary)]">Nenhuma meta ativa</h3>
+              <p className="text-[var(--text-muted)] font-medium">Crie seu primeiro grande objetivo para começar a trilhar o progresso ou verifique seu histórico.</p>
            </div>
            <button 
              onClick={() => setShowAddModal(true)}
              className="bg-[var(--bg-overlay)] hover:opacity-80 text-[var(--text-primary)] border border-[var(--border-subtle)] px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all"
            >
-             Começar Agora
+             Nova Meta
            </button>
         </div>
       )}
+
+      {/* HISTÓRICO EXPANSÍVEL (METAS) */}
+      <div className="pt-4 border-t border-[var(--border-subtle)]">
+        <button 
+          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+          className="w-full flex items-center gap-4 group hover:bg-white/5 p-4 rounded-3xl transition-colors"
+        >
+          <div className="flex items-center justify-center w-10 h-10 rounded-2xl bg-white/5 border border-white/10 group-hover:bg-white group-hover:text-black transition-colors">
+            <History size={18} />
+          </div>
+          <div className="flex flex-col items-start text-left flex-1">
+            <span className="text-base font-black text-[var(--text-primary)]">Histórico de Metas Concluídas</span>
+            <span className="text-[10px] uppercase font-black tracking-widest text-[var(--text-muted)] group-hover:text-white/50 transition-colors">Objetivos que você completou (100%)</span>
+          </div>
+          <div className="flex items-center gap-3">
+             <span className="text-[10px] uppercase font-black text-green-500/80 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded-md">
+               {completedGoals?.length || 0} Metas Batidas
+             </span>
+             <ChevronRight 
+              size={20} 
+              className={cn(
+                "text-[var(--text-muted)] transition-transform duration-500",
+                isHistoryOpen ? "rotate-90" : ""
+              )} 
+            />
+          </div>
+        </button>
+
+        <AnimatePresence>
+          {isHistoryOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-8 pb-4">
+                 {completedGoals.length === 0 ? (
+                    <div className="text-center py-10 opacity-50">
+                        <History className="mx-auto text-[var(--text-muted)] mb-4" size={40} />
+                        <p className="text-[var(--text-primary)] font-bold text-sm">Você ainda não completou nenhuma meta.</p>
+                    </div>
+                 ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 opacity-70 hover:opacity-100 transition-opacity">
+                      {completedGoals.map((goal, idx) => (
+                         <GoalGridItem
+                            key={goal.id}
+                            goal={goal}
+                            idx={idx}
+                            daysLeft={0} // Completed goals don't need days left strictly
+                            category={categories?.find(c => c.id === goal.category_id)}
+                            isSelectionMode={isSelectionMode}
+                            isSelected={selectedIds.includes(goal.id)}
+                            onToggleSelection={toggleSelection}
+                            onOpenEdit={handleOpenEdit}
+                            onDelete={handleDelete}
+                            setIsSelectionMode={setIsSelectionMode}
+                            formatDateSafely={formatDateSafely}
+                          />
+                      ))}
+                    </div>
+                 )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Selection Tray */}
       <AnimatePresence>

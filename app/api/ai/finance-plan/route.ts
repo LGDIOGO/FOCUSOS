@@ -10,17 +10,18 @@ export async function POST(req: Request) {
     const { income, fixedCosts, variableExpenses, potes } = body;
 
     // Check if API Key is configured
-    if (!process.env.OPENAI_API_KEY) {
-      console.warn("OPENAI_API_KEY is not set. Returning fallback mock plan.");
+    const grokKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
+    if (!grokKey) {
+      console.warn("GROK_API_KEY is not set. Returning fallback mock plan.");
       // Return a very generic AI Mock plan highlighting it's a fallback
       return NextResponse.json({
         plan: [
           {
-            phase: 'Aviso: Configure sua API Key',
+            phase: 'Aviso: Configure sua API Key do Grok',
             period: 'Imediato',
             items: [
               { text: 'Painel conectou com o Backend mas falta a Chave da IA', done: false },
-              { text: 'Adicione OPENAI_API_KEY no arquivo .env local ou Vercel', done: false }
+              { text: 'Adicione GROK_API_KEY no arquivo .env local ou Vercel', done: false }
             ],
             active: true
           },
@@ -39,7 +40,8 @@ export async function POST(req: Request) {
     }
 
     const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: grokKey,
+      baseURL: 'https://api.x.ai/v1',
     });
 
     const prompt = `
@@ -67,7 +69,7 @@ export async function POST(req: Request) {
     `;
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // or whatever model is available
+      model: 'grok-2-latest', // or whatever model is available
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
       response_format: { type: "json_object" } // enforcing JSON if possible, but we asked for an array, so let's parse carefully

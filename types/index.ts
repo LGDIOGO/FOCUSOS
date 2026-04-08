@@ -145,8 +145,11 @@ export interface FinanceRecurringCost {
   user_id: string;
   amount: number;
   title: string;
-  category: 'assinatura' | 'divida' | 'basico' | 'seguro' | 'conhecimento' | 'outro';
-  billing_cycle: 'monthly' | 'yearly';
+  category: string; 
+  billing_cycle: 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
+  due_day?: number;
+  due_date?: string; // Optional full ISO date for specific starts
+  auto_appointment?: boolean;
   created_at: string;
 }
 
@@ -154,10 +157,12 @@ export interface FinancePote {
   id: string;
   user_id: string;
   title: string;
-  percentage_goal: number; // e.g. 40 for 40%
-  current_amount: number;
-  color_theme: string; // tailwind gradient classes
-  icon_name: string; // string key for lucide icons
+  target_amount: number;
+  saved_amount: number;
+  allocation_type: 'percentage' | 'fixed_value';
+  allocation_value: number;
+  emoji: string;
+  color: string;
   created_at: string;
 }
 

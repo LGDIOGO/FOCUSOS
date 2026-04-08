@@ -189,6 +189,18 @@ export function useDeleteFinancePote() {
   })
 }
 
+export function useUpdateFinancePote() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<FinancePote> & { id: string }) => {
+      await updateDoc(doc(db, 'finance_potes', id), updates)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance_potes'] })
+    },
+  })
+}
+
 // --- Roadmap AI --- //
 
 export function useFinanceRoadmap() {
