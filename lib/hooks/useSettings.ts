@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id' | 'updated_at'> = {
     agenda: true,
     drafts: true,
     leadTimeMinutes: 5,
-    sound: 'apple'
+    sound: 'focus'
   },
   theme: 'dark'
 }

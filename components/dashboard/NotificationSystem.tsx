@@ -35,7 +35,7 @@ export function NotificationSystem() {
   }, [])
 
   const playSound = useCallback(() => {
-    if (settings?.notifications?.sound === 'apple' && settings?.notifications?.enabled) {
+    if (settings?.notifications?.sound === 'focus' && settings?.notifications?.enabled) {
       // Premium Apple-style alert sound
       const audio = new Audio('https://fpm-files.s3.amazonaws.com/notification.mp3') // Placeholder but reliable
       audio.volume = 0.5
