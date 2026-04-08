@@ -214,7 +214,25 @@ export function useLogHabit() {
   const user = auth.currentUser
 
   return useMutation({
+    onMutate: async (vars: any) => {
+      if (!user) return
+      const targetDate = vars.logDate || format(new Date(), 'yyyy-MM-dd')
+      const queryKey = ['habits', 'date', targetDate, user.uid]
+      await qc.cancelQueries({ queryKey })
+      const previousHabits = qc.getQueryData(queryKey)
+      
+      qc.setQueryData(queryKey, (old: Habit[] | undefined) => {
+        if (!old) return old
+        return old.map(h => h.id === vars.habitId ? { ...h, status: vars.status } : h)
+      })
+      
+      return { previousHabits, queryKey }
+    },
+    onError: (err, newTodo, context) => {
+      if (context?.previousHabits) qc.setQueryData(context.queryKey, context.previousHabits)
+    },
     mutationFn: async ({ habitId, status, logDate, note, linkedGoalId, goalImpact = 1 }: { 
+ 
       habitId: string; 
       status: string; 
       logDate?: string;
@@ -227,6 +245,7 @@ export function useLogHabit() {
       const targetDate = logDate || format(new Date(), 'yyyy-MM-dd')
       const logId = `${habitId}_${targetDate}`
       const logRef = doc(db, 'habit_logs', logId)
+
       
       // 1. Get previous status to calculate progress change
       const prevDoc = await getDoc(logRef)

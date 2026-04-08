@@ -77,6 +77,23 @@ export function useUpdateEvent() {
   const user = auth.currentUser
 
   return useMutation({
+    onMutate: async (vars: any) => {
+      await qc.cancelQueries({ queryKey: ['events', user?.uid] })
+      await qc.cancelQueries({ queryKey: ['eventsToday'] })
+      
+      qc.setQueriesData({ queryKey: ['events', user?.uid] }, (old: any) => {
+        if (!old) return old
+        return old.map((e: any) => e.id === vars.id ? { ...e, ...vars } : e)
+      })
+      qc.setQueriesData({ queryKey: ['eventsToday'] }, (old: any) => {
+        if (!old) return old
+        return old.map((e: any) => e.id === vars.id ? { ...e, ...vars } : e)
+      })
+    },
+    onError: () => {
+      qc.invalidateQueries({ queryKey: ['events', user?.uid] })
+      qc.invalidateQueries({ queryKey: ['eventsToday'] })
+    },
     mutationFn: async ({ id, ...data }: Partial<CalendarEvent> & { id: string }) => {
       if (!user) throw new Error('Not authenticated')
       const docRef = doc(db, 'events', id)

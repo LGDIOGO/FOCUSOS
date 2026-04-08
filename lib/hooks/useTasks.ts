@@ -80,6 +80,16 @@ export function useUpdateTask() {
   const user = auth.currentUser
 
   return useMutation({
+    onMutate: async (vars: any) => {
+      await qc.cancelQueries({ queryKey: ['tasks'] })
+      qc.setQueriesData({ queryKey: ['tasks'] }, (old: any) => {
+        if (!old) return old
+        return old.map((t: any) => t.id === vars.id ? { ...t, status: vars.status, completed_at: vars.completed_at } : t)
+      })
+    },
+    onError: () => {
+      qc.invalidateQueries({ queryKey: ['tasks'] })
+    },
     mutationFn: async ({ id, status, completed_at }: Partial<Task> & { id: string }) => {
       if (!user) throw new Error('Not authenticated')
       

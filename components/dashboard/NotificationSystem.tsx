@@ -34,6 +34,11 @@ export function NotificationSystem() {
 
   useEffect(() => {
     setMounted(true)
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission()
+      }
+    }
   }, [])
 
   const playSound = useCallback(() => {
@@ -51,6 +56,14 @@ export function NotificationSystem() {
     setActiveNotifications(prev => [...prev, item])
     setNotifiedIds(prev => new Set(prev).add(item.id))
     
+    // Web Notification API / OS Popup
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      new window.Notification(item.title, {
+        body: item.body,
+        icon: '/apple-touch-icon.png' // Padrão se tiver ícone
+      })
+    }
+
     // Persist to history
     addPersistentNotif({
       title: item.title,
