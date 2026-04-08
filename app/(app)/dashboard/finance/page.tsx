@@ -21,7 +21,7 @@ import {
 import { ptBR } from 'date-fns/locale'
 
 export default function FinancePage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'potes' | 'roadmap'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'expenses' | 'potes' | 'roadmap'>('overview')
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const [historyPeriod, setHistoryPeriod] = useState<'week' | 'month' | 'year' | 'all' | 'custom'>('all')
   const [historyType, setHistoryType] = useState<'all' | 'income' | 'expense'>('all')
@@ -323,6 +323,9 @@ export default function FinancePage() {
       <div className="flex items-center gap-2 border-b border-[var(--border-subtle)] overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none]">
         <button onClick={() => setActiveTab('overview')} className={cn("px-6 py-4 font-black uppercase tracking-widest text-[12px] transition-all relative whitespace-nowrap", activeTab === 'overview' ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]")}>
           Fluxo De Caixa {activeTab === 'overview' && <motion.div layoutId="wealthTab" className="absolute bottom-0 left-0 right-0 h-1 bg-red-500 rounded-t-full shadow-[0_0_10px_rgba(239,68,68,0.5)]" />}
+        </button>
+        <button onClick={() => setActiveTab('expenses')} className={cn("px-6 py-4 font-black uppercase tracking-widest text-[12px] transition-all relative whitespace-nowrap", activeTab === 'expenses' ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]")}>
+          Meus Gastos {activeTab === 'expenses' && <motion.div layoutId="wealthTab" className="absolute bottom-0 left-0 right-0 h-1 bg-red-500 rounded-t-full shadow-[0_0_10px_rgba(239,68,68,0.5)]" />}
         </button>
         <button onClick={() => setActiveTab('potes')} className={cn("px-6 py-4 font-black uppercase tracking-widest text-[12px] transition-all relative whitespace-nowrap", activeTab === 'potes' ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]")}>
           Os Potes {activeTab === 'potes' && <motion.div layoutId="wealthTab" className="absolute bottom-0 left-0 right-0 h-1 bg-red-500 rounded-t-full shadow-[0_0_10px_rgba(239,68,68,0.5)]" />}
@@ -654,6 +657,124 @@ export default function FinancePage() {
 
             </div>
           )}
+
+           {/* TAB: GASTOS (DETALHADOS) */}
+           {activeTab === 'expenses' && (
+             <div className="space-y-10">
+                {/* Header de Gastos */}
+                <div className="p-10 rounded-[40px] bg-[var(--bg-overlay)] border border-red-500/10 shadow-2xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                     <Wallet size={160} />
+                  </div>
+                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                      <h3 className="text-sm font-black uppercase tracking-widest text-red-500/70 mb-2">Total de Gastos (Filtro Ativo)</h3>
+                      <div className="text-6xl font-black tracking-tighter text-[var(--text-primary)]">
+                        {formatBRL(filteredHistory.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0))}
+                      </div>
+                      <p className="text-[var(--text-secondary)] mt-1 font-medium italic">Baseado nos filtros de período selecionados abaixo.</p>
+                    </div>
+                    <div className="flex gap-4">
+                       <button onClick={() => setTransactionModalOpen(true)} className="px-6 py-4 bg-white text-black font-black text-sm uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl">
+                         Lançar Novo Gasto
+                       </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filtros Integrados */}
+                <div className="p-6 bg-white/5 rounded-[32px] border border-white/5 space-y-6">
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2 [scrollbar-width:none]">
+                     {[
+                       { id: 'all', label: 'Todo Período' },
+                       { id: 'week', label: 'Esta Semana' },
+                       { id: 'month', label: 'Este Mês' },
+                       { id: 'year', label: 'Este Ano' },
+                       { id: 'custom', label: 'Personalizado' }
+                     ].map(btn => (
+                       <button 
+                         key={btn.id}
+                         onClick={() => {
+                           setHistoryPeriod(btn.id as any)
+                         }}
+                         className={cn(
+                           "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all",
+                           historyPeriod === btn.id ? "bg-white text-black" : "bg-white/5 text-[var(--text-muted)] hover:bg-white/10"
+                         )}
+                       >
+                         {btn.label}
+                       </button>
+                     ))}
+                  </div>
+
+                  {historyPeriod === 'custom' && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="flex flex-wrap items-center gap-4 pt-4 border-t border-white/5">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Início</label>
+                          <input type="date" value={historyStartDate} onChange={(e) => setHistoryStartDate(e.target.value)} className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white focus:outline-none focus:border-red-500" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Fim</label>
+                          <input type="date" value={historyEndDate} onChange={(e) => setHistoryEndDate(e.target.value)} className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white focus:outline-none focus:border-red-500" />
+                        </div>
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Listagem de Despesas */}
+                <div className="space-y-4">
+                  <h4 className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2 px-2">
+                    <History size={14} /> Detalhamento de Saídas
+                  </h4>
+                  
+                  {filteredHistory.filter(t => t.type === 'expense').length === 0 ? (
+                    <div className="p-20 text-center border-2 border-dashed border-white/5 rounded-[40px] text-[var(--text-muted)]">
+                       Nenhum gasto encontrado para este período.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                       {filteredHistory.filter(t => t.type === 'expense').map(t => (
+                         <div key={t.id} className="group p-6 rounded-[32px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)] hover:border-red-500/20 transition-all flex items-center justify-between">
+                            <div className="flex items-center gap-6">
+                               <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
+                                  <Wallet size={20} />
+                               </div>
+                               <div>
+                                  <div className="flex items-center gap-3">
+                                    <p className="font-bold text-[var(--text-primary)] text-lg">{t.title}</p>
+                                    <span className={cn(
+                                      "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md",
+                                      t.category === 'investment' ? "bg-indigo-500/10 text-indigo-400" :
+                                      t.category === 'extra' ? "bg-amber-500/10 text-amber-500" :
+                                      "bg-white/5 text-[var(--text-muted)]"
+                                    )}>
+                                      {t.category === 'variable' ? 'Variável' : 
+                                       t.category === 'extra' ? 'Extra' : 
+                                       t.category === 'investment' ? 'Investimento' : 'Outro'}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] items-center gap-1 font-black uppercase tracking-widest text-[var(--text-muted)] mt-1.5 flex">
+                                    {format(parseISO(t.date), 'dd/MM/yyyy')} 
+                                    <span className="opacity-20">•</span> 
+                                    {format(parseISO(t.date), 'EEEE', { locale: ptBR })}
+                                  </p>
+                               </div>
+                            </div>
+                            <div className="flex items-center gap-6">
+                               <span className="text-2xl font-black text-[var(--text-primary)]">
+                                 - {formatBRL(t.amount)}
+                               </span>
+                               <button onClick={() => deleteTransaction.mutate(t.id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all">
+                                 <Trash2 size={18} />
+                               </button>
+                            </div>
+                         </div>
+                       ))}
+                    </div>
+                  )}
+                </div>
+             </div>
+           )}
 
           {/* TAB: POTES */}
           {activeTab === 'potes' && (
