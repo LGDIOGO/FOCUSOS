@@ -128,3 +128,42 @@ export interface CalendarEvent {
   emoji?: string;      // Optional emoji
   created_at: string;
 }
+
+export interface FinanceTransaction {
+  id: string;
+  user_id: string;
+  amount: number;
+  title: string;
+  type: 'income' | 'expense';
+  category?: 'variable' | 'fixed' | 'investment' | 'extra';
+  date: string; // ISO yyyy-MM-dd
+  created_at: string;
+}
+
+export interface FinanceRecurringCost {
+  id: string;
+  user_id: string;
+  amount: number;
+  title: string;
+  category: 'assinatura' | 'divida' | 'basico' | 'seguro' | 'conhecimento' | 'outro';
+  billing_cycle: 'monthly' | 'yearly';
+  created_at: string;
+}
+
+export interface FinancePote {
+  id: string;
+  user_id: string;
+  title: string;
+  percentage_goal: number; // e.g. 40 for 40%
+  current_amount: number;
+  color_theme: string; // tailwind gradient classes
+  icon_name: string; // string key for lucide icons
+  created_at: string;
+}
+
+export interface FinanceRoadmap {
+  id: string;
+  user_id: string;
+  updated_at: string;
+  plan_json: string; // stringified JSON from AI
+}
