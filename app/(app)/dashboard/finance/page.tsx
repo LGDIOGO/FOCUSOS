@@ -742,11 +742,11 @@ export default function FinancePage() {
               
               {!roadmap?.plan_json ? (
                  <div className="text-center p-14 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-[40px] shadow-2xl relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-500/20 via-transparent to-transparent opacity-50 transition-opacity duration-1000 group-hover:opacity-100" />
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent opacity-50 transition-opacity duration-1000 group-hover:opacity-100" />
                     
                     <div className="relative z-10 flex flex-col items-center">
-                       <div className="w-24 h-24 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-6 group-hover:scale-110 transition-transform duration-700">
-                          <Zap size={40} className="drop-shadow-[0_0_15px_rgba(99,102,241,0.8)]" />
+                       <div className="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform duration-700">
+                          <Zap size={40} className="drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
                        </div>
                        <h3 className="text-3xl font-black text-[var(--text-primary)] mb-4 tracking-tight">IA Indisponível (Sem Dados)</h3>
                        <p className="text-[var(--text-secondary)] max-w-lg mb-10 text-lg leading-relaxed">
@@ -769,7 +769,7 @@ export default function FinancePage() {
                      <button
                        onClick={handleGenerateAIPlan}
                        disabled={isGeneratingAI}
-                       className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-indigo-500/20 transition-all disabled:opacity-50"
+                       className="flex items-center gap-2 px-4 py-2 bg-white/5 text-[var(--text-primary)] border border-white/10 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-white/10 hover:border-white/20 transition-all disabled:opacity-50"
                      >
                        {isGeneratingAI ? 'Recalculando Rota...' : 'Atualizar Plano com IA'}
                        <Zap size={14} />
@@ -784,15 +784,20 @@ export default function FinancePage() {
                        <div className={cn(
                          "flex items-center justify-center w-10 h-10 rounded-full border-4 shrink-0 shadow-xl z-10 transition-colors",
                          i % 2 !== 0 ? "md:translate-x-1/2" : "md:-translate-x-1/2",
-                         road.active ? "bg-indigo-500 border-[var(--bg-primary)]" : "bg-[var(--bg-overlay)] border-[var(--border-subtle)]"
+                         road.active ? "bg-white border-[var(--bg-primary)] shadow-[0_0_12px_rgba(255,255,255,0.15)]" : "bg-[var(--bg-overlay)] border-[var(--border-subtle)]"
                        )}>
-                         {road.active ? <Play size={14} className="text-white ml-0.5" /> : <ChevronRight size={16} className="text-[var(--text-muted)]" />}
+                         {road.active ? <Play size={14} className="text-black ml-0.5" /> : <ChevronRight size={16} className="text-[var(--text-muted)]" />}
                        </div>
                        
                        {/* Card */}
-                       <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-6 rounded-[32px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)] hover:border-indigo-500/30 transition-colors">
+                       <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-6 rounded-[32px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)] hover:border-white/15 transition-colors">
                          <div className="flex items-center gap-2 mb-2">
-                           <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 px-2 py-1 bg-indigo-500/10 rounded-md">
+                           <span className={cn(
+                             "text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md",
+                             road.active 
+                               ? "text-white bg-white/10 border border-white/15"
+                               : "text-[var(--text-muted)] bg-[var(--bg-overlay)]"
+                           )}>
                              {road.period}
                            </span>
                          </div>
