@@ -20,6 +20,7 @@ import {
 import { ptBR } from 'date-fns/locale'
 import { SharedHistoryBar, PeriodFilter, DateRange } from '@/components/dashboard/SharedHistoryBar'
 import { getDateRangeFromPeriod } from '@/lib/utils/dateFilters'
+import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicker'
 
 export default function FinancePage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'expenses' | 'potes' | 'roadmap'>('overview')
@@ -64,6 +65,7 @@ export default function FinancePage() {
   const [isInstallment, setIsInstallment] = useState(false)
   const [txType, setTxType] = useState<'expense' | 'income'>('expense')
   const [txCategory, setTxCategory] = useState<string>('')
+  const [txDate, setTxDate] = useState(() => new Date().toISOString().split('T')[0])
   const [showNature, setShowNature] = useState(false)
 
   // ONBOARDING WIZARD STATE
@@ -859,6 +861,7 @@ export default function FinancePage() {
                   setTxCategory('')
                   setTxType('expense')
                   setShowNature(false)
+                  setTxDate(new Date().toISOString().split('T')[0])
                 }} 
                 className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"
               >
@@ -913,34 +916,22 @@ export default function FinancePage() {
                   <input name="title" required placeholder="Ex: Renda Extra ou Custo Específico..." className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
                     <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Valor {isInstallment ? 'Total' : '(R$)'}</label>
-                    <input name="amount" type="number" step="0.01" required placeholder="0.00" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                    <input name="amount" type="number" step="0.01" required placeholder="0.00" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-4 text-white focus:outline-none focus:border-red-500 font-bold" />
                   </div>
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Data</label>
-                    <label className="relative flex items-center bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 cursor-pointer hover:border-white/20 transition-colors group">
-                      <span className="text-white text-sm flex-1 pointer-events-none" id="date-display">
-                        {new Date().toLocaleDateString('pt-BR')}
-                      </span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--text-muted)] shrink-0 pointer-events-none">
-                        <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
-                      </svg>
-                      <input
-                        name="date"
-                        type="date"
-                        defaultValue={new Date().toISOString().split('T')[0]}
-                        onChange={(e) => {
-                          const display = document.getElementById('date-display')
-                          if (display && e.target.value) {
-                            const [y, m, d] = e.target.value.split('-')
-                            display.textContent = `${d}/${m}/${y}`
-                          }
-                        }}
-                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                  <div className="flex-1 flex items-end">
+                    <div className="w-full relative mt-[-8px]">
+                      <CustomDateTimePicker 
+                        label="Data Base" 
+                        type="date" 
+                        value={txDate} 
+                        onChange={setTxDate} 
+                        align="right" 
+                        direction="up" 
                       />
-                    </label>
+                    </div>
                   </div>
                 </div>
 

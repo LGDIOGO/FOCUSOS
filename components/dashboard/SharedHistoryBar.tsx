@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, Calendar, Filter } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicker'
 
 export type PeriodFilter = 'current_month' | 'last_month' | 'this_year' | 'all_time' | 'custom'
 
@@ -113,19 +114,24 @@ export function SharedHistoryBar({
                       animate={{ opacity: 1, x: 0 }}
                       className="flex items-center gap-2 w-full sm:w-auto"
                     >
-                      <input 
-                        type="date"
-                        value={customRange.start}
-                        onChange={(e) => onCustomRangeChange({ ...customRange, start: e.target.value })}
-                        className="w-full sm:w-auto bg-[var(--bg-workspace)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-sm rounded-xl px-3 py-2 outline-none focus:border-white/30 transition-colors minimal-date-input"
-                      />
-                      <span className="text-[var(--text-muted)] text-xs">até</span>
-                      <input 
-                        type="date"
-                        value={customRange.end}
-                        onChange={(e) => onCustomRangeChange({ ...customRange, end: e.target.value })}
-                        className="w-full sm:w-auto bg-[var(--bg-workspace)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-sm rounded-xl px-3 py-2 outline-none focus:border-white/30 transition-colors minimal-date-input"
-                      />
+                      <div className="w-[160px]">
+                        <CustomDateTimePicker 
+                          label="Início"
+                          type="date"
+                          value={customRange.start}
+                          onChange={(val) => onCustomRangeChange({ ...customRange, start: val })}
+                        />
+                      </div>
+                      <span className="text-[var(--text-muted)] text-xs mt-6">até</span>
+                      <div className="w-[160px]">
+                        <CustomDateTimePicker 
+                          label="Fim"
+                          type="date"
+                          value={customRange.end}
+                          onChange={(val) => onCustomRangeChange({ ...customRange, end: val })}
+                          align="right"
+                        />
+                      </div>
                     </motion.div>
                   )}
                 </div>
