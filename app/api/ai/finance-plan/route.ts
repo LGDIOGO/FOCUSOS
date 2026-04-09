@@ -10,9 +10,9 @@ export async function POST(req: Request) {
     const { income, fixedCosts, variableExpenses, potes } = body;
 
     // Check if API Key is configured
-    const grokKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
+    const grokKey = process.env.GROQ_API_KEY?.trim();
     if (!grokKey) {
-      console.warn("GROK_API_KEY is not set. Returning fallback mock plan.");
+      console.warn("GROQ_API_KEY is not set. Returning fallback mock plan.");
       // Return a very generic AI Mock plan highlighting it's a fallback
       return NextResponse.json({
         plan: [
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
 
     const openai = new OpenAI({
       apiKey: grokKey,
-      baseURL: 'https://api.x.ai/v1',
+      baseURL: 'https://api.groq.com/openai/v1',
     });
 
     const prompt = `
@@ -69,10 +69,9 @@ export async function POST(req: Request) {
     `;
 
     const response = await openai.chat.completions.create({
-      model: 'grok-2-latest', // or whatever model is available
+      model: 'llama-3.3-70b-versatile',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
-      response_format: { type: "json_object" } // enforcing JSON if possible, but we asked for an array, so let's parse carefully
     });
 
     let aiContent = response.choices[0].message.content || '[]';
