@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Wallet, TrendingUp, Target, Shield, BookOpen, Plane, Crown, Play, CheckCircle2, ChevronRight, Plus, Rocket, X, Zap, ArrowRight, Check, History, Trash2
+  Wallet, TrendingUp, Target, Shield, BookOpen, Plane, Crown, Play, CheckCircle2, ChevronRight, Plus, Rocket, X, Zap, ArrowRight, Check, History, Trash2, Sparkles
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { 
@@ -62,11 +62,16 @@ export default function FinancePage() {
   const [aportePoteId, setAportePoteId] = useState<string | null>(null)
   
   const [isGeneratingAI, setIsGeneratingAI] = useState(false)
+  const [isParsing, setIsParsing] = useState(false)
   const [isInstallment, setIsInstallment] = useState(false)
   const [txType, setTxType] = useState<'expense' | 'income'>('expense')
   const [txCategory, setTxCategory] = useState<string>('')
   const [txDate, setTxDate] = useState(() => new Date().toISOString().split('T')[0])
   const [showNature, setShowNature] = useState(false)
+  
+  const [txTitle, setTxTitle] = useState('')
+  const [txAmount, setTxAmount] = useState<string>('')
+  const [isTransactionTypeLocked, setIsTransactionTypeLocked] = useState(false)
 
   // ONBOARDING WIZARD STATE
   const [showWizard, setShowWizard] = useState(false)
@@ -103,7 +108,80 @@ export default function FinancePage() {
   const periodRemnant = totalIncome - (totalFixedCosts + totalExpense)
 
   // AI GENERATION FUNCTION CONNECTED TO BACKEND
+  const handleMagicParse = async () => {
+    if (!txTitle || isParsing) return
+    setIsParsing(true)
+    try {
+      const response = await fetch('/api/ai/parse-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: txTitle,
+          type: 'finance'
+        })
+      })
+      const data = await response.json()
+      if (data.error) throw new Error(data.error)
+
+      setTxTitle(data.title || txTitle)
+      if (data.amount && !isNaN(parseFloat(data.amount))) {
+        setTxAmount(parseFloat(data.amount).toString())
+      }
+      if (data.transaction_type && !isTransactionTypeLocked && ['income', 'expense'].includes(data.transaction_type)) {
+        setTxType(data.transaction_type)
+      }
+      if (data.nature && ['necessidade', 'urgencia', 'desejo'].includes(data.nature)) {
+        setSelectedNature(data.nature)
+        setShowNature(true)
+      }
+    } catch (err) {
+      console.error('Magic Parse Fail:', err)
+    } finally {
+      setIsParsing(false)
+    }
+  }
+
+  // AI GENERATION FUNCTION CONNECTED TO BACKEND
   const handleGenerateAIPlan = async () => {
+    setIsGeneratingAI(true)
+    try {
+      const response = await fetch('/api/ai/finance-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          income: totalIncome,
+          fixedCosts: totalFixedCosts,
+          variableExpenses: totalExpense,
+          potes: potes.map(p => ({ title: p.title, percent: p.allocation_type === 'percentage' ? p.allocation_value : 0 })),
+          // Enviar projeções futuras conhecidas
+          futureTransactions: transactions.filter(t => t.date > new Date().toISOString().split('T')[0]).map(t => ({
+            title: t.title,
+            amount: t.amount,
+            date: t.date,
+            type: t.type,
+            nature: t.nature
+          }))
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Falha ao gerar o plano pelo servidor.')
+      }
+
+      const data = await response.json()
+      
+      if (data.plan && Array.isArray(data.plan)) {
+        await updateRoadmap.mutateAsync(JSON.stringify(data.plan))
+      }
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setIsGeneratingAI(false)
+    }
+  }
+
+  // CLOSE WIZARD
+  const completeWizard = async () => {
     setIsGeneratingAI(true)
     try {
       const response = await fetch('/api/ai/finance-plan', {
@@ -313,7 +391,10 @@ export default function FinancePage() {
         
         {/* Quick Add Buttons */}
         <div className="flex items-center gap-3">
-          <button onClick={() => setTransactionModalOpen(true)} className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-overlay)] hover:bg-white/5 border border-[var(--border-subtle)] hover:border-white/10 rounded-xl text-sm font-bold transition-all shadow-sm">
+          <button onClick={() => {
+            setIsTransactionTypeLocked(false)
+            setTransactionModalOpen(true)
+          }} className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-overlay)] hover:bg-white/5 border border-[var(--border-subtle)] hover:border-white/10 rounded-xl text-sm font-bold transition-all shadow-sm">
              <Plus size={16} /> Movimentação Rápida
           </button>
         </div>
@@ -385,7 +466,10 @@ export default function FinancePage() {
                      <h3 className="text-xl font-black tracking-tight flex items-center gap-3">
                        <Wallet className="text-[var(--text-muted)]" /> Diário de Caixa
                      </h3>
-                     <button onClick={() => setTransactionModalOpen(true)} className="text-xs font-bold bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors text-[var(--text-secondary)]">Adicionar Novo</button>
+                     <button onClick={() => {
+                        setIsTransactionTypeLocked(false)
+                        setTransactionModalOpen(true)
+                      }} className="text-xs font-bold bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors text-[var(--text-secondary)]">Adicionar Novo</button>
                    </div>
                    
                    {recentTransactions.length === 0 ? (
@@ -578,7 +662,11 @@ export default function FinancePage() {
                       <p className="text-[var(--text-secondary)] mt-1 font-medium italic">Baseado nos filtros de período selecionados abaixo.</p>
                     </div>
                     <div className="flex gap-4">
-                       <button onClick={() => setTransactionModalOpen(true)} className="px-6 py-4 bg-white text-black font-black text-sm uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl">
+                       <button onClick={() => {
+                          setTxType('expense')
+                          setIsTransactionTypeLocked(true)
+                          setTransactionModalOpen(true)
+                        }} className="px-6 py-4 bg-white text-black font-black text-sm uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl">
                          Lançar Novo Gasto
                        </button>
                     </div>
@@ -862,6 +950,8 @@ export default function FinancePage() {
                   setTxType('expense')
                   setShowNature(false)
                   setTxDate(new Date().toISOString().split('T')[0])
+                  setTxTitle('')
+                  setTxAmount('')
                 }} 
                 className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"
               >
@@ -910,16 +1000,32 @@ export default function FinancePage() {
                 setTransactionModalOpen(false)
                 setIsInstallment(false)
                 setSelectedNature(null)
+                setTxTitle('')
+                setTxAmount('')
               }} className="space-y-4">
-                <div>
+                <div className="relative">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Descrição</label>
-                  <input name="title" required placeholder="Ex: Renda Extra ou Custo Específico..." className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                  <div className="relative group/input">
+                    <input name="title" value={txTitle} onChange={e => setTxTitle(e.target.value)} required placeholder="Exaustivo: Uber 25 reais urgente..." className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-red-500" />
+                    <button
+                      type="button"
+                      onClick={handleMagicParse}
+                      disabled={isParsing || !txTitle}
+                      className={cn(
+                        "absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all",
+                        isParsing ? "bg-white/5 animate-pulse" : "bg-transparent hover:bg-white/5",
+                        txTitle ? "text-red-500 opacity-100" : "text-[var(--text-muted)] opacity-0 pointer-events-none"
+                      )}
+                    >
+                      {isParsing ? <Sparkles size={18} className="animate-spin" /> : <Sparkles size={18} className={cn(txTitle && "animate-pulse")} />}
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="flex-1">
                     <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Valor {isInstallment ? 'Total' : '(R$)'}</label>
-                    <input name="amount" type="number" step="0.01" required placeholder="0.00" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-4 text-white focus:outline-none focus:border-red-500 font-bold" />
+                    <input name="amount" value={txAmount} onChange={e => setTxAmount(e.target.value)} type="number" step="0.01" required placeholder="0.00" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-4 text-white focus:outline-none focus:border-red-500 font-bold" />
                   </div>
                   <div className="flex-1 flex items-end">
                     <div className="w-full relative mt-[-8px]">
@@ -936,28 +1042,30 @@ export default function FinancePage() {
                 </div>
 
                 {/* MOVIMENTO */}
-                <div className="space-y-2">
-                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] block">Movimento</label>
-                  <div className="flex gap-2">
-                    {([{ value: 'expense', label: '↓ Saída' }, { value: 'income', label: '↑ Entrada' }] as const).map(opt => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => { setTxType(opt.value); setTxCategory(''); setSelectedNature(null); setShowNature(false) }}
-                        className={cn(
-                          "flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest border transition-all",
-                          txType === opt.value
-                            ? opt.value === 'expense'
-                              ? "bg-red-500/15 border-red-500/60 text-red-400"
-                              : "bg-green-500/15 border-green-500/60 text-green-400"
-                            : "bg-white/5 border-white/5 text-[var(--text-muted)] hover:bg-white/10"
-                        )}
-                      >{opt.label}</button>
-                    ))}
+                {!isTransactionTypeLocked && (
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] block">Movimento</label>
+                    <div className="flex gap-2">
+                      {([{ value: 'expense', label: '↓ Saída' }, { value: 'income', label: '↑ Entrada' }] as const).map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => { setTxType(opt.value); setTxCategory(''); setSelectedNature(null); setShowNature(false) }}
+                          className={cn(
+                            "flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest border transition-all",
+                            txType === opt.value
+                              ? opt.value === 'expense'
+                                ? "bg-red-500/15 border-red-500/60 text-red-400"
+                                : "bg-green-500/15 border-green-500/60 text-green-400"
+                              : "bg-white/5 border-white/5 text-[var(--text-muted)] hover:bg-white/10"
+                          )}
+                        >{opt.label}</button>
+                      ))}
+                    </div>
                   </div>
-                  {/* Hidden input to carry the value */}
-                  <input type="hidden" name="type" value={txType} />
-                </div>
+                )}
+                {/* Hidden input to carry the value always */}
+                <input type="hidden" name="type" value={txType} />
 
                 {/* CLASSIFICAÇÃO */}
                 <div className="space-y-2">

@@ -30,6 +30,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
 
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false)
   const [newCategory, setNewCategory] = useState({ name: '', icon: '📁', color: '#e02020' })
+  const [isParsing, setIsParsing] = useState(false)
 
   const [formData, setFormData] = useState<Partial<Goal>>({
     title: '',
@@ -82,6 +83,36 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
       }
     }
   }, [formData.current_value, formData.target_value, formData.initial_value])
+
+  const handleMagicParse = async () => {
+    if (!formData.title || isParsing) return
+    setIsParsing(true)
+    try {
+      const response = await fetch('/api/ai/parse-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: formData.title,
+          type: 'goal',
+          categories: categories?.filter(c => c.type === 'goals').map(c => ({ id: c.id, name: c.name })),
+        })
+      })
+      const data = await response.json()
+      if (data.error) throw new Error(data.error)
+
+      setFormData(prev => ({
+        ...prev,
+        title: data.title || prev.title,
+        target_value: data.target_value || prev.target_value,
+        emoji: data.emoji || prev.emoji,
+        category_id: data.category_id || prev.category_id,
+      }))
+    } catch (err) {
+      console.error('Magic Parse Fail:', err)
+    } finally {
+      setIsParsing(false)
+    }
+  }
 
   const handleSliderChange = (pct: number) => {
     const totalContent = (formData.target_value || 0) - (formData.initial_value || 0)
@@ -169,15 +200,29 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 pt-0 space-y-4 custom-scrollbar">
-          <div className="space-y-1">
+          <div className="space-y-1 relative">
             <label className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Título do Objetivo</label>
-            <input 
-              required
-              value={formData.title}
-              onChange={e => setFormData({ ...formData, title: e.target.value })}
-              className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3 text-white text-lg font-bold focus:outline-none focus:border-white/30 transition-all placeholder:text-white/10"
-              placeholder="Ex: Treinar Musculação"
-            />
+            <div className="relative group/input">
+              <input 
+                required
+                value={formData.title}
+                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3 text-white text-lg font-bold focus:outline-none focus:border-white/30 transition-all placeholder:text-white/10 pr-12"
+                placeholder="Exaustivo: Perder 10 kg..."
+              />
+              <button
+                type="button"
+                onClick={handleMagicParse}
+                disabled={isParsing || !formData.title}
+                className={cn(
+                  "absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all",
+                  isParsing ? "bg-white/5 animate-pulse" : "bg-transparent hover:bg-white/5",
+                  formData.title ? "text-red-500 opacity-100" : "text-[var(--text-muted)] opacity-0 pointer-events-none"
+                )}
+              >
+                {isParsing ? <Sparkles size={20} className="animate-spin" /> : <Sparkles size={20} className={cn(formData.title && "animate-pulse")} />}
+              </button>
+            </div>
           </div>
 
           <div className="space-y-1">
