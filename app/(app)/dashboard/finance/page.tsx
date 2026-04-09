@@ -917,8 +917,28 @@ export default function FinancePage() {
                     <input name="amount" type="number" step="0.01" required placeholder="0.00" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Data Base</label>
-                    <input name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Data</label>
+                    <label className="relative flex items-center bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 cursor-pointer hover:border-white/20 transition-colors group">
+                      <span className="text-white text-sm flex-1 pointer-events-none" id="date-display">
+                        {new Date().toLocaleDateString('pt-BR')}
+                      </span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--text-muted)] shrink-0 pointer-events-none">
+                        <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
+                      </svg>
+                      <input
+                        name="date"
+                        type="date"
+                        defaultValue={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => {
+                          const display = document.getElementById('date-display')
+                          if (display && e.target.value) {
+                            const [y, m, d] = e.target.value.split('-')
+                            display.textContent = `${d}/${m}/${y}`
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      />
+                    </label>
                   </div>
                 </div>
 
@@ -987,30 +1007,40 @@ export default function FinancePage() {
                   <input type="hidden" name="category" value={txCategory || (txType === 'expense' ? 'outros_gasto' : 'outros_renda')} />
                 </div>
 
-                <div className="space-y-3">
-                   <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] block">Natureza da Saída (Opcional)</label>
-                   <div className="grid grid-cols-3 gap-2">
+                {/* NATUREZA — só para saída, colapsável */}
+                {txType === 'expense' && (
+                  <div className="border border-dashed border-white/10 rounded-2xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedNature(selectedNature ? null : 'necessidade')}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
+                    >
+                      <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Natureza da Saída</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Opcional</span>
+                    </button>
+                    <div className="grid grid-cols-3 gap-2 px-4 pb-4">
                       {[
                         { id: 'necessidade', label: 'Necessidade', color: 'blue' },
                         { id: 'urgencia', label: 'Urgência', color: 'red' },
                         { id: 'desejo', label: 'Desejo', color: 'amber' }
                       ].map(nat => (
-                        <button 
+                        <button
                           key={nat.id}
                           type="button"
                           onClick={() => setSelectedNature(selectedNature === nat.id ? null : nat.id as any)}
                           className={cn(
-                            "py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all",
-                            selectedNature === nat.id 
-                              ? `bg-${nat.color}-500/20 border-${nat.color}-500 text-${nat.color}-500 shadow-[0_0_15px_rgba(${nat.color === 'blue' ? '59,130,246' : nat.color === 'red' ? '239,68,68' : '245,158,11'},0.3)]`
+                            "py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all",
+                            selectedNature === nat.id
+                              ? nat.id === 'necessidade' ? "bg-blue-500/15 border-blue-500/60 text-blue-400"
+                              : nat.id === 'urgencia' ? "bg-red-500/15 border-red-500/60 text-red-400"
+                              : "bg-amber-500/15 border-amber-500/60 text-amber-400"
                               : "bg-white/5 border-white/5 text-[var(--text-muted)] hover:bg-white/10"
                           )}
-                        >
-                          {nat.label}
-                        </button>
+                        >{nat.label}</button>
                       ))}
-                   </div>
-                </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* PARCELAR — OPCIONAL */}
                 <div className="border border-dashed border-white/10 rounded-2xl overflow-hidden">
