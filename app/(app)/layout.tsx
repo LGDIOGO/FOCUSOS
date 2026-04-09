@@ -74,13 +74,13 @@ export default function AppLayout({
   const showPaywall = profile && !profile.is_paid && isExpired
 
   return (
-    <div className="flex min-h-screen bg-[var(--bg-primary)] transition-colors duration-300 font-sans relative">
+    <div className="flex min-h-dvh bg-[var(--bg-primary)] transition-colors duration-300 font-sans relative">
       {/* Paywalls */}
       {showCpfOnboarding && <CpfOnboarding />}
       {showPaywall && !showCpfOnboarding && <SubscriptionWall />}
 
       <Sidebar />
-      <main className="flex-1 overflow-y-auto pb-24 md:pb-0 relative bg-[var(--bg-workspace)] rounded-none lg:rounded-tl-[40px] border-l border-white/[0.03] shadow-2xl">
+      <main className="flex-1 overflow-y-auto pb-[calc(env(safe-area-inset-bottom)+80px)] md:pb-0 relative bg-[var(--bg-workspace)] rounded-none lg:rounded-tl-[40px] border-l border-white/[0.03] shadow-2xl">
         {children}
         <NotificationSystem />
       </main>

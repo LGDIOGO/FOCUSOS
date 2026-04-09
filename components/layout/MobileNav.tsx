@@ -18,7 +18,7 @@ export default function MobileNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-t border-[var(--border-subtle)] px-6 py-4 flex justify-between items-center z-[5000] transition-colors duration-300">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-t border-[var(--border-subtle)] px-6 pt-4 pb-safe flex justify-between items-center z-[5000] transition-colors duration-300">
       {NAV_ITEMS.map((item) => {
         const active = pathname === item.href
         return (
@@ -26,11 +26,11 @@ export default function MobileNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "relative flex flex-col items-center gap-1 transition-all duration-300",
+              "relative flex flex-col items-center gap-1.5 p-2 transition-all duration-300 min-w-[60px]",
               active ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
             )}
           >
-            <item.icon size={22} className={cn("transition-colors", active ? "scale-110 text-red-500" : "")} />
+            <item.icon size={24} className={cn("transition-all duration-300", active ? "scale-110 text-red-500" : "")} />
             <span className={cn(
               "text-[10px] font-bold uppercase tracking-widest transition-colors",
               active ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"

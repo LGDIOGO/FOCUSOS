@@ -18,6 +18,12 @@
   --text-muted: rgba(255, 255, 255, 0.35);
   --border-subtle: rgba(255, 255, 255, 0.08);
   --selection-ring: rgba(255, 255, 255, 0.15);
+
+  /* Safe area insets for notched iOS devices (iPhone X+, Dynamic Island) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
 
 :root[data-theme='light'] {
@@ -52,6 +58,9 @@
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  /* Prevent elastic scroll flashing on Safari */
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -60,16 +69,32 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
   letter-spacing: -0.022em;
   transition: background-color 0.3s ease, color 0.3s ease;
+  overscroll-behavior-y: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Use dvh so full-height layouts work correctly on iOS Safari */
+  min-height: 100dvh;
+  /* Prevent pull-to-refresh / elastic bounce exposing the black background */
+  overscroll-behavior: none;
+}
+
+html {
+  /* Prevents any parent-level elastic scroll from breaking layout */
+  overscroll-behavior: none;
+  /* Correct height unit for mobile browsers */
+  height: 100%;
 }
 
 input, textarea, button, select {
   font-family: inherit;
   letter-spacing: inherit;
+  font-size: 16px; /* Prevents iOS zoom on focus */
 }
 
 /* Custom scrollbar for minimalist look */
 ::-webkit-scrollbar {
   width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -124,5 +149,30 @@ input, textarea, button, select {
   
   :root[data-theme='light'] .minimal-date-input::-webkit-calendar-picker-indicator {
     filter: invert(0);
+  }
+
+  /* ─── Dynamic Viewport Height utilities (use instead of h-screen on mobile) ─ */
+  .h-dvh   { height: 100dvh; }
+  .min-h-dvh { min-height: 100dvh; }
+  .max-h-dvh { max-height: 100dvh; }
+  /* Small/Large viewport height variants */
+  .h-svh   { height: 100svh; }
+  .h-lvh   { height: 100lvh; }
+
+  /* ─── Safe Area Padding utilities (use on bottom nav, modals, etc.) ────────── */
+  /* Adds safe area to bottom so content isn't hidden behind iPhone Home indicator */
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .px-safe {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  /* Use on fixed bottom bars to push them above hardware Home indicator */
+  .bottom-safe {
+    bottom: env(safe-area-inset-bottom, 0px);
   }
 }
