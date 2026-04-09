@@ -42,7 +42,7 @@ export function NotificationsCenter({ isOpen, onClose }: NotificationsCenterProp
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2000]"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[10000]"
           />
 
           {/* Panel */}
@@ -51,7 +51,7 @@ export function NotificationsCenter({ isOpen, onClose }: NotificationsCenterProp
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed top-0 right-0 h-screen w-full md:w-[400px] bg-[var(--bg-primary)]/80 backdrop-blur-3xl border-l border-white/[0.08] z-[2001] flex flex-col shadow-2xl"
+            className="fixed top-0 right-0 h-screen w-full md:w-[400px] bg-[var(--bg-primary)]/80 backdrop-blur-3xl border-l border-white/[0.08] z-[10001] flex flex-col shadow-2xl"
           >
             {/* Glossy top detail */}
             <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />

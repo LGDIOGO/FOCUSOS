@@ -133,7 +133,7 @@ export function NotificationSystem() {
   }, [settings, events, habits, notify])
 
   return (
-    <div className="fixed top-6 right-6 z-[2000] flex flex-col gap-3 pointer-events-none">
+    <div className="fixed top-6 right-6 z-[30000] flex flex-col gap-3 pointer-events-none">
       <AnimatePresence>
         {activeNotifications.map((notif) => (
           <motion.div

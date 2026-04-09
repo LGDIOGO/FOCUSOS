@@ -128,8 +128,9 @@ export default function FinancePage() {
       if (data.error) throw new Error(data.error)
 
       if (data.title) setTxTitle(data.title)
-      if (data.amount && !isNaN(parseFloat(data.amount))) {
-        setTxAmount(parseFloat(data.amount).toString())
+      if (typeof data.amount === 'number' || (data.amount && !isNaN(parseFloat(data.amount)))) {
+        const val = typeof data.amount === 'number' ? data.amount : parseFloat(data.amount)
+        setTxAmount(val.toString())
       }
       if (data.date) {
         setTxDate(data.date)
@@ -248,7 +249,7 @@ export default function FinancePage() {
   // --- WIZARD RENDER ---
   if (showWizard) {
     return (
-      <div className="fixed inset-0 z-50 bg-[var(--bg-primary)] flex items-center justify-center p-6">
+      <div className="fixed inset-0 z-[10000] bg-[var(--bg-primary)] flex items-center justify-center p-6">
         <div className="max-w-2xl w-full">
           <AnimatePresence mode="wait">
             
@@ -948,7 +949,7 @@ export default function FinancePage() {
       {/* 1. Modal Transação (Renda/Gasto) */}
       <AnimatePresence>
         {isTransactionModalOpen && (
-          <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
               <button 
                 onClick={() => {
@@ -1193,7 +1194,7 @@ export default function FinancePage() {
 
         {/* 2. Modal Custo Fixo / Assinatura */}
         {isCostModalOpen && (
-          <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md bg-[var(--bg-primary)] border border-red-500/20 rounded-3xl p-6 shadow-[0_0_50px_rgba(239,68,68,0.1)] relative">
               <button onClick={() => setCostModalOpen(false)} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"><X size={20}/></button>
               <h2 className="text-2xl font-black text-red-500 mb-6 flex items-center gap-2"><Shield size={24}/> Cadastrar Custo Fixo</h2>
@@ -1304,7 +1305,7 @@ export default function FinancePage() {
         {/* 3. Modal Potes */}
         {/* 3. Modal Potes */}
         {isPoteModalOpen && (
-          <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md bg-[var(--bg-primary)] border border-red-500/20 rounded-3xl p-6 shadow-[0_0_50px_rgba(239,68,68,0.1)] relative">
               <button onClick={() => setPoteModalOpen(false)} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"><X size={20}/></button>
               <h2 className="text-2xl font-black text-red-500 mb-6 flex items-center gap-2"><Target size={24}/> Criar Novo Pote</h2>
@@ -1354,7 +1355,7 @@ export default function FinancePage() {
 
         {/* 4. Modal Aporte Pote (Adding manual funds + creating transaction) */}
         {isAporteModalOpen && aportePoteId && (
-          <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[var(--bg-primary)] border border-red-500/20 rounded-3xl p-6 shadow-[0_0_50px_rgba(239,68,68,0.1)] relative">
               <button onClick={() => {setIsAporteModalOpen(false); setAportePoteId(null)}} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"><X size={20}/></button>
               <h2 className="text-2xl font-black text-red-500 mb-6 flex items-center gap-2"><Plus size={24}/> Fazer Aporte</h2>

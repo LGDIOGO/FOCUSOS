@@ -30,7 +30,7 @@ Hoje é: ${today} (${dayName})
 
 JSON DE RESPOSTA (OBRIGATÓRIO):
 {
-  "title": "Nome LIMPO da ação (remova horários, datas, valores e emojis da frase original. Ex: 'Aluguel' ou 'Jogar futebol')",
+  "title": "Nome EXTREMAMENTE LIMPO da ação. REMOVA tudo que for extraído para outros campos (valores, quantidades, unidades, datas, horários). Ex: 'Jogar futebol 50 vezes' -> 'Jogar futebol'. 'Uber 25 reais' -> 'Uber'.",
   "time": "HH:MM (24h) extraído da frase ou null",
   "date": "YYYY-MM-DD extraído da referência temporal ou null (resolva 'amanhã', 'hoje', etc)",
   "emoji": "Um ÚNICO emoji que melhor represente a atividade",
@@ -43,7 +43,7 @@ JSON DE RESPOSTA (OBRIGATÓRIO):
 }
 
 REGRAS CRÍTICAS:
-1. TÍTULO LIMPO: "Corrida amanhã as 10h" -> title: "Corrida". "Mercadinho 50 reais" -> title: "Mercadinho". Nunca inclua dados soltos no título.
+1. TÍTULO LIMPO: É OBRIGATÓRIO remover números e unidades do título. "Ler 10 livros" -> title: "Ler". "Correr 5km" -> title: "Correr".
 2. EMOJI: Escolha um emoji vibrante e contextual.
 3. RECORRÊNCIA: 
    - "Todo dia" ou "diariamente" -> frequency: "daily"
@@ -51,7 +51,7 @@ REGRAS CRÍTICAS:
    - "Toda semana" -> frequency: "weekly"
    - "Todo mes" -> frequency: "monthly"
 4. CATEGORIAS: Mapeie para uma dessas (somente o ID da correta): ${JSON.stringify(categories || [])}
-5. Responda APENAS o JSON, sem markdown. NUNCA coloque vírgula no último item.${ruleExtensions}`
+5. Responda APENAS o JSON, sem nenhum texto explicativo antes ou depois. NUNCA coloque vírgula no último item.${ruleExtensions}`
 }
 
 export async function POST(req: NextRequest) {
@@ -76,16 +76,19 @@ export async function POST(req: NextRequest) {
     const userMessage = `FRASE PARA PARSE: "${text}"\nTIPO: ${type}`
     const result = await model.generateContent(userMessage)
     const textResponse = result.response.text() || ''
-    if (!textResponse) {
-      throw new Error('Resposta da IA vazia')
+    
+    // Mais robusto: extrai o conteúdo entre as primeiras e últimas chaves
+    const jsonMatch = textResponse.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      throw new Error('Formato de resposta da IA inválido')
     }
-    const jsonStr = textResponse.replace(/```json|```/g, '').trim()
-    const parsed = JSON.parse(jsonStr)
+    
+    const parsed = JSON.parse(jsonMatch[0])
 
     return NextResponse.json(parsed)
   } catch (err: unknown) {
     const error = err as Error
     console.error('Parse Error:', error.message)
-    return NextResponse.json({ error: 'Falha no parse inteligente' }, { status: 500 })
+    return NextResponse.json({ error: error.message || 'Falha no parse inteligente' }, { status: 500 })
   }
 }

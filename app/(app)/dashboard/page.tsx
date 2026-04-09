@@ -17,6 +17,7 @@ import { useGoals } from '@/lib/hooks/useGoals'
 import { RealTimeClock } from '@/components/dashboard/RealTimeClock'
 import { useEventsToday, useLogEvent, useUpdateEvent, useDeleteEvent } from '@/lib/hooks/useEvents'
 import { HabitStatus, Habit, Task, CalendarEvent, TaskStatus } from '@/types'
+import { TaskModal } from '@/components/dashboard/TaskModal'
 import { generateLocalInsights } from '@/lib/services/aiService'
 import SeedData from '@/components/dashboard/SeedData'
 import {
@@ -138,6 +139,8 @@ export default function DashboardPage() {
   }, [selectedDate]);
 
   const [isTutorialOpen, setIsTutorialOpen] = useState(false)
+  const [showTaskModal, setShowTaskModal] = useState(false)
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null)
 
   // Dispara tutorial apenas na primeira vez
   useEffect(() => {
@@ -703,7 +706,10 @@ export default function DashboardPage() {
                     setIsSelectionMode(true)
                     toggleSelection(t.id, 'task')
                   }}
-                  onEdit={() => window.location.href = `/dashboard/tasks?edit=${t.id}`}
+                  onEdit={() => {
+                    setTaskToEdit(t)
+                    setShowTaskModal(true)
+                  }}
                   onDelete={() => deleteTask(t.id)}
                   onOpenBubble={(position) => setActiveBubble({
                     id: t.id,
@@ -733,6 +739,15 @@ export default function DashboardPage() {
           goals={goals}
           score={score}
         />
+
+        <TaskModal 
+          isOpen={showTaskModal}
+          onClose={() => {
+            setShowTaskModal(false)
+            setTaskToEdit(null)
+          }}
+          taskToEdit={taskToEdit}
+        />
       </main>
 
       <AnimatePresence>
@@ -741,7 +756,7 @@ export default function DashboardPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[1000] w-[95%] md:w-auto max-w-4xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-4 md:gap-10 shadow-2xl ring-1 ring-white/5"
+            className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[10000] w-[95%] md:w-auto max-w-4xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-4 md:gap-10 shadow-2xl ring-1 ring-white/5"
           >
             <div className="flex flex-col items-center justify-center min-w-[60px] md:min-w-[80px]">
               <span className="text-2xl md:text-3xl font-black text-white leading-none">{selectedItems.length}</span>
@@ -809,7 +824,7 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur border border-white/10 text-white text-base font-medium rounded-full px-5 py-2.5 whitespace-nowrap z-50"
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur border border-white/10 text-white text-base font-medium rounded-full px-5 py-2.5 whitespace-nowrap z-[30000]"
           >
             {toast}
           </motion.div>
@@ -833,7 +848,7 @@ export default function DashboardPage() {
       />
       <AnimatePresence>
         {isBulkDeleteModalOpen && (
-          <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -845,7 +860,7 @@ export default function DashboardPage() {
               initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              className="relative w-full max-w-sm bg-[#111] border border-white/10 rounded-[40px] p-10 shadow-2xl z-[1002]"
+              className="relative w-full max-w-sm bg-[#111] border border-white/10 rounded-[40px] p-10 shadow-2xl z-[10001]"
             >
               <div className="w-20 h-20 rounded-[30px] bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-8 mx-auto text-red-500">
                 <Trash2 size={32} />

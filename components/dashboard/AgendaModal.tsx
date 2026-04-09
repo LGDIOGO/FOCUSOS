@@ -173,7 +173,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[990] flex items-center justify-center p-6 text-left">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 text-left">
       <motion.div 
         initial={{ opacity: 0 }} 
         animate={{ opacity: 1 }} 
@@ -186,7 +186,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-lg bg-[var(--bg-primary)] border text-left border-[var(--border-subtle)] rounded-[40px] md:rounded-[48px] p-5 md:p-7 overflow-y-auto max-h-[90vh] shadow-2xl z-[991] transition-colors duration-300"
+        className="relative w-full max-w-lg bg-[var(--bg-primary)] border text-left border-[var(--border-subtle)] rounded-[40px] md:rounded-[48px] p-5 md:p-7 overflow-y-auto max-h-[90vh] shadow-2xl z-[10001] transition-colors duration-300"
       >
         <div className="flex justify-between items-center mb-10">
           <h2 className="text-4xl font-black tracking-tightest text-[var(--text-primary)] transition-colors">{eventToEdit ? 'Editar Compromisso' : 'Novo Compromisso'}</h2>

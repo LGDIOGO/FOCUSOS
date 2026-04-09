@@ -98,10 +98,10 @@ export function CustomDateTimePicker({
         {isOpen && createPortal(
           <>
             <div 
-              className="fixed inset-0 z-[9999]" 
+              className="fixed inset-0 z-[19999]" 
               onClick={() => setIsOpen(false)} 
             />
-            <div style={getPositionStyle()}>
+            <div style={{ ...getPositionStyle(), zIndex: 20000 }}>
               {type === 'date' ? (
                 <AppleDatePicker 
                   value={value} 

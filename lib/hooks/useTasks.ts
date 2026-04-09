@@ -80,23 +80,26 @@ export function useUpdateTask() {
   const user = auth.currentUser
 
   return useMutation({
-    onMutate: async (vars: any) => {
-      await qc.cancelQueries({ queryKey: ['tasks'] })
-      qc.setQueriesData({ queryKey: ['tasks'] }, (old: any) => {
-        if (!old) return old
-        return old.map((t: any) => t.id === vars.id ? { ...t, status: vars.status, completed_at: vars.completed_at } : t)
-      })
-    },
-    onError: () => {
-      qc.invalidateQueries({ queryKey: ['tasks'] })
-    },
-    mutationFn: async ({ id, status, completed_at }: Partial<Task> & { id: string }) => {
+    mutationFn: async ({ id, ...updates }: Partial<Task> & { id: string }) => {
       if (!user) throw new Error('Not authenticated')
       
       const taskRef = doc(db, 'tasks', id)
+      
+      // Clean up undefined values from updates
+      const cleanUpdates: any = {}
+      if (updates.status !== undefined) cleanUpdates.status = updates.status
+      if (updates.completed_at !== undefined) cleanUpdates.completed_at = updates.completed_at || null
+      if (updates.title !== undefined) cleanUpdates.title = updates.title
+      if (updates.emoji !== undefined) cleanUpdates.emoji = updates.emoji
+      if (updates.description !== undefined) cleanUpdates.description = updates.description
+      if (updates.priority !== undefined) cleanUpdates.priority = updates.priority
+      if (updates.due_date !== undefined) cleanUpdates.due_date = updates.due_date
+      if (updates.due_time !== undefined) cleanUpdates.due_time = updates.due_time
+      if (updates.goal_id !== undefined) cleanUpdates.goal_id = updates.goal_id
+      if (updates.done !== undefined) cleanUpdates.done = updates.done
+
       await updateDoc(taskRef, {
-        status,
-        completed_at: completed_at || null,
+        ...cleanUpdates,
         updated_at: Timestamp.now()
       })
     },

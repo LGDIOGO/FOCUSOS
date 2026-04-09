@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { createPortal } from 'react-dom'
 import { Check, Minus, X, RefreshCcw } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
@@ -54,7 +55,7 @@ export function StatusChoiceBubble({
 
   return (
     <AnimatePresence>
-      {isOpen && (
+      {isOpen && createPortal(
         <>
           {/* Transparent Overlay */}
           <motion.div
@@ -65,7 +66,7 @@ export function StatusChoiceBubble({
               e.stopPropagation()
               onClose()
             }}
-            className="fixed inset-0 z-[1000] bg-black/[0.1] backdrop-blur-[2px] cursor-default pointer-events-auto"
+            className="fixed inset-0 z-[10000] bg-black/[0.1] backdrop-blur-[2px] cursor-default pointer-events-auto"
           />
 
           {/* Bubble Menu */}
@@ -80,7 +81,7 @@ export function StatusChoiceBubble({
               left: `${adjustedPosition.x}px`,
               transform: 'translateX(-50%)'
             }}
-            className="fixed z-[1001] bg-[var(--bg-card)] backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] p-2 flex items-center gap-1.5 shadow-2xl max-w-[95vw]"
+            className="fixed z-[30000] bg-[var(--bg-card)] backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] p-2 flex items-center gap-1.5 shadow-2xl max-w-[95vw]"
           >
             <div className="flex items-center gap-1.5 max-w-full overflow-x-auto scrollbar-none px-1">
               {options.map((opt) => (
@@ -131,7 +132,8 @@ export function StatusChoiceBubble({
               </motion.button>
             </div>
           </motion.div>
-        </>
+        </>,
+        document.body
       )}
     </AnimatePresence>
   )

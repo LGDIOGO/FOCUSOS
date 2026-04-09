@@ -403,7 +403,7 @@ export default function HabitsPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[40px] px-10 py-5 flex items-center gap-10 shadow-2xl ring-1 ring-[var(--text-primary)]/5"
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[10000] bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[40px] px-10 py-5 flex items-center gap-10 shadow-2xl ring-1 ring-[var(--text-primary)]/5"
           >
             <div className="flex flex-col items-center justify-center min-w-[80px]">
               <span className="text-3xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>
