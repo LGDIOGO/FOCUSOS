@@ -215,7 +215,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
                 value={formData.title}
                 onChange={e => setFormData({ ...formData, title: e.target.value })}
                 className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3 text-white text-lg font-bold focus:outline-none focus:border-white/30 transition-all placeholder:text-white/10 pr-12"
-                placeholder="Exaustivo: Perder 10 kg..."
+                placeholder="Ex: Perder 10 kg..."
               />
               <button
                 type="button"
