@@ -430,7 +430,7 @@ export default function FinancePage() {
                      <TrendingUp size={120} />
                   </div>
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-[var(--text-muted)]">Renda Consolidada do Período</h3>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-[var(--text-muted)]">Renda do Período</h3>
                   </div>
                   <div className="text-5xl font-black tracking-tighter text-[var(--text-primary)]">
                     {formatBRL(totalIncome)}
@@ -467,7 +467,8 @@ export default function FinancePage() {
                        <Wallet className="text-[var(--text-muted)]" /> Diário de Caixa
                      </h3>
                      <button onClick={() => {
-                        setIsTransactionTypeLocked(false)
+                        setTxType('income')
+                        setIsTransactionTypeLocked(true)
                         setTransactionModalOpen(true)
                       }} className="text-xs font-bold bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors text-[var(--text-secondary)]">Adicionar Novo</button>
                    </div>

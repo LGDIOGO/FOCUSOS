@@ -68,22 +68,17 @@ export function CustomDateTimePicker({
           <>
             {/* Backdrop for mobile/tablet */}
             <div 
-              className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm lg:hidden" 
+              className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm" 
               onClick={() => setIsOpen(false)} 
             />
             {/* Click area for desktop absolute positioning */}
             <div 
-              className="fixed inset-0 z-[90] hidden lg:block" 
+              className="fixed inset-0 z-[90]" 
               onClick={() => setIsOpen(false)} 
             />
 
             <div className={cn(
-              "z-[100]",
-              // Mobile/Tablet: Fixed Centered
-              "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 lg:absolute lg:top-auto lg:left-auto lg:translate-x-0 lg:translate-y-0",
-              // Desktop: Absolute Positioning
-              direction === 'up' ? "lg:bottom-full lg:mb-4" : "lg:top-full lg:mt-4",
-              align === 'right' ? "lg:right-0" : "lg:left-0"
+              "fixed z-[100] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto shadow-2xl scale-[1.1] md:scale-[1.2]",
             )}>
               {type === 'date' ? (
                 <AppleDatePicker 
