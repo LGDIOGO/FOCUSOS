@@ -1009,7 +1009,7 @@ export default function FinancePage() {
                 <div className="relative">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Descrição</label>
                   <div className="relative group/input">
-                    <input name="title" value={txTitle} onChange={e => setTxTitle(e.target.value)} required placeholder="Exaustivo: Uber 25 reais urgente..." className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-red-500" />
+                    <input name="title" value={txTitle} onChange={e => setTxTitle(e.target.value)} required placeholder={txType === 'expense' ? "Ex: Uber 25 reais urgente..." : "Ex: Recebi 150 reais via Pix..."} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-red-500" />
                     <button
                       type="button"
                       onClick={handleMagicParse}
