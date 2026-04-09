@@ -64,6 +64,7 @@ export default function FinancePage() {
   const [isInstallment, setIsInstallment] = useState(false)
   const [txType, setTxType] = useState<'expense' | 'income'>('expense')
   const [txCategory, setTxCategory] = useState<string>('')
+  const [showNature, setShowNature] = useState(false)
 
   // ONBOARDING WIZARD STATE
   const [showWizard, setShowWizard] = useState(false)
@@ -857,6 +858,7 @@ export default function FinancePage() {
                   setIsInstallment(false)
                   setTxCategory('')
                   setTxType('expense')
+                  setShowNature(false)
                 }} 
                 className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"
               >
@@ -950,7 +952,7 @@ export default function FinancePage() {
                       <button
                         key={opt.value}
                         type="button"
-                        onClick={() => { setTxType(opt.value); setTxCategory('') }}
+                        onClick={() => { setTxType(opt.value); setTxCategory(''); setSelectedNature(null); setShowNature(false) }}
                         className={cn(
                           "flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest border transition-all",
                           txType === opt.value
@@ -1012,12 +1014,13 @@ export default function FinancePage() {
                   <div className="border border-dashed border-white/10 rounded-2xl overflow-hidden">
                     <button
                       type="button"
-                      onClick={() => setSelectedNature(selectedNature ? null : 'necessidade')}
+                      onClick={() => setShowNature(!showNature)}
                       className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
                     >
                       <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Natureza da Saída</span>
                       <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Opcional</span>
                     </button>
+                    {showNature && (
                     <div className="grid grid-cols-3 gap-2 px-4 pb-4">
                       {[
                         { id: 'necessidade', label: 'Necessidade', color: 'blue' },
@@ -1039,6 +1042,7 @@ export default function FinancePage() {
                         >{nat.label}</button>
                       ))}
                     </div>
+                    )}
                   </div>
                 )}
 
