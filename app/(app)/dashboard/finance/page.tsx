@@ -357,7 +357,7 @@ export default function FinancePage() {
                      <Shield size={120} />
                   </div>
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-red-400">Custos & Comprometimento</h3>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-red-400">Saídas do Período</h3>
                   </div>
                   <div className="text-5xl font-black tracking-tighter text-red-500">
                     {formatBRL(totalFixedCosts + totalExpense)}
@@ -366,7 +366,7 @@ export default function FinancePage() {
                     <div className="h-full bg-red-500 transition-all duration-1000" style={{ width: `${Math.min(safeCashFlow, 100)}%` }} />
                   </div>
                   <p className="mt-2 text-xs font-black uppercase tracking-widest text-red-400/60">
-                    {safeCashFlow.toFixed(1)}% Comprometimento do Faturamento
+                    {safeCashFlow.toFixed(1)}% do orçamento utilizado
                   </p>
                 </div>
               </div>
