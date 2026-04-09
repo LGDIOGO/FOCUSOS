@@ -959,7 +959,9 @@ export default function FinancePage() {
                 <X size={20}/>
               </button>
               
-              <h2 className="text-2xl font-black text-[var(--text-primary)] mb-6">Nova Movimentação</h2>
+              <h2 className="text-2xl font-black text-[var(--text-primary)] mb-6">
+                {isTransactionTypeLocked ? (txType === 'income' ? 'Nova Entrada' : 'Novo Gasto') : 'Nova Movimentação'}
+              </h2>
               
               <form onSubmit={async (e) => {
                 e.preventDefault()

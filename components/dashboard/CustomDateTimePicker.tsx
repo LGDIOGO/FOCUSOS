@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Calendar, Clock } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils/cn'
 import { AnimatePresence } from 'framer-motion'
 import { AppleDatePicker } from './AppleDatePicker'
 import { AppleTimePicker } from './AppleTimePicker'
+import { createPortal } from 'react-dom'
 
 interface CustomDateTimePickerProps {
   label: string
@@ -25,6 +26,20 @@ export function CustomDateTimePicker({
   direction = 'down'
 }: CustomDateTimePickerProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, height: 0 })
+
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      setCoords({
+        top: rect.top + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+        height: rect.height
+      })
+    }
+  }, [isOpen])
 
   const getDisplayValue = () => {
     if (!value) return type === 'date' ? '00/00/0000' : '00:00'
@@ -39,8 +54,24 @@ export function CustomDateTimePicker({
     }
   }
 
+  const getPositionStyle = () => {
+    const style: React.CSSProperties = {
+      position: 'fixed',
+      left: align === 'right' ? `${coords.left + coords.width - 300}px` : `${coords.left}px`,
+      zIndex: 100
+    }
+
+    if (direction === 'up') {
+      style.bottom = `${window.innerHeight - coords.top}px`
+    } else {
+      style.top = `${coords.top + coords.height + 8}px`
+    }
+
+    return style
+  }
+
   return (
-    <div className="space-y-2 flex-1 relative">
+    <div className="space-y-2 flex-1" ref={containerRef}>
       <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">{label}</label>
       <div 
         onClick={() => setIsOpen(!isOpen)}
@@ -64,22 +95,13 @@ export function CustomDateTimePicker({
       </div>
 
       <AnimatePresence>
-        {isOpen && (
+        {isOpen && createPortal(
           <>
-            {/* Backdrop for mobile/tablet */}
-            <div 
-              className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm" 
-              onClick={() => setIsOpen(false)} 
-            />
-            {/* Click area for desktop absolute positioning */}
             <div 
               className="fixed inset-0 z-[90]" 
               onClick={() => setIsOpen(false)} 
             />
-
-            <div className={cn(
-              "fixed z-[100] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto shadow-2xl scale-[1.1] md:scale-[1.2]",
-            )}>
+            <div style={getPositionStyle()}>
               {type === 'date' ? (
                 <AppleDatePicker 
                   value={value} 
@@ -96,7 +118,8 @@ export function CustomDateTimePicker({
                 />
               )}
             </div>
-          </>
+          </>,
+          document.body
         )}
       </AnimatePresence>
     </div>
