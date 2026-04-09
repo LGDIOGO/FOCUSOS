@@ -587,8 +587,8 @@ export default function AgendaPage() {
               >
                 <div className="flex items-center gap-4 px-2">
                    <h2 className={cn(
-                     "text-base font-black uppercase tracking-widest",
-                     isToday(parseISO(date)) ? "text-white" : "text-white/20"
+                     "text-sm font-black uppercase tracking-widest",
+                     isToday(parseISO(date)) ? "text-white" : "text-white/30"
                    )}>
                      {isToday(parseISO(date)) ? `Hoje • ${format(parseISO(date), 'dd/MM/yyyy')}` : 
                       isTomorrow(parseISO(date)) ? `Amanhã • ${format(parseISO(date), 'dd/MM/yyyy')}` : 
@@ -618,7 +618,7 @@ export default function AgendaPage() {
         </div>
 
         <div className="space-y-8 lg:sticky lg:top-14 h-fit">
-           <div className="p-6 md:p-8 bg-white/[0.02] border border-white/10 rounded-[32px] md:rounded-[40px] space-y-6">
+           <div className="p-6 md:p-8 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-[32px] space-y-6">
               <h3 className="font-black text-base uppercase tracking-widest text-white/60">Próximos Dias</h3>
               <div className="space-y-4">
                  {[0, 1, 2, 3].map(i => {

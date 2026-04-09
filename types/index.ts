@@ -167,6 +167,13 @@ export interface FinancePote {
   created_at: string;
 }
 
+export interface FinanceRoadmap {
+  id: string;
+  user_id: string;
+  plan_json: string;
+  created_at: string;
+}
+
 export interface FocusNotification {
   id: string;
   user_id: string;

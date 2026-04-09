@@ -20,19 +20,21 @@ import {
 import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, subDays } from 'date-fns'
 import { Habit } from '@/types'
 
-export function useHabitsHistory() {
+export function useHabitsHistory(startDate?: string, endDate?: string) {
   const user = auth.currentUser
   return useQuery({
-    queryKey: ['habits', 'history', user?.uid],
+    queryKey: ['habits', 'history', user?.uid, startDate, endDate],
     queryFn: async () => {
       if (!user) return []
-      // Get logs from the last 30 days
-      const thirtyDaysAgo = format(subDays(new Date(), 30), 'yyyy-MM-dd')
+      
+      const qStart = startDate || '2000-01-01'
+      const qEnd = endDate || '2100-12-31'
       
       const q = query(
         collection(db, 'habit_logs'),
         where('user_id', '==', user.uid),
-        where('log_date', '>=', thirtyDaysAgo)
+        where('log_date', '>=', qStart),
+        where('log_date', '<=', qEnd)
       )
       const snap = await getDocs(q)
       const logs = snap.docs.map(d => d.data())

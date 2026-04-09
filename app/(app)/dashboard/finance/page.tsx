@@ -15,19 +15,23 @@ import { useAddEvent } from '@/lib/hooks/useEvents'
 
 import { 
   format, isSameMonth, isSameWeek, isSameYear, parseISO, subDays, startOfWeek, endOfWeek, 
-  differenceInDays, isWithinInterval, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear,
-  addMonths
+  differenceInDays, isWithinInterval, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, addMonths
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { SharedHistoryBar, PeriodFilter, DateRange } from '@/components/dashboard/SharedHistoryBar'
+import { getDateRangeFromPeriod } from '@/lib/utils/dateFilters'
 
 export default function FinancePage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'expenses' | 'potes' | 'roadmap'>('overview')
   const [selectedNature, setSelectedNature] = useState<'necessidade' | 'urgencia' | 'desejo' | null>(null)
+  // Global Dashboard & History Filter
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
-  const [historyPeriod, setHistoryPeriod] = useState<'week' | 'month' | 'year' | 'all' | 'custom'>('all')
-  const [historyType, setHistoryType] = useState<'all' | 'income' | 'expense'>('all')
-  const [historyStartDate, setHistoryStartDate] = useState<string>('')
-  const [historyEndDate, setHistoryEndDate] = useState<string>('')
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('current_month')
+  const [customRange, setCustomRange] = useState<DateRange>({ start: '', end: '' })
+  
+  const resolvedDateRange = useMemo(() => {
+    return getDateRangeFromPeriod(periodFilter, customRange)
+  }, [periodFilter, customRange])
 
   // DATA HOOKS
   const { data: transactions = [], isLoading: isLoadingTx } = useFinanceTransactions()
@@ -72,14 +76,26 @@ export default function FinancePage() {
     }
   }, [dataIsLoading, transactions.length, costs.length, potes.length])
 
-  // DERIVED DATA
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0)
-  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0)
+  // FILTER TRANSACTIONS GLOBALLY BY SELECTED DATE RANGE
+  const filteredGlobalTransactions = useMemo(() => {
+    return transactions.filter(t => {
+      // Ignore filter parsing if 'all_time' or if t.date doesn't strictly exist
+      if (periodFilter === 'all_time') return true
+      if (!t.date) return false
+      
+      const txDate = t.date.split('T')[0] // yyyy-MM-dd
+      return txDate >= resolvedDateRange.start && txDate <= resolvedDateRange.end
+    })
+  }, [transactions, periodFilter, resolvedDateRange])
+
+  // DERIVED DATA (BASED ON FILTERED PERIOD)
+  const totalIncome = filteredGlobalTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0)
+  const totalExpense = filteredGlobalTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0)
   const totalFixedCosts = costs.reduce((acc, c) => acc + c.amount, 0)
   
-  // Comprometimento do Mês
+  // Comprometimento do Período
   const safeCashFlow = totalIncome > 0 ? (totalFixedCosts + totalExpense) / totalIncome * 100 : 0
-  const monthlyRemnant = totalIncome - (totalFixedCosts + totalExpense)
+  const periodRemnant = totalIncome - (totalFixedCosts + totalExpense)
 
   // AI GENERATION FUNCTION CONNECTED TO BACKEND
   const handleGenerateAIPlan = async () => {
@@ -123,37 +139,14 @@ export default function FinancePage() {
   const formatBRL = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
 
   // FILTERING LOGIC
-  // Sort all transactions by date descending
-  const sortedTransactions = [...transactions].sort((a, b) => b.date.localeCompare(a.date))
+  // Sort transactions by date descending
+  const sortedFilteredTransactions = [...filteredGlobalTransactions].sort((a, b) => b.date.localeCompare(a.date))
   
   // Recent transactions for the main "Diário de Caixa" (limit to top 10 most recent)
-  const recentTransactions = sortedTransactions.slice(0, 10)
+  const recentTransactions = sortedFilteredTransactions.slice(0, 10)
 
-  // Filtered transactions for the History view
-  const filteredHistory = useMemo(() => {
-    return sortedTransactions.filter(t => {
-      // Filter by Type
-      if (historyType !== 'all' && t.type !== historyType) return false
-      
-      // Filter by Period/Range
-      const tDate = parseISO(t.date)
-      const now = new Date()
-
-      if (historyPeriod === 'custom') {
-        if (historyStartDate && t.date < historyStartDate) return false
-        if (historyEndDate && t.date > historyEndDate) return false
-      } else if (historyPeriod !== 'all') {
-        if (historyPeriod === 'week') {
-           if (!isSameWeek(tDate, now, { locale: ptBR })) return false
-        } else if (historyPeriod === 'month') {
-           if (!isSameMonth(tDate, now)) return false
-        } else if (historyPeriod === 'year') {
-           if (!isSameYear(tDate, now)) return false
-        }
-      }
-      return true
-    })
-  }, [sortedTransactions, historyPeriod, historyType, historyStartDate, historyEndDate])
+  // Filtered transactions for the History view (same as global, but we use them all un-sliced)
+  const filteredHistory = sortedFilteredTransactions
 
   const historyIncomeTotal = filteredHistory.filter((t: any) => t.type === 'income').reduce((acc: number, t: any) => acc + t.amount, 0)
   const historyExpenseTotal = filteredHistory.filter((t: any) => t.type === 'expense').reduce((acc: number, t: any) => acc + t.amount, 0)
@@ -462,212 +455,94 @@ export default function FinancePage() {
               </div>
 
               {/* HISTÓRICO EXPANSÍVEL (FINANCE) */}
-              <div className="pt-8">
-                <button 
-                  onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-                  className="w-full flex items-center gap-4 px-4 py-8 group bg-gradient-to-r from-[var(--bg-overlay)] to-transparent rounded-[32px] border border-[var(--border-subtle)] hover:border-[var(--text-primary)]/20 transition-all"
-                >
-                  <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-white/5 border border-white/10 group-hover:bg-white group-hover:text-black transition-colors">
-                    <TrendingUp size={20} />
+              <SharedHistoryBar
+                icon={TrendingUp}
+                title="Histórico & Extrato Completo"
+                subtitle={periodFilter === 'custom' ? 'Período Personalizado' : 'Analise suas transações do período filtrado acima'}
+                badgeText={`${filteredHistory.length} Registros`}
+                isOpen={isHistoryOpen}
+                onToggle={() => setIsHistoryOpen(!isHistoryOpen)}
+                filterValue={periodFilter}
+                onFilterChange={setPeriodFilter}
+                customRange={customRange}
+                onCustomRangeChange={setCustomRange}
+              >
+                <div className="pt-2 pb-4 space-y-8 md:pl-4">
+
+                  {/* Visual Summary */}
+                  <div className="grid grid-cols-2 gap-6">
+                     <div className="p-6 bg-green-500/5 border border-green-500/10 rounded-3xl">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-green-500/50 mb-1">Entradas (Período Atual)</p>
+                        <p className="text-2xl font-black text-green-500">{formatBRL(historyIncomeTotal)}</p>
+                     </div>
+                     <div className="p-6 bg-white/5 border border-[var(--border-subtle)] rounded-3xl">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">Saídas (Período Atual)</p>
+                        <p className="text-2xl font-black text-[var(--text-primary)]">- {formatBRL(historyExpenseTotal)}</p>
+                     </div>
                   </div>
-                  <div className="flex flex-col items-start text-left flex-1">
-                    <span className="text-xl font-black text-[var(--text-primary)]">Histórico & Extrato Completo</span>
-                    <span className="text-[10px] uppercase font-black tracking-widest text-[var(--text-muted)] group-hover:text-white/50 transition-colors">Analise suas métricas de semanas/meses e anos passados</span>
-                  </div>
-                  <ChevronRight 
-                    size={24} 
-                    className={cn(
-                      "text-[var(--text-muted)] transition-transform duration-500",
-                      isHistoryOpen ? "rotate-90" : ""
-                    )} 
-                  />
-                </button>
 
-                <AnimatePresence>
-                  {isHistoryOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="pt-8 pb-4 space-y-8">
-                        {/* Control Panel: Filters */}
-                        <div className="flex flex-col md:flex-row gap-4 items-center justify-between p-6 bg-[var(--bg-overlay)] rounded-3xl border border-[var(--border-subtle)]">
-                          <div className="flex flex-col gap-4 w-full">
-                            <div className="flex items-center gap-2 overflow-x-auto w-full pb-2 [scrollbar-width:none]">
-                              {[
-                                { id: 'all', label: 'Todo o Período' },
-                                { id: 'month', label: 'Este Mês' },
-                                { id: 'last_month', label: 'Mês Passado' },
-                                { id: 'year', label: 'Este Ano' },
-                                { id: 'custom', label: 'Personalizado' }
-                              ].map(btn => (
-                                <button 
-                                  key={btn.id}
-                                  onClick={() => {
-                                    setHistoryPeriod(btn.id as any)
-                                    if (btn.id === 'last_month') {
-                                      const last = subMonths(new Date(), 1)
-                                      setHistoryStartDate(format(startOfMonth(last), 'yyyy-MM-dd'))
-                                      setHistoryEndDate(format(endOfMonth(last), 'yyyy-MM-dd'))
-                                      setHistoryPeriod('custom')
-                                    } else if (btn.id === 'month') {
-                                      setHistoryStartDate(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
-                                      setHistoryEndDate(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
-                                      setHistoryPeriod('custom')
-                                    } else if (btn.id === 'year') {
-                                      setHistoryStartDate(format(startOfYear(new Date()), 'yyyy-MM-dd'))
-                                      setHistoryEndDate(format(endOfYear(new Date()), 'yyyy-MM-dd'))
-                                      setHistoryPeriod('custom')
-                                    }
-                                  }}
-                                  className={cn(
-                                    "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all",
-                                    (historyPeriod === btn.id || (btn.id === 'custom' && historyPeriod === 'custom')) ? "bg-white text-black" : "bg-white/5 text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-primary)]"
-                                  )}
-                                >
-                                  {btn.label}
-                                </button>
-                              ))}
-                            </div>
-
-                            {historyPeriod === 'custom' && (
-                              <motion.div 
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="flex flex-wrap items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10"
-                              >
-                                <div className="flex flex-col gap-1">
-                                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Início</label>
-                                  <input 
-                                    type="date" 
-                                    value={historyStartDate}
-                                    onChange={(e) => setHistoryStartDate(e.target.value)}
-                                    className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
-                                  />
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Fim</label>
-                                  <input 
-                                    type="date" 
-                                    value={historyEndDate}
-                                    onChange={(e) => setHistoryEndDate(e.target.value)}
-                                    className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
-                                  />
-                                </div>
-                                <button 
-                                  onClick={() => {
-                                    setHistoryStartDate('')
-                                    setHistoryEndDate('')
-                                    setHistoryPeriod('all')
-                                  }}
-                                  className="mt-5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                                >
-                                  Limpar
-                                </button>
-                              </motion.div>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 [scrollbar-width:none]">
-                             {[
-                              { id: 'all', label: 'Geral', colorClass: 'text-[var(--text-primary)]' },
-                              { id: 'income', label: 'Entradas (+)', colorClass: 'text-green-500' },
-                              { id: 'expense', label: 'Saídas (-)', colorClass: 'text-[var(--text-primary)]' }
-                            ].map(btn => (
-                              <button 
-                                key={btn.id}
-                                onClick={() => setHistoryType(btn.id as any)}
-                                className={cn(
-                                  "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all",
-                                  historyType === btn.id ? "bg-white/10 ring-1 ring-white/20" : "bg-transparent text-[var(--text-muted)] hover:bg-white/5",
-                                  historyType === btn.id ? btn.colorClass : ""
-                                )}
-                              >
-                                {btn.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Visual Summary */}
-                        <div className="grid grid-cols-2 gap-6">
-                           <div className="p-6 bg-green-500/5 border border-green-500/10 rounded-3xl">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-green-500/50 mb-1">Total Entradas (Filtro)</p>
-                              <p className="text-2xl font-black text-green-500">{formatBRL(historyIncomeTotal)}</p>
-                           </div>
-                           <div className="p-6 bg-white/5 border border-[var(--border-subtle)] rounded-3xl">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">Total Saídas (Filtro)</p>
-                              <p className="text-2xl font-black text-[var(--text-primary)]">- {formatBRL(historyExpenseTotal)}</p>
-                           </div>
-                        </div>
-
-                        {/* History List */}
-                        <div className="bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-[40px] p-6 lg:p-10">
-                          {filteredHistory.length === 0 ? (
-                            <div className="text-center py-10 opacity-50">
-                              <History className="mx-auto text-[var(--text-muted)] mb-4" size={40} />
-                              <p className="font-bold text-[var(--text-primary)]">Nenhum registro encontrado</p>
-                              <p className="text-sm font-medium text-[var(--text-muted)]">Nenhum histórico disponível para este filtro.</p>
-                            </div>
-                          ) : (
-                            <div className="space-y-4">
-                               {filteredHistory.map((t: any, i: number) => {
-                                 // Group by Date logically (just basic map for now, keeping it elegant)
-                                 const isIncome = t.type === 'income'
-                                 const fDate = format(parseISO(t.date), "EEEE, dd 'de' MMM", { locale: ptBR })
-                                 const prevDate = i > 0 ? format(parseISO(filteredHistory[i-1].date), "EEEE, dd 'de' MMM", { locale: ptBR }) : null
-                                 const showHeader = fDate !== prevDate
-
-                                 return (
-                                   <div key={t.id}>
-                                     {showHeader && (
-                                       <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-8 mb-4 border-b border-[var(--border-subtle)] pb-2">{fDate}</h4>
-                                     )}
-                                     <div className="group flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-colors">
-                                        <div className="flex items-center gap-4">
-                                          <div className={cn(
-                                            "w-10 h-10 rounded-xl flex items-center justify-center",
-                                            isIncome ? "bg-green-500/10 text-green-500" : "bg-white/5 text-[var(--text-primary)]"
-                                          )}>
-                                            {isIncome ? <TrendingUp size={18} /> : <Wallet size={18} />}
-                                          </div>
-                                          <div>
-                                            <p className="font-bold text-[var(--text-primary)] text-sm">{t.title}</p>
-                                            <p className="text-[10px] uppercase font-black tracking-widest text-[var(--text-muted)] opacity-60">
-                                              {t.category || 'Geral'}
-                                            </p>
-                                          </div>
-                                        </div>
-                                        
-                                        <div className="flex items-center gap-4">
-                                          <span className={cn(
-                                            "font-black text-lg",
-                                            isIncome ? "text-green-500" : "text-[var(--text-primary)]"
-                                          )}>
-                                            {isIncome ? '+' : '-'}{formatBRL(t.amount)}
-                                          </span>
-                                          <button 
-                                            onClick={() => deleteTransaction.mutate(t.id)} 
-                                            className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
-                                            title="Excluir Transação do Histórico"
-                                          >
-                                            <Trash2 size={16}/>
-                                          </button>
-                                        </div>
-                                     </div>
-                                   </div>
-                                 )
-                               })}
-                            </div>
-                          )}
-                        </div>
+                  {/* History List */}
+                  <div className="rounded-[40px]">
+                    {filteredHistory.length === 0 ? (
+                      <div className="text-center py-10 opacity-50">
+                        <History className="mx-auto text-[var(--text-muted)] mb-4" size={40} />
+                        <p className="font-bold text-[var(--text-primary)]">Nenhum registro encontrado</p>
+                        <p className="text-sm font-medium text-[var(--text-muted)]">Nenhum histórico disponível para este filtro.</p>
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                    ) : (
+                      <div className="space-y-4">
+                         {filteredHistory.map((t: any, i: number) => {
+                           // Group by Date logically
+                           const isIncome = t.type === 'income'
+                           const fDate = format(parseISO(t.date), "EEEE, dd 'de' MMM", { locale: ptBR })
+                           const prevDate = i > 0 ? format(parseISO(filteredHistory[i-1].date), "EEEE, dd 'de' MMM", { locale: ptBR }) : null
+                           const showHeader = fDate !== prevDate
+
+                           return (
+                             <div key={t.id}>
+                               {showHeader && (
+                                 <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-8 mb-4 border-b border-[var(--border-subtle)] pb-2">{fDate}</h4>
+                               )}
+                               <div className="group flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-colors">
+                                  <div className="flex items-center gap-4">
+                                    <div className={cn(
+                                      "w-10 h-10 rounded-xl flex items-center justify-center",
+                                      isIncome ? "bg-green-500/10 text-green-500" : "bg-white/5 text-[var(--text-primary)]"
+                                    )}>
+                                      {isIncome ? <TrendingUp size={18} /> : <Wallet size={18} />}
+                                    </div>
+                                    <div>
+                                      <p className="font-bold text-[var(--text-primary)] text-sm">{t.title}</p>
+                                      <p className="text-[10px] uppercase font-black tracking-widest text-[var(--text-muted)] opacity-60">
+                                        {t.category || 'Geral'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-4">
+                                    <span className={cn(
+                                      "font-black text-lg",
+                                      isIncome ? "text-green-500" : "text-[var(--text-primary)]"
+                                    )}>
+                                      {isIncome ? '+' : '-'}{formatBRL(t.amount)}
+                                    </span>
+                                    <button 
+                                      onClick={() => deleteTransaction.mutate(t.id)} 
+                                      className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                                      title="Excluir Transação do Histórico"
+                                    >
+                                      <Trash2 size={16}/>
+                                    </button>
+                                  </div>
+                               </div>
+                             </div>
+                           )
+                         })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </SharedHistoryBar>
 
             </div>
           )}
@@ -696,44 +571,7 @@ export default function FinancePage() {
                   </div>
                 </div>
 
-                {/* Filtros Integrados */}
-                <div className="p-6 bg-white/5 rounded-[32px] border border-white/5 space-y-6">
-                  <div className="flex items-center gap-2 overflow-x-auto pb-2 [scrollbar-width:none]">
-                     {[
-                       { id: 'all', label: 'Todo Período' },
-                       { id: 'week', label: 'Esta Semana' },
-                       { id: 'month', label: 'Este Mês' },
-                       { id: 'year', label: 'Este Ano' },
-                       { id: 'custom', label: 'Personalizado' }
-                     ].map(btn => (
-                       <button 
-                         key={btn.id}
-                         onClick={() => {
-                           setHistoryPeriod(btn.id as any)
-                         }}
-                         className={cn(
-                           "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all",
-                           historyPeriod === btn.id ? "bg-white text-black" : "bg-white/5 text-[var(--text-muted)] hover:bg-white/10"
-                         )}
-                       >
-                         {btn.label}
-                       </button>
-                     ))}
-                  </div>
-
-                  {historyPeriod === 'custom' && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="flex flex-wrap items-center gap-4 pt-4 border-t border-white/5">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Início</label>
-                          <input type="date" value={historyStartDate} onChange={(e) => setHistoryStartDate(e.target.value)} className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white focus:outline-none focus:border-red-500" />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Fim</label>
-                          <input type="date" value={historyEndDate} onChange={(e) => setHistoryEndDate(e.target.value)} className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white focus:outline-none focus:border-red-500" />
-                        </div>
-                    </motion.div>
-                  )}
-                </div>
+                {/* Filtros Integrados Removidos (Usando filtro global do Dashboard) */}
 
                 {/* Listagem de Despesas */}
                 <div className="space-y-4">
@@ -810,7 +648,7 @@ export default function FinancePage() {
                    Sobra Líquida Atual Estimada
                  </div>
                  <h2 className="text-6xl md:text-7xl font-black tracking-tighter text-[var(--text-primary)]">
-                   {formatBRL(monthlyRemnant > 0 ? monthlyRemnant : 0)}
+                   {formatBRL(periodRemnant > 0 ? periodRemnant : 0)}
                  </h2>
                  <p className="text-[var(--text-secondary)] font-medium text-lg">Distribua inteligentemente sua sobra de caixa criando seus próprios potes e garantindo o fluxo do capital.</p>
                </div>
@@ -831,7 +669,7 @@ export default function FinancePage() {
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    {potes.map((pote, i) => {
                      const poteAllocationValue = pote.allocation_type === 'percentage' 
-                       ? (monthlyRemnant > 0 ? monthlyRemnant : 0) * (pote.allocation_value / 100)
+                       ? (periodRemnant > 0 ? periodRemnant : 0) * (pote.allocation_value / 100)
                        : pote.allocation_value
 
                      return (

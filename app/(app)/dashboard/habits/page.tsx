@@ -15,6 +15,9 @@ import { format, isToday, parseISO, startOfMonth, endOfMonth, subMonths, startOf
 import { ptBR } from 'date-fns/locale'
 import { getEffectiveOfensiva } from '@/lib/utils/scoring'
 import { useLongPress } from '@/lib/hooks/useLongPress'
+import { SharedHistoryBar, PeriodFilter, DateRange } from '@/components/dashboard/SharedHistoryBar'
+import { getDateRangeFromPeriod } from '@/lib/utils/dateFilters'
+
 
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 
@@ -75,8 +78,8 @@ function HabitGridItem({
         onToggleSelection(habit.id)
       }}
       className={cn(
-        "group relative bg-[var(--bg-overlay)] border rounded-[40px] p-8 hover:bg-[var(--bg-overlay)]/80 transition-all flex flex-col justify-between overflow-hidden cursor-pointer h-full transition-colors duration-300",
-        isSelected ? "border-red-500/50 bg-red-500/[0.08] ring-1 ring-red-500/20 shadow-[0_0_20px_rgba(224,32,32,0.1)]" : "border-[var(--border-subtle)]"
+        "group relative bg-[var(--bg-overlay)] border rounded-[32px] p-6 md:p-8 hover:bg-[var(--bg-overlay)]/80 transition-all flex flex-col justify-between overflow-hidden cursor-pointer h-full transition-colors duration-300",
+        isSelected ? "border-red-500/50 bg-red-500/[0.05] ring-1 ring-red-500/20" : "border-[var(--border-subtle)] hover:border-white/10"
       )}
     >
 
@@ -153,20 +156,26 @@ function HabitGridItem({
 }
 
 export default function HabitsPage() {
-  const { data: habits, isLoading } = useHabits()
-  const { data: historyLogs } = useHabitsHistory()
-  const { data: categories } = useCategories()
-  const deleteHabit = useDeleteHabit()
-
   const searchParams = useSearchParams()
   const [showAddModal, setShowAddModal] = useState(false)
   const [habitToEdit, setHabitToEdit] = useState<Habit | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
-  const [historyStartDate, setHistoryStartDate] = useState<string>('')
-  const [historyEndDate, setHistoryEndDate] = useState<string>('')
-  const [historyPeriod, setHistoryPeriod] = useState<'all' | 'custom'>('all')
+  const [summaryFilter, setSummaryFilter] = useState<'all' | 'daily' | 'other'>('all')
+
+  // Filtros Globais do Histórico
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('last_month')
+  const [customRange, setCustomRange] = useState<DateRange>({ start: '', end: '' })
+  
+  const resolvedDateRange = useMemo(() => {
+    return getDateRangeFromPeriod(periodFilter, customRange)
+  }, [periodFilter, customRange])
+
+  const { data: habits, isLoading } = useHabits()
+  const deleteHabit = useDeleteHabit()
+  const { data: historyLogs } = useHabitsHistory(resolvedDateRange.start, resolvedDateRange.end)
+  const { data: categories } = useCategories()
 
   const groupedHabits = useMemo(() => {
     if (!habits) return []
@@ -250,15 +259,8 @@ export default function HabitsPage() {
     if (!historyLogs || !habits) return []
     const MAP = new Map<string, any[]>()
     
-    // Filter and sort logs descending
+    // Logs are already filtered by date via hook useHabitsHistory
     const sortedLogs = [...historyLogs]
-      .filter(log => {
-        if (historyPeriod === 'custom') {
-          if (historyStartDate && log.log_date < historyStartDate) return false
-          if (historyEndDate && log.log_date > historyEndDate) return false
-        }
-        return true
-      })
       .sort((a, b) => b.log_date.localeCompare(a.log_date))
     
     sortedLogs.forEach(log => {
@@ -269,7 +271,7 @@ export default function HabitsPage() {
     })
     
     return Array.from(MAP.entries()).map(([date, items]) => ({ date, items }))
-  }, [historyLogs, habits, historyStartDate, historyEndDate, historyPeriod])
+  }, [historyLogs, habits])
 
   return (
     <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display',sans-serif]">
@@ -314,11 +316,10 @@ export default function HabitsPage() {
           ) : groupedHabits.map((group, groupIdx) => (
             <motion.div key={group.categoryId} layout className="space-y-6">
               <div className="flex items-center gap-3 px-2">
-                <div 
-                   className="w-2 h-2 rounded-full shadow-[0_0_10px_currentColor]" 
+                <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" 
                    style={{ backgroundColor: group.category?.color || '#FFFFFF', color: group.category?.color || '#FFFFFF' }} 
                 />
-                <h2 className="text-xl font-bold tracking-tight text-white/80">{group.category?.name || 'Sem Categoria'}</h2>
+                <h2 className="text-sm font-black tracking-widest text-white/50 uppercase">{group.category?.name || 'Sem Categoria'}</h2>
                 <span className="text-white/20 text-xs font-black uppercase tracking-widest">{group.items.length} {group.items.length === 1 ? 'Hábito' : 'Hábitos'}</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -342,125 +343,22 @@ export default function HabitsPage() {
       </div>
 
       {/* HISTÓRICO EXPANSÍVEL (HABITS) */}
-      <div className="pt-4 border-t border-[var(--border-subtle)]">
-        <button 
-          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-          className="w-full flex items-center gap-4 group hover:bg-white/5 p-4 rounded-3xl transition-colors"
-        >
-          <div className="flex items-center justify-center w-10 h-10 rounded-2xl bg-white/5 border border-white/10 group-hover:bg-white group-hover:text-black transition-colors">
-            <History size={18} />
-          </div>
-          <div className="flex flex-col items-start text-left flex-1">
-            <span className="text-base font-black text-[var(--text-primary)]">Histórico de Hábitos Concluídos</span>
-            <span className="text-[10px] uppercase font-black tracking-widest text-[var(--text-muted)] group-hover:text-white/50 transition-colors">Últimos 30 dias de conquistas</span>
-          </div>
-          <div className="flex items-center gap-3">
-             <span className="text-[10px] uppercase font-black text-white/20 bg-white/5 px-2 py-1 rounded-md">
-               {historyLogs?.length || 0} Registros
-             </span>
-             <ChevronRight 
-              size={20} 
-              className={cn(
-                "text-[var(--text-muted)] transition-transform duration-500",
-                isHistoryOpen ? "rotate-90" : ""
-              )} 
-            />
-          </div>
-        </button>
-
-        <AnimatePresence>
-          {isHistoryOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="pt-6 pb-4 space-y-8 pl-4 md:pl-16">
-                 {/* Filter Bar */}
-                 <div className="flex flex-col gap-4 p-6 bg-[var(--bg-overlay)] rounded-3xl border border-[var(--border-subtle)]">
-                    <div className="flex items-center gap-2 overflow-x-auto w-full pb-2 [scrollbar-width:none]">
-                      {[
-                        { id: 'all', label: 'Todo o Período' },
-                        { id: 'month', label: 'Este Mês' },
-                        { id: 'last_month', label: 'Mês Passado' },
-                        { id: 'year', label: 'Este Ano' },
-                        { id: 'custom', label: 'Personalizado' }
-                      ].map(btn => (
-                        <button 
-                          key={btn.id}
-                          onClick={() => {
-                            if (btn.id === 'all') {
-                              setHistoryPeriod('all')
-                              setHistoryStartDate('')
-                              setHistoryEndDate('')
-                            } else if (btn.id === 'last_month') {
-                              const last = subMonths(new Date(), 1)
-                              setHistoryStartDate(format(startOfMonth(last), 'yyyy-MM-dd'))
-                              setHistoryEndDate(format(endOfMonth(last), 'yyyy-MM-dd'))
-                              setHistoryPeriod('custom')
-                            } else if (btn.id === 'month') {
-                              setHistoryStartDate(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
-                              setHistoryEndDate(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
-                              setHistoryPeriod('custom')
-                            } else if (btn.id === 'year') {
-                               setHistoryStartDate(format(startOfYear(new Date()), 'yyyy-MM-dd'))
-                               setHistoryEndDate(format(endOfYear(new Date()), 'yyyy-MM-dd'))
-                               setHistoryPeriod('custom')
-                            } else {
-                              setHistoryPeriod('custom')
-                            }
-                          }}
-                          className={cn(
-                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all",
-                            (historyPeriod === btn.id || (btn.id === 'custom' && historyPeriod === 'custom')) ? "bg-white text-black" : "bg-white/5 text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-primary)]"
-                          )}
-                        >
-                          {btn.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {historyPeriod === 'custom' && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-wrap items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10"
-                      >
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Início</label>
-                          <input 
-                            type="date" 
-                            value={historyStartDate}
-                            onChange={(e) => setHistoryStartDate(e.target.value)}
-                            className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Fim</label>
-                          <input 
-                            type="date" 
-                            value={historyEndDate}
-                            onChange={(e) => setHistoryEndDate(e.target.value)}
-                            className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
-                          />
-                        </div>
-                        <button 
-                          onClick={() => {
-                            setHistoryStartDate('')
-                            setHistoryEndDate('')
-                            setHistoryPeriod('all')
-                          }}
-                          className="mt-4 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                        >
-                          Limpar
-                        </button>
-                      </motion.div>
-                    )}
-                 </div>
-
+      {/* HISTÓRICO EXPANSÍVEL (HÁBITOS) */}
+      <SharedHistoryBar
+        icon={History}
+        title="Histórico de Hábitos Concluídos"
+        subtitle={periodFilter === 'custom' ? 'Período Personalizado' : 'Métricas dos seus hábitos'}
+        badgeText={`${historyLogs?.length || 0} Registros`}
+        isOpen={isHistoryOpen}
+        onToggle={() => setIsHistoryOpen(!isHistoryOpen)}
+        filterValue={periodFilter}
+        onFilterChange={setPeriodFilter}
+        customRange={customRange}
+        onCustomRangeChange={setCustomRange}
+      >
+        <div className="pt-2 pb-4 space-y-8 md:pl-4">
                  {groupedHistory.length === 0 ? (
-                    <div className="text-[var(--text-muted)] text-sm font-medium">Nenhum hábito concluído nos últimos 30 dias.</div>
+                    <div className="text-[var(--text-muted)] text-sm font-medium pt-4">Nenhum hábito concluído neste período.</div>
                  ) : (
                    groupedHistory.map(group => (
                      <div key={group.date} className="relative space-y-4">
@@ -486,12 +384,9 @@ export default function HabitsPage() {
                         </div>
                      </div>
                    ))
-                 )}
+                  )}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      </SharedHistoryBar>
 
       <HabitModal 
         isOpen={showAddModal} 
