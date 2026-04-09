@@ -1015,7 +1015,7 @@ export default function FinancePage() {
                     <div className="grid grid-cols-3 gap-2 px-4 pb-4">
                       {[
                         { id: 'necessidade', label: 'Necessidade', color: 'blue' },
-                        { id: 'urgencia', label: 'Urgência', color: 'red' },
+                        { id: 'urgencia', label: 'Emergência', color: 'red' },
                         { id: 'desejo', label: 'Desejo', color: 'amber' }
                       ].map(nat => (
                         <button
