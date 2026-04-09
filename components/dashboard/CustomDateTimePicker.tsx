@@ -58,7 +58,7 @@ export function CustomDateTimePicker({
     const style: React.CSSProperties = {
       position: 'fixed',
       left: align === 'right' ? `${coords.left + coords.width - 300}px` : `${coords.left}px`,
-      zIndex: 100
+      zIndex: 10000
     }
 
     if (direction === 'up') {
@@ -98,7 +98,7 @@ export function CustomDateTimePicker({
         {isOpen && createPortal(
           <>
             <div 
-              className="fixed inset-0 z-[90]" 
+              className="fixed inset-0 z-[9999]" 
               onClick={() => setIsOpen(false)} 
             />
             <div style={getPositionStyle()}>

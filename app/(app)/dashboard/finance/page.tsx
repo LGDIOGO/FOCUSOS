@@ -123,9 +123,12 @@ export default function FinancePage() {
       const data = await response.json()
       if (data.error) throw new Error(data.error)
 
-      setTxTitle(data.title || txTitle)
+      if (data.title) setTxTitle(data.title)
       if (data.amount && !isNaN(parseFloat(data.amount))) {
         setTxAmount(parseFloat(data.amount).toString())
+      }
+      if (data.date) {
+        setTxDate(data.date)
       }
       if (data.transaction_type && !isTransactionTypeLocked && ['income', 'expense'].includes(data.transaction_type)) {
         setTxType(data.transaction_type)
