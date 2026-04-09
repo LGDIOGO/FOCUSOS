@@ -16,9 +16,10 @@ function buildSystemPrompt(today: string, dayName: string, categories: unknown[]
 6. FINANÇAS: Extraia valores financeiros explícitos como 'amount'. E avalie a 'nature' do gasto e 'transaction_type'.`
   } else if (type === 'goal') {
     schemaExtensions = `
-  "target_value": "Valor numérico alvo se mencionado (ex: 10 kg -> 10). Ou null."`
+  "target_value": "Valor numérico alvo se mencionado (ex: 10 kg -> 10). Ou null.",
+  "unit": "Unidade de medida no plural (ex: 'partidas', 'livros', 'kg'). Ou null."`
     ruleExtensions = `
-6. METAS: Se a pessoa quiser uma meta com números absolutos (Ler 10 livros), deduzir 'target_value' = 10.`
+6. METAS: Se a pessoa quiser uma meta com números absolutos (Ler 10 livros), deduzir 'target_value' = 10 e 'unit' = 'livros'.`
   }
 
   return `Você é um motor de parsing de linguagem natural de elite para o FocusOS.

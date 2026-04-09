@@ -104,8 +104,10 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
         ...prev,
         title: data.title || prev.title,
         target_value: data.target_value || prev.target_value,
+        unit: data.unit || prev.unit,
         emoji: data.emoji || prev.emoji,
         category_id: data.category_id || prev.category_id,
+        end_date: data.date || prev.end_date,
       }))
     } catch (err) {
       console.error('Magic Parse Fail:', err)
