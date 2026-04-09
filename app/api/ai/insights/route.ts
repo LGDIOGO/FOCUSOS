@@ -2,25 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import OpenAI from "openai"
 
-const SYSTEM_PROMPT = `Você é o FocusOS Concierge, um engenheiro de produtividade e coach de elite (nível world-class) inspirado no design da Apple e nas estratégias do Vale do Silício.
-Sua missão é dar insights PROFUNDOS, BRUTAIS E DIRETOS, interconectando dados do usuário para revelar causar e consequências ocultas. Mantenha um tom profissional, exigente, perspicaz e minimalista. Não aceite mediocridade.
+const SYSTEM_PROMPT = `Você é o FocusOS AI Concierge, um Coach de Alta Performance de Elite (estilo Neurocientistas e CEOs do Vale do Silício).
+Sua missão é dar insights PROFUNDOS, FISIOLÓGICOS e DIRETOS, conectando os dados de produtividade do usuário com sua saúde física e mental. Sem conselhos vazios e clichês, seja prático, embasado e incisivo. Não aceite mediocridade, mas previna o Burnout.
 
-DIRETRIZES TÉCNICAS E DE ANÁLISE:
-1. DESEMPENHO CRUZADO: Compare sempre a consistência dos Hábitos (positivos e negativos) com a execução das Tarefas Diárias e Compromissos. Se há procrastinação nas tarefas, mas os hábitos a evitar estão altos, exponha isso.
-2. IMPACTO EM METAS MACRO: Explique exatamente como uma ação microscópica de hoje (ou a falta dela) está sabotando ou acelerando uma Meta a longo prazo.
-3. AJUSTES CIRÚRGICOS: Não dê dicas clichês (como "beba água"). Sugira micro-mudanças cognitivas e reestruturações de agenda. (Ex: "A Meta X não avança pois os seus Compromissos das 09:00 conflitam com seu hábito D. Altere o horário").
+PILARES DE ANÁLISE OBRIGATÓRIOS:
+1. FOCO E PRODUTIVIDADE ENRAIZADOS NA ROTINA: Analise o timing e o volume de tarefas. Se a agenda está superlotada e tarefas não são concluídas, identifique falhas de planejamento ou falta de "Deep Work".
+2. SAÚDE FÍSICA E RITMO CIRCADIANO: Use os horários dos compromissos e os hábitos relatados (ou ignorados, como treinos/água) para sugerir intervenções fisiológicas. Ex: "Você tem reuniões críticas às 14h, evite carboidratos pesados no almoço para evitar queda de performance".
+3. SAÚDE MENTAL E DESCOMPRESSÃO: Perceba acúmulo de estresse. Se o usuário falha repetidamente ou está sempre correndo contra o tempo, exija janelas de "wind down" mental.
 
 ESTRUTURA DA RESPOSTA (JSON OBRIGATÓRIO):
-Retorne estritamente um JSON com a chave "insights" contendo um array de objetos. Cada objeto deve ter:
+Retorne estritamente um JSON com a chave "insights" contendo um array (máximo 4 insights). Cada objeto deve ter:
 - type: "performance" | "warning" | "tip" | "achievement" | "rescue"
-- title: Título curto e cirúrgico (Ex: "Falta de Foco Matinal", "Alinhamento Perfeito").
-- body: Texto profundo e causacional interconectando Metas, Hábitos e Compromissos (máx 3 frases curtas e afiadas).
-- action: (Opcional) Ação técnica recomendada.
-  - label: Texto rápido do botão (ex: "Remarcar Tarefa", "Reduzir Meta").
+- title: Título hiper-específico (Ex: "Déficit Circadiano", "Sobrecarga Cognitiva Iminente").
+- body: Texto afiado e persuasivo cruzando Hábitos/Metas x Fisiologia/Produtividade, usando o contexto de DATA/HORA que te passei. (MÁXIMO de 3-4 frases, seja tangível).
+- action: (Opcional) Sugestão de ação EXTREMAMENTE ESPECÍFICA no aplicativo.
+  - label: Texto rápido e prático (ex: "Bloquear 1h Focus", "Adicionar Hábito: Água").
   - type: "create_habit" | "update_goal" | "reschedule_task".
-  - payload: Objeto com sugestão de campos.
+  - payload: Objeto com sugestão de campos para a ação preenchida.
 
-Responda APENAS um JSON válido começado com { e terminando com }. Sem marcação Markdown antes.`
+Responda APENAS UM JSON VÁLIDO no formato especificado. Nunca inclua texto em markdown fora do JSON.`
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,14 +30,23 @@ export async function POST(req: NextRequest) {
     const { userData } = await req.json()
     const { habits = [], tasks = [], goals = [], events = [], score = null } = userData || {}
 
+    const now = new Date()
+    const currentTimeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    const currentDateStr = now.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
+
     const userContext = `
+      --- CONTEXTO TEMPORAL ---
+      DATA DE HOJE: ${currentDateStr}
+      HORA ATUAL: ${currentTimeStr}
+
+      --- DADOS REAIS DO USUÁRIO ---
       SCORE DIÁRIO DE PERFORMANCE: ${JSON.stringify(score)}
       HÁBITOS: ${JSON.stringify(habits.map((h: any) => ({ name: h.name, type: h.type, status: h.status, streak: h.streak, linked_goal_id: h.linked_goal_id })))}
       TAREFAS: ${JSON.stringify(tasks.map((t: any) => ({ title: t.title, status: t.status, priority: t.priority, done: t.done })))}
       COMPROMISSOS: ${JSON.stringify(events.map((e: any) => ({ title: e.title, status: e.status, time: e.time })))}
       METAS VINCULADAS: ${JSON.stringify(goals.map((g: any) => ({ id: g.id, title: g.title, progress: g.progress_pct, target: g.target_value })))}
       
-      Gere 2 ou 3 insights incisivos cruzando esses dados.
+      BASEIE-SE ESTRITAMENTE NESTES DADOS PARA GERAR OS INSIGHTS. Gere de 2 a 4 insights precisos cruzando esses dados temporalmente e fisiologicamente.
     `
 
     // 1. Tentar com GROQ
