@@ -62,6 +62,8 @@ export default function FinancePage() {
   
   const [isGeneratingAI, setIsGeneratingAI] = useState(false)
   const [isInstallment, setIsInstallment] = useState(false)
+  const [txType, setTxType] = useState<'expense' | 'income'>('expense')
+  const [txCategory, setTxCategory] = useState<string>('')
 
   // ONBOARDING WIZARD STATE
   const [showWizard, setShowWizard] = useState(false)
@@ -405,7 +407,16 @@ export default function FinancePage() {
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mt-1">{t.category || 'Geral'} • {format(parseISO(t.date), 'dd MMM yyyy', { locale: ptBR })}</p>
+                              <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mt-1">{({
+                                  variable: 'Variável', extra: 'Extra', investment: 'Investimento',
+                                  alimentacao: 'Alimentação', transporte: 'Transporte', saude: 'Saúde',
+                                  moradia: 'Moradia', lazer: 'Lazer', educacao: 'Educação',
+                                  assinatura: 'Assinatura', vestuario: 'Vestuário', presente: 'Presente',
+                                  imposto: 'Imposto/Taxa', outros_gasto: 'Outros', fixed: 'Fixo',
+                                  basico: 'Básico', salario: 'Salário', freelance: 'Freelance',
+                                  renda_extra: 'Renda Extra', dividendo: 'Dividendo',
+                                  reembolso: 'Reembolso', outros_renda: 'Outros'
+                                } as Record<string, string>)[t.category ?? ''] || t.category || 'Geral'} • {format(parseISO(t.date), 'dd MMM yyyy', { locale: ptBR })}</p>
                             </div>
                             <div className="flex items-center gap-4">
                               <span className={cn("font-black tracking-tight", t.type === 'income' ? "text-green-500" : "text-[var(--text-primary)]")}>
@@ -844,6 +855,8 @@ export default function FinancePage() {
                 onClick={() => {
                   setTransactionModalOpen(false)
                   setIsInstallment(false)
+                  setTxCategory('')
+                  setTxType('expense')
                 }} 
                 className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"
               >
@@ -909,22 +922,69 @@ export default function FinancePage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Movimento</label>
-                    <select name="type" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500">
-                      <option value="expense">Saída (Gasto)</option>
-                      <option value="income">Entrada (Renda)</option>
-                    </select>
+                {/* MOVIMENTO */}
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] block">Movimento</label>
+                  <div className="flex gap-2">
+                    {([{ value: 'expense', label: '↓ Saída' }, { value: 'income', label: '↑ Entrada' }] as const).map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => { setTxType(opt.value); setTxCategory('') }}
+                        className={cn(
+                          "flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest border transition-all",
+                          txType === opt.value
+                            ? opt.value === 'expense'
+                              ? "bg-red-500/15 border-red-500/60 text-red-400"
+                              : "bg-green-500/15 border-green-500/60 text-green-400"
+                            : "bg-white/5 border-white/5 text-[var(--text-muted)] hover:bg-white/10"
+                        )}
+                      >{opt.label}</button>
+                    ))}
                   </div>
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Classificação</label>
-                    <select name="category" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500">
-                      <option value="variable">Gasto Variável / Renda Fixa</option>
-                      <option value="extra">Extra</option>
-                      <option value="investment">Investimento Rápido</option>
-                    </select>
+                  {/* Hidden input to carry the value */}
+                  <input type="hidden" name="type" value={txType} />
+                </div>
+
+                {/* CLASSIFICAÇÃO */}
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] block">Classificação</label>
+                  <div className="flex flex-wrap gap-2">
+                    {(txType === 'expense' ? [
+                      { value: 'alimentacao', label: '🍽 Alimentação' },
+                      { value: 'transporte', label: '🚗 Transporte' },
+                      { value: 'moradia', label: '🏠 Moradia' },
+                      { value: 'saude', label: '❤️ Saúde' },
+                      { value: 'educacao', label: '📚 Educação' },
+                      { value: 'lazer', label: '🎯 Lazer' },
+                      { value: 'assinatura', label: '📱 Assinatura' },
+                      { value: 'vestuario', label: '👕 Vestuário' },
+                      { value: 'presente', label: '🎁 Presente' },
+                      { value: 'imposto', label: '📄 Imposto/Taxa' },
+                      { value: 'investment', label: '📈 Investimento' },
+                      { value: 'outros_gasto', label: '· Outros' },
+                    ] : [
+                      { value: 'salario', label: '💼 Salário' },
+                      { value: 'freelance', label: '💻 Freelance' },
+                      { value: 'renda_extra', label: '⚡ Renda Extra' },
+                      { value: 'dividendo', label: '📊 Dividendo' },
+                      { value: 'reembolso', label: '↩ Reembolso' },
+                      { value: 'outros_renda', label: '· Outros' },
+                    ]).map(cat => (
+                      <button
+                        key={cat.value}
+                        type="button"
+                        onClick={() => setTxCategory(cat.value)}
+                        className={cn(
+                          "px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap",
+                          txCategory === cat.value
+                            ? "bg-white/15 border-white/40 text-white"
+                            : "bg-white/5 border-white/5 text-[var(--text-muted)] hover:bg-white/10 hover:border-white/15"
+                        )}
+                      >{cat.label}</button>
+                    ))}
                   </div>
+                  <input type="hidden" name="category" value={txCategory || (txType === 'expense' ? 'outros_gasto' : 'outros_renda')} />
                 </div>
 
                 <div className="space-y-3">
@@ -952,26 +1012,34 @@ export default function FinancePage() {
                    </div>
                 </div>
 
-                <div className="flex flex-col gap-2 p-4 bg-white/5 border border-white/10 rounded-2xl">
-                   <label className="flex items-center gap-3 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={isInstallment}
-                        onChange={(e) => setIsInstallment(e.target.checked)}
-                        className="w-5 h-5 accent-red-500 rounded-md" 
-                      />
-                      <div className="flex-1">
-                        <span className="text-sm font-bold text-[var(--text-primary)]">Parcelar este lançamento</span>
-                        <p className="text-[9px] uppercase font-black tracking-widest text-[var(--text-muted)]">O valor total será dividido pelos meses</p>
+                {/* PARCELAR — OPCIONAL */}
+                <div className="border border-dashed border-white/10 rounded-2xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setIsInstallment(!isInstallment)}
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-8 h-5 rounded-full border transition-all relative",
+                        isInstallment ? "bg-red-500/20 border-red-500/50" : "bg-white/5 border-white/10"
+                      )}>
+                        <div className={cn(
+                          "absolute top-0.5 w-4 h-4 rounded-full transition-all",
+                          isInstallment ? "left-3 bg-red-400" : "left-0.5 bg-white/20"
+                        )} />
                       </div>
-                   </label>
+                      <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Parcelar este lançamento</span>
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Opcional</span>
+                  </button>
 
-                   {isInstallment && (
-                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="pt-4 border-t border-white/10 mt-2">
-                        <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Número de Parcelas</label>
-                        <input name="installments" type="number" min="2" max="60" defaultValue="2" className="w-full bg-[var(--bg-primary)] border border-red-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
-                     </motion.div>
-                   )}
+                  {isInstallment && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="px-4 pb-4 border-t border-white/5">
+                       <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block mt-3">Número de Parcelas</label>
+                       <input name="installments" type="number" min="2" max="60" defaultValue="2" className="w-full bg-[var(--bg-overlay)] border border-red-500/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                    </motion.div>
+                  )}
                 </div>
 
                 <button type="submit" disabled={addTransaction.isPending} className="w-full py-4 mt-2 bg-white hover:bg-white/90 text-black font-black rounded-xl transition-all shadow-xl">Confirmar Lançamento</button>
