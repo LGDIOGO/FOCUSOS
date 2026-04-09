@@ -142,6 +142,9 @@ export default function FinancePage() {
         setSelectedNature(data.nature)
         setShowNature(true)
       }
+      if (data.category_id) {
+        setTxCategory(data.category_id)
+      }
     } catch (err) {
       console.error('Magic Parse Fail:', err)
     } finally {

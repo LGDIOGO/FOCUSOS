@@ -109,6 +109,8 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
         ...prev,
         title: data.title || prev.title,
         target_value: typeof data.target_value === 'number' ? data.target_value : prev.target_value,
+        initial_value: 0,
+        current_value: 0,
         unit: data.unit || prev.unit,
         emoji: data.emoji || prev.emoji,
         category_id: data.category_id || prev.category_id,

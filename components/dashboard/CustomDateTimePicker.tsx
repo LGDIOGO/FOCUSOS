@@ -33,8 +33,8 @@ export function CustomDateTimePicker({
     if (isOpen && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect()
       setCoords({
-        top: rect.top + window.scrollY,
-        left: rect.left + window.scrollX,
+        top: rect.top,
+        left: rect.left,
         width: rect.width,
         height: rect.height
       })
