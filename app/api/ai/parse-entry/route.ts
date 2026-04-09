@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenAI } from "@google/genai"
+import { GoogleGenerativeAI } from "@google/generative-ai"
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -61,26 +61,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Configuração de IA ausente' }, { status: 500 })
     }
 
-    const ai = new GoogleGenAI({ apiKey })
+    const genAI = new GoogleGenerativeAI(apiKey)
     const { text, type, categories, currentDetails } = await req.json()
 
     const today = currentDetails?.today || format(new Date(), 'yyyy-MM-dd')
     const dayName = currentDetails?.dayName || format(new Date(), 'EEEE', { locale: ptBR })
 
     const systemPrompt = buildSystemPrompt(today, dayName, categories, type)
-    const userMessage = `FRASE PARA PARSE: "${text}"\nTIPO: ${type}`
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: userMessage,
-      config: {
-        systemInstruction: systemPrompt,
-        maxOutputTokens: 1024,
-        temperature: 0.1
-      }
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: systemPrompt
     })
-    
-    const textResponse = response.text || ''
+
+    const userMessage = `FRASE PARA PARSE: "${text}"\nTIPO: ${type}`
+    const result = await model.generateContent(userMessage)
+    const textResponse = result.response.text() || ''
     if (!textResponse) {
       throw new Error('Resposta da IA vazia')
     }

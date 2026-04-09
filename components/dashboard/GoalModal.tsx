@@ -8,6 +8,7 @@ import { useCategories, useAddCategory } from '@/lib/hooks/useCategories'
 import { Goal, TaskPriority } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 interface GoalModalProps {
   isOpen: boolean
@@ -95,6 +96,10 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
           text: formData.title,
           type: 'goal',
           categories: categories?.filter(c => c.type === 'goals').map(c => ({ id: c.id, name: c.name })),
+          currentDetails: {
+            today: format(new Date(), 'yyyy-MM-dd'),
+            dayName: format(new Date(), 'EEEE', { locale: ptBR })
+          }
         })
       })
       const data = await response.json()

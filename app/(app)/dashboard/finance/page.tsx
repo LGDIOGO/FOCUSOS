@@ -117,7 +117,11 @@ export default function FinancePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: txTitle,
-          type: 'finance'
+          type: 'finance',
+          currentDetails: {
+            today: format(new Date(), 'yyyy-MM-dd'),
+            dayName: format(new Date(), 'EEEE', { locale: ptBR })
+          }
         })
       })
       const data = await response.json()
