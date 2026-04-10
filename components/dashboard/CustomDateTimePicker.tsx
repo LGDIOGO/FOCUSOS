@@ -1,9 +1,10 @@
+'use client'
+
 import { useState, useRef, useEffect } from 'react'
 import { Calendar, Clock } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { format } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { AppleDatePicker } from './AppleDatePicker'
 import { AppleTimePicker } from './AppleTimePicker'
 import { createPortal } from 'react-dom'
@@ -15,6 +16,8 @@ interface CustomDateTimePickerProps {
   onChange: (val: string) => void
   align?: 'left' | 'right'
   direction?: 'up' | 'down'
+  isOpen: boolean
+  onToggle: () => void
 }
 
 export function CustomDateTimePicker({ 
@@ -23,14 +26,15 @@ export function CustomDateTimePicker({
   value, 
   onChange, 
   align = 'left',
-  direction = 'down'
+  direction = 'down',
+  isOpen,
+  onToggle
 }: CustomDateTimePickerProps) {
-  const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, height: 0 })
 
-  useEffect(() => {
-    if (isOpen && containerRef.current) {
+  const updateCoords = () => {
+    if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect()
       setCoords({
         top: rect.top,
@@ -39,19 +43,13 @@ export function CustomDateTimePicker({
         height: rect.height
       })
     }
-  }, [isOpen])
+  }
 
-  const getDisplayValue = () => {
-    if (!value) return type === 'date' ? '00/00/0000' : '00:00'
-    try {
-      if (type === 'date') {
-        const date = parseISO(value)
-        return format(date, 'dd/MM/yyyy')
-      }
-      return value // Already in HH:mm
-    } catch (e) {
-      return value
-    }
+  const handleToggle = (e: React.PointerEvent | React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    updateCoords()
+    onToggle()
   }
 
   const getPositionStyle = () => {
@@ -78,40 +76,32 @@ export function CustomDateTimePicker({
       zIndex: 20000
     }
 
-    // Vertical space evaluation
-    const spaceBelow = window.innerHeight - (coords.top + coords.height)
-    const spaceAbove = coords.top
-    
-    let finalDirection = direction
-    if (finalDirection === 'down' && spaceBelow < pickerHeight && spaceAbove > spaceBelow) {
-      finalDirection = 'up'
-    } else if (finalDirection === 'up' && spaceAbove < pickerHeight && spaceBelow > spaceAbove) {
-      finalDirection = 'down'
-    }
-
-    if (finalDirection === 'up') {
-      style.bottom = `${window.innerHeight - coords.top + 8}px`
+    // Vertical Positioning
+    if (direction === 'up') {
+      style.top = `${coords.top - pickerHeight - 8}px`
+      if (coords.top - pickerHeight < 10) {
+        style.top = `${coords.top + coords.height + 8}px`
+      }
     } else {
       style.top = `${coords.top + coords.height + 8}px`
+      if (coords.top + coords.height + pickerHeight + 10 > window.innerHeight) {
+        style.top = `${coords.top - pickerHeight - 8}px`
+      }
     }
 
     return style
   }
 
-  const handleToggle = (e: React.PointerEvent | React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    
-    if (!isOpen && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect()
-      setCoords({
-        top: rect.top,
-        left: rect.left,
-        width: rect.width,
-        height: rect.height
-      })
+  const getDisplayValue = () => {
+    if (!value) return type === 'date' ? '00/00/0000' : '00:00'
+    try {
+      if (type === 'date') {
+        return format(new Date(value), "dd/MM/yyyy")
+      }
+      return value
+    } catch (e) {
+      return value
     }
-    setIsOpen(!isOpen)
   }
 
   return (
@@ -122,7 +112,7 @@ export function CustomDateTimePicker({
         onMouseDown={handleToggle}
         className={cn(
           "relative flex items-center bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl px-6 py-4 cursor-pointer hover:opacity-80 transition-all group select-none touch-none",
-          isOpen && "border-[var(--text-primary)]/30 bg-[var(--bg-overlay)]/80 ring-2 ring-[var(--text-primary)]/10"
+          isOpen && "border-[var(--text-primary)]/30 bg-[var(--bg-overlay)]/80 ring-2 ring-[var(--text-primary)]/20 shadow-[0_0_30px_rgba(255,255,255,0.05)]"
         )}
       >
         <span className={cn(
@@ -142,24 +132,33 @@ export function CustomDateTimePicker({
       <AnimatePresence>
         {isOpen && createPortal(
           <>
-            <div 
-              className="fixed inset-0 z-[19999]" 
-              onPointerDown={() => setIsOpen(false)} 
-              onMouseDown={() => setIsOpen(false)}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[19999] bg-black/40 backdrop-blur-sm" 
+              onPointerDown={(e) => {
+                e.stopPropagation()
+                onToggle()
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation()
+                onToggle()
+              }}
             />
-            <div style={{ ...getPositionStyle(), zIndex: 20000 }}>
+            <div style={{ ...getPositionStyle() }}>
               {type === 'date' ? (
                 <AppleDatePicker 
                   value={value} 
                   onChange={onChange} 
-                  onClose={() => setIsOpen(false)} 
+                  onClose={onToggle} 
                   direction={direction}
                 />
               ) : (
                 <AppleTimePicker 
                   value={value} 
                   onChange={onChange} 
-                  onClose={() => setIsOpen(false)} 
+                  onClose={onToggle} 
                   direction={direction}
                 />
               )}

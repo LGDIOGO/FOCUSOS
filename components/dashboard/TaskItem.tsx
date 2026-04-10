@@ -1,18 +1,23 @@
 import { motion } from 'framer-motion'
 import { memo } from 'react'
-import { Check, Minus, X, Circle, Zap, Target, Pencil, Trash2 } from 'lucide-react'
+import { Check, Minus, X, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Task, TaskPriority, TaskStatus } from '@/types'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { useState } from 'react'
-import { StatusChoiceBubble } from './StatusChoiceBubble'
 import { CustomDateTimePicker } from './CustomDateTimePicker'
 
-const PRIORITY_COLORS: Record<TaskPriority, string> = {
-  critical: 'bg-[#b80000]',
-  high:     'bg-amber-400',
-  medium:   'bg-white/40',
-  low:      'bg-white/20',
+interface TaskItemProps {
+  task: Task
+  onToggle?: () => void
+  onStatusChange?: (status: TaskStatus) => void
+  isSelectionMode?: boolean
+  isSelected?: boolean
+  onSelect?: () => void
+  onContextMenu?: () => void
+  onOpenBubble?: (pos: { x: number; y: number }) => void
+  onDelete?: () => void
+  onUpdate?: (id: string, updates: Partial<Task>) => void
 }
 
 function TaskItem({ 
@@ -24,28 +29,24 @@ function TaskItem({
   onSelect,
   onContextMenu,
   onOpenBubble,
-  onEdit,
   onDelete,
   onUpdate
-}: { 
-  task: Task; 
-  onToggle?: () => void;
-  onStatusChange?: (status: TaskStatus) => void;
-  isSelectionMode?: boolean;
-  isSelected?: boolean;
-  onSelect?: () => void;
-  onContextMenu?: () => void;
-  onOpenBubble?: (pos: { x: number; y: number }) => void;
-  onEdit?: () => void;
-  onDelete?: () => void;
-  onUpdate?: (id: string, updates: Partial<Task>) => void;
-}) {
+}: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(task.title)
   const [editDate, setEditDate] = useState(task.due_date || '')
   const [editTime, setEditTime] = useState(task.due_time || '')
+  const [activePicker, setActivePicker] = useState<'date' | 'time' | null>(null)
 
   const dueLabel = (task.due && task.due !== 'Hoje') ? task.due : (task.due_time ? task.due_time : '')
+
+  const longPress = useLongPress(
+    () => {
+      onContextMenu?.()
+    },
+    () => {}, 
+    { delay: 500 }
+  )
 
   const handleStatusClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -53,21 +54,16 @@ function TaskItem({
     onOpenBubble?.({ x: e.clientX, y: e.clientY })
   }
 
-  const longPress = useLongPress(
-    () => {
-      onContextMenu?.()
-    },
-    () => {}, // Remove o click do longPress para evitar double-toggling
-    { delay: 500 }
-  )
-
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!editTitle.trim()) return
+    
     onUpdate?.(task.id, {
       title: editTitle,
       due_date: editDate,
-      due_time: editTime
+      due_time: editTime || null
     })
     setIsEditing(false)
+    setActivePicker(null)
   }
 
   if (isEditing) {
@@ -79,14 +75,8 @@ function TaskItem({
         className="flex flex-col gap-4 p-5 rounded-[40px] bg-[var(--bg-primary)] border border-red-500/30 shadow-2xl relative z-[1001]"
       >
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-             <span className="text-[10px] font-black uppercase tracking-widest text-red-500/80">Editando Rascunho</span>
-             <button onClick={() => setIsEditing(false)} className="text-[var(--text-muted)] hover:text-white p-1">
-               <X size={16} />
-             </button>
-          </div>
-          
           <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Título</label>
             <input 
               autoFocus
               value={editTitle}
@@ -96,38 +86,45 @@ function TaskItem({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-             <CustomDateTimePicker 
-               label="Data" 
-               type="date" 
-               value={editDate} 
-               onChange={setEditDate} 
-               direction="up"
-             />
-             <CustomDateTimePicker 
-               label="Hora" 
-               type="time" 
-               value={editTime} 
-               onChange={setEditTime} 
-               align="right"
-               direction="up"
-             />
+          <div className="flex gap-3">
+            <CustomDateTimePicker 
+              label="Data"
+              type="date"
+              value={editDate}
+              onChange={setEditDate}
+              direction="up"
+              isOpen={activePicker === 'date'}
+              onToggle={() => setActivePicker(activePicker === 'date' ? null : 'date')}
+            />
+            <CustomDateTimePicker 
+              label="Hora"
+              type="time"
+              value={editTime}
+              onChange={setEditTime}
+              align="right"
+              direction="up"
+              isOpen={activePicker === 'time'}
+              onToggle={() => setActivePicker(activePicker === 'time' ? null : 'time')}
+            />
           </div>
+        </div>
 
-          <div className="flex gap-2 pt-2">
-             <button
-               onClick={handleSave}
-               className="flex-1 bg-white text-black font-black py-4 rounded-[22px] hover:opacity-90 active:scale-95 transition-all text-xs uppercase tracking-widest"
-             >
-               Salvar
-             </button>
-             <button
-               onClick={() => setIsEditing(false)}
-               className="px-6 bg-white/5 text-[var(--text-muted)] font-black py-4 rounded-[22px] hover:bg-white/10 active:scale-95 transition-all text-xs uppercase tracking-widest"
-             >
-               Cancelar
-             </button>
-          </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleSave}
+            className="flex-1 bg-red-500 hover:bg-red-600 text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all"
+          >
+            Salvar Alterações
+          </button>
+          <button
+            onClick={() => {
+              setIsEditing(false)
+              setActivePicker(null)
+            }}
+            className="px-6 bg-[var(--bg-overlay)] hover:bg-white/5 text-[var(--text-muted)] hover:text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all"
+          >
+            Cancelar
+          </button>
         </div>
       </motion.div>
     )
@@ -146,11 +143,6 @@ function TaskItem({
         } else {
           handleStatusClick(e)
         }
-      }}
-      onContextMenu={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        onContextMenu?.()
       }}
       className={cn(
         'flex items-center gap-4 p-4 rounded-[28px] border cursor-pointer transition-all duration-300 select-none relative group w-full',
@@ -194,7 +186,6 @@ function TaskItem({
         </div>
       )}
 
-      {/* Info */}
       <div className="flex-1 min-w-0 flex items-center gap-2">
         {task.emoji && <span className="text-lg flex-shrink-0">{task.emoji}</span>}
         <div className="min-w-0 flex-1">
@@ -205,7 +196,6 @@ function TaskItem({
         </div>
       </div>
 
-      {/* Status Badge & Actions */}
       <div className="flex items-center gap-2">
         {!isSelectionMode && !isSelected && (
           <button 
@@ -243,11 +233,8 @@ function TaskItem({
           </div>
         )}
       </div>
-
-      {/* Choice Bubble removed (now managed at root) */}
     </motion.div>
   )
 }
 
 export default memo(TaskItem)
-
