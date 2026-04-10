@@ -707,9 +707,9 @@ export default function DashboardPage() {
                     toggleSelection(t.id, 'task')
                   }}
                   onEdit={() => {
-                    setTaskToEdit(t)
-                    setShowTaskModal(true)
+                    // This is now handled internally by TaskItem for inline editing
                   }}
+                  onUpdate={(id, updates) => updateTask({ id, ...updates })}
                   onDelete={() => deleteTask(t.id)}
                   onOpenBubble={(position) => setActiveBubble({
                     id: t.id,

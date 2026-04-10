@@ -6,6 +6,7 @@ import { Task, TaskPriority, TaskStatus } from '@/types'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { useState } from 'react'
 import { StatusChoiceBubble } from './StatusChoiceBubble'
+import { CustomDateTimePicker } from './CustomDateTimePicker'
 
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
   critical: 'bg-[#b80000]',
@@ -24,7 +25,8 @@ function TaskItem({
   onContextMenu,
   onOpenBubble,
   onEdit,
-  onDelete
+  onDelete,
+  onUpdate
 }: { 
   task: Task; 
   onToggle?: () => void;
@@ -36,8 +38,13 @@ function TaskItem({
   onOpenBubble?: (pos: { x: number; y: number }) => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onUpdate?: (id: string, updates: Partial<Task>) => void;
 }) {
-  
+  const [isEditing, setIsEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState(task.title)
+  const [editDate, setEditDate] = useState(task.due_date || '')
+  const [editTime, setEditTime] = useState(task.due_time || '')
+
   const dueLabel = (task.due && task.due !== 'Hoje') ? task.due : (task.due_time ? task.due_time : '')
 
   const handleStatusClick = (e: React.MouseEvent) => {
@@ -45,13 +52,6 @@ function TaskItem({
     if (isSelectionMode) return
     onOpenBubble?.({ x: e.clientX, y: e.clientY })
   }
-
-  const STATUS_OPTIONS = [
-    { id: 'done', label: 'CONCLUÍDO', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
-    { id: 'partial', label: 'PARCIAL', icon: Minus, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
-    { id: 'failed', label: 'FALHOU', icon: X, color: 'text-[#e02020]', bg: 'hover:bg-[#e02020]/10' },
-    { id: 'todo', label: 'LIMPAR', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' }
-  ]
 
   const longPress = useLongPress(
     () => {
@@ -61,8 +61,81 @@ function TaskItem({
     { delay: 500 }
   )
 
+  const handleSave = () => {
+    onUpdate?.(task.id, {
+      title: editTitle,
+      due_date: editDate,
+      due_time: editTime
+    })
+    setIsEditing(false)
+  }
+
+  if (isEditing) {
+    return (
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col gap-4 p-5 rounded-[40px] bg-[var(--bg-primary)] border border-red-500/30 shadow-2xl relative z-[1001]"
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+             <span className="text-[10px] font-black uppercase tracking-widest text-red-500/80">Editando Rascunho</span>
+             <button onClick={() => setIsEditing(false)} className="text-[var(--text-muted)] hover:text-white p-1">
+               <X size={16} />
+             </button>
+          </div>
+          
+          <div className="space-y-2">
+            <input 
+              autoFocus
+              value={editTitle}
+              onChange={e => setEditTitle(e.target.value)}
+              placeholder="Título do rascunho..."
+              className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl px-5 py-4 text-white font-bold text-lg focus:outline-none focus:border-red-500/40"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+             <CustomDateTimePicker 
+               label="Data" 
+               type="date" 
+               value={editDate} 
+               onChange={setEditDate} 
+               direction="up"
+             />
+             <CustomDateTimePicker 
+               label="Hora" 
+               type="time" 
+               value={editTime} 
+               onChange={setEditTime} 
+               align="right"
+               direction="up"
+             />
+          </div>
+
+          <div className="flex gap-2 pt-2">
+             <button
+               onClick={handleSave}
+               className="flex-1 bg-white text-black font-black py-4 rounded-[22px] hover:opacity-90 active:scale-95 transition-all text-xs uppercase tracking-widest"
+             >
+               Salvar
+             </button>
+             <button
+               onClick={() => setIsEditing(false)}
+               className="px-6 bg-white/5 text-[var(--text-muted)] font-black py-4 rounded-[22px] hover:bg-white/10 active:scale-95 transition-all text-xs uppercase tracking-widest"
+             >
+               Cancelar
+             </button>
+          </div>
+        </div>
+      </motion.div>
+    )
+  }
+
   return (
     <motion.div
+      layout
       whileTap={{ scale: 0.98 }}
       {...longPress}
       onClick={(e) => {
@@ -138,7 +211,7 @@ function TaskItem({
           <button 
             onClick={(e) => {
               e.stopPropagation()
-              onEdit?.()
+              setIsEditing(true)
             }}
             className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-white hover:bg-white/10 transition-all active:scale-90"
             title="Editar Tarefa"
@@ -177,3 +250,4 @@ function TaskItem({
 }
 
 export default memo(TaskItem)
+
