@@ -70,11 +70,27 @@ export function CustomDateTimePicker({
     return style
   }
 
+  const handleToggle = (e: React.PointerEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      setCoords({
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height
+      })
+    }
+    setIsOpen(!isOpen)
+  }
+
   return (
     <div className="space-y-2 flex-1" ref={containerRef}>
       <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">{label}</label>
       <div 
-        onClick={() => setIsOpen(!isOpen)}
+        onPointerDown={handleToggle}
         className={cn(
           "relative flex items-center bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl px-6 py-4 cursor-pointer hover:opacity-80 transition-all group",
           isOpen && "border-[var(--text-primary)]/30 bg-[var(--bg-overlay)]/80"
@@ -99,7 +115,7 @@ export function CustomDateTimePicker({
           <>
             <div 
               className="fixed inset-0 z-[19999]" 
-              onClick={() => setIsOpen(false)} 
+              onPointerDown={() => setIsOpen(false)} 
             />
             <div style={{ ...getPositionStyle(), zIndex: 20000 }}>
               {type === 'date' ? (
