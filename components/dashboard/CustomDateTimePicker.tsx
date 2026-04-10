@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useLayoutEffect } from 'react'
 import { Calendar, Clock } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
@@ -31,66 +31,6 @@ export function CustomDateTimePicker({
   onToggle
 }: CustomDateTimePickerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, height: 0 })
-
-  const updateCoords = () => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect()
-      setCoords({
-        top: rect.top,
-        left: rect.left,
-        width: rect.width,
-        height: rect.height
-      })
-    }
-  }
-
-  const handleToggle = (e: React.PointerEvent | React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    updateCoords()
-    onToggle()
-  }
-
-  const getPositionStyle = () => {
-    if (!coords.width) return { opacity: 0 }
-
-    const pickerWidth = 320
-    const pickerHeight = 400
-    
-    let left = coords.left
-    if (align === 'right') {
-      left = coords.left + coords.width - pickerWidth
-    }
-    
-    // Horizontal boundary check
-    if (left < 10) left = 10
-    if (left + pickerWidth > window.innerWidth - 10) {
-      left = window.innerWidth - pickerWidth - 10
-    }
-
-    const style: React.CSSProperties = {
-      position: 'fixed',
-      left: `${left}px`,
-      width: `${pickerWidth}px`,
-      zIndex: 20000
-    }
-
-    // Vertical Positioning
-    if (direction === 'up') {
-      style.top = `${coords.top - pickerHeight - 8}px`
-      if (coords.top - pickerHeight < 10) {
-        style.top = `${coords.top + coords.height + 8}px`
-      }
-    } else {
-      style.top = `${coords.top + coords.height + 8}px`
-      if (coords.top + coords.height + pickerHeight + 10 > window.innerHeight) {
-        style.top = `${coords.top - pickerHeight - 8}px`
-      }
-    }
-
-    return style
-  }
 
   const getDisplayValue = () => {
     if (!value) return type === 'date' ? '00/00/0000' : '00:00'
@@ -108,11 +48,14 @@ export function CustomDateTimePicker({
     <div className="space-y-2 flex-1" ref={containerRef}>
       <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">{label}</label>
       <div 
-        onPointerDown={handleToggle}
-        onMouseDown={handleToggle}
+        onPointerDown={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          onToggle()
+        }}
         className={cn(
           "relative flex items-center bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl px-6 py-4 cursor-pointer hover:opacity-80 transition-all group select-none touch-none",
-          isOpen && "border-[var(--text-primary)]/30 bg-[var(--bg-overlay)]/80 ring-2 ring-[var(--text-primary)]/20 shadow-[0_0_30px_rgba(255,255,255,0.05)]"
+          isOpen && "border-[var(--text-primary)]/30 bg-[var(--bg-overlay)]/80 ring-2 ring-white/20 shadow-[0_0_40px_rgba(255,255,255,0.05)]"
         )}
       >
         <span className={cn(
@@ -130,43 +73,107 @@ export function CustomDateTimePicker({
       </div>
 
       <AnimatePresence>
-        {isOpen && createPortal(
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[19999] bg-black/40 backdrop-blur-sm" 
-              onPointerDown={(e) => {
-                e.stopPropagation()
-                onToggle()
-              }}
-              onMouseDown={(e) => {
-                e.stopPropagation()
-                onToggle()
-              }}
-            />
-            <div style={{ ...getPositionStyle() }}>
-              {type === 'date' ? (
-                <AppleDatePicker 
-                  value={value} 
-                  onChange={onChange} 
-                  onClose={onToggle} 
-                  direction={direction}
-                />
-              ) : (
-                <AppleTimePicker 
-                  value={value} 
-                  onChange={onChange} 
-                  onClose={onToggle} 
-                  direction={direction}
-                />
-              )}
-            </div>
-          </>,
-          document.body
+        {isOpen && (
+          <PickerPortal 
+            anchorRef={containerRef}
+            type={type}
+            value={value}
+            onChange={onChange}
+            onClose={onToggle}
+            align={align}
+            direction={direction}
+          />
         )}
       </AnimatePresence>
     </div>
+  )
+}
+
+function PickerPortal({ 
+  anchorRef, 
+  type, 
+  value, 
+  onChange, 
+  onClose,
+  align,
+  direction
+}: {
+  anchorRef: React.RefObject<HTMLDivElement>
+  type: 'date' | 'time'
+  value: string
+  onChange: (val: string) => void
+  onClose: () => void
+  align: 'left' | 'right'
+  direction: 'up' | 'down'
+}) {
+  const [style, setStyle] = useState<React.CSSProperties>({ opacity: 0, position: 'fixed', zIndex: 99999 })
+
+  useLayoutEffect(() => {
+    if (anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect()
+      const pickerWidth = 320
+      const pickerHeight = 400
+
+      let left = rect.left
+      if (align === 'right') {
+        left = rect.left + rect.width - pickerWidth
+      }
+
+      // Horizontal flip/clamping
+      if (left < 10) left = 10
+      if (left + pickerWidth > window.innerWidth - 10) {
+        left = window.innerWidth - pickerWidth - 10
+      }
+
+      const newStyle: React.CSSProperties = {
+        position: 'fixed',
+        left: `${left}px`,
+        width: `${pickerWidth}px`,
+        zIndex: 99999,
+        opacity: 1
+      }
+
+      // Vertical auto-flip
+      const spaceBelow = window.innerHeight - (rect.top + rect.height)
+      const spaceAbove = rect.top
+      
+      let finalDirection = direction
+      if (finalDirection === 'down' && spaceBelow < pickerHeight && spaceAbove > spaceBelow) {
+        finalDirection = 'up'
+      } else if (finalDirection === 'up' && spaceAbove < pickerHeight && spaceBelow > spaceAbove) {
+        finalDirection = 'down'
+      }
+
+      if (finalDirection === 'up') {
+        newStyle.top = `${rect.top - pickerHeight - 8}px`
+      } else {
+        newStyle.top = `${rect.top + rect.height + 8}px`
+      }
+
+      setStyle(newStyle)
+    }
+  }, [anchorRef, align, direction])
+
+  return createPortal(
+    <>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[99998] bg-black/60 backdrop-blur-md" 
+        onPointerDown={(e) => {
+          e.stopPropagation()
+          onClose()
+        }}
+      />
+      <div style={style}>
+        {type === 'date' ? (
+          <AppleDatePicker value={value} onChange={onChange} onClose={onClose} direction={direction} />
+        ) : (
+          <AppleTimePicker value={value} onChange={onChange} onClose={onClose} direction={direction} />
+        )}
+      </div>
+    </>,
+    document.body
   )
 }
