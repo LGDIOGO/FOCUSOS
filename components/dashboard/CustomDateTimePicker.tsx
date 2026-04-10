@@ -55,14 +55,42 @@ export function CustomDateTimePicker({
   }
 
   const getPositionStyle = () => {
-    const style: React.CSSProperties = {
-      position: 'fixed',
-      left: align === 'right' ? `${coords.left + coords.width - 300}px` : `${coords.left}px`,
-      zIndex: 10000
+    if (!coords.width) return { opacity: 0 }
+
+    const pickerWidth = 320
+    const pickerHeight = 400
+    
+    let left = coords.left
+    if (align === 'right') {
+      left = coords.left + coords.width - pickerWidth
+    }
+    
+    // Horizontal boundary check
+    if (left < 10) left = 10
+    if (left + pickerWidth > window.innerWidth - 10) {
+      left = window.innerWidth - pickerWidth - 10
     }
 
-    if (direction === 'up') {
-      style.bottom = `${window.innerHeight - coords.top}px`
+    const style: React.CSSProperties = {
+      position: 'fixed',
+      left: `${left}px`,
+      width: `${pickerWidth}px`,
+      zIndex: 20000
+    }
+
+    // Vertical space evaluation
+    const spaceBelow = window.innerHeight - (coords.top + coords.height)
+    const spaceAbove = coords.top
+    
+    let finalDirection = direction
+    if (finalDirection === 'down' && spaceBelow < pickerHeight && spaceAbove > spaceBelow) {
+      finalDirection = 'up'
+    } else if (finalDirection === 'up' && spaceAbove < pickerHeight && spaceBelow > spaceAbove) {
+      finalDirection = 'down'
+    }
+
+    if (finalDirection === 'up') {
+      style.bottom = `${window.innerHeight - coords.top + 8}px`
     } else {
       style.top = `${coords.top + coords.height + 8}px`
     }
@@ -70,7 +98,7 @@ export function CustomDateTimePicker({
     return style
   }
 
-  const handleToggle = (e: React.PointerEvent) => {
+  const handleToggle = (e: React.PointerEvent | React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
@@ -91,22 +119,23 @@ export function CustomDateTimePicker({
       <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">{label}</label>
       <div 
         onPointerDown={handleToggle}
+        onMouseDown={handleToggle}
         className={cn(
-          "relative flex items-center bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl px-6 py-4 cursor-pointer hover:opacity-80 transition-all group",
-          isOpen && "border-[var(--text-primary)]/30 bg-[var(--bg-overlay)]/80"
+          "relative flex items-center bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl px-6 py-4 cursor-pointer hover:opacity-80 transition-all group select-none touch-none",
+          isOpen && "border-[var(--text-primary)]/30 bg-[var(--bg-overlay)]/80 ring-2 ring-[var(--text-primary)]/10"
         )}
       >
         <span className={cn(
-          "text-[var(--text-primary)] font-bold text-lg flex-1 transition-colors",
+          "text-[var(--text-primary)] font-bold text-lg flex-1 transition-colors pointer-events-none",
           !value && "text-[var(--text-muted)]"
         )}>
           {getDisplayValue()}
         </span>
         
         {type === 'date' ? (
-          <Calendar className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" size={20} />
+          <Calendar className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors pointer-events-none" size={20} />
         ) : (
-          <Clock className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" size={20} />
+          <Clock className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors pointer-events-none" size={20} />
         )}
       </div>
 
@@ -116,6 +145,7 @@ export function CustomDateTimePicker({
             <div 
               className="fixed inset-0 z-[19999]" 
               onPointerDown={() => setIsOpen(false)} 
+              onMouseDown={() => setIsOpen(false)}
             />
             <div style={{ ...getPositionStyle(), zIndex: 20000 }}>
               {type === 'date' ? (
