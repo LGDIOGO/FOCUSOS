@@ -75,6 +75,13 @@ export default function FinancePage() {
   const [txAmount, setTxAmount] = useState<string>('')
   const [isTransactionTypeLocked, setIsTransactionTypeLocked] = useState(false)
 
+  // CUSTO FIXO MODAL — custom dropdown states (replace native select)
+  const [costBillingCycle, setCostBillingCycle] = useState<'monthly' | 'biweekly' | 'weekly' | 'yearly' | 'custom'>('monthly')
+  const [costCategory, setCostCategory] = useState<string>('assinatura')
+
+  // POTE MODAL — custom dropdown states
+  const [poteAllocationType, setPoteAllocationType] = useState<'percentage' | 'fixed_value'>('percentage')
+
   // ONBOARDING WIZARD STATE
   const [showWizard, setShowWizard] = useState(false)
   const [wizardStep, setWizardStep] = useState(1)
@@ -1341,16 +1348,16 @@ export default function FinancePage() {
         {isCostModalOpen && (
           <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md bg-[var(--bg-primary)] border border-red-500/20 rounded-3xl p-6 shadow-[0_0_50px_rgba(239,68,68,0.1)] relative">
-              <button onClick={() => setCostModalOpen(false)} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"><X size={20}/></button>
+              <button onClick={() => { setCostModalOpen(false); setCostBillingCycle('monthly'); setCostCategory('assinatura') }} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"><X size={20}/></button>
               <h2 className="text-2xl font-black text-red-500 mb-6 flex items-center gap-2"><Shield size={24}/> Cadastrar Custo Fixo</h2>
               <form onSubmit={async (e) => {
                 e.preventDefault()
                 const fd = new FormData(e.currentTarget)
-                
+
                 const title = fd.get('title') as string
                 const amount = parseFloat(fd.get('amount') as string)
-                const category = fd.get('category') as string
-                const billing_cycle = fd.get('billing_cycle') as any
+                const category = costCategory
+                const billing_cycle = costBillingCycle
                 const due_day = parseInt(fd.get('due_day') as string) || 1
                 const auto_appointment = fd.get('auto_appointment') === 'on'
 
@@ -1388,6 +1395,8 @@ export default function FinancePage() {
                 }
 
                 setCostModalOpen(false)
+                setCostBillingCycle('monthly')
+                setCostCategory('assinatura')
               }} className="space-y-4">
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Nome do Custo</label>
@@ -1399,47 +1408,66 @@ export default function FinancePage() {
                     <input name="amount" type="number" step="0.01" required placeholder="0.00" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Cobrança</label>
-                    <div className="relative">
-                      <select name="billing_cycle" className="w-full appearance-none bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 cursor-pointer">
-                        <option value="monthly">Mensal</option>
-                        <option value="biweekly">Quinzenal</option>
-                        <option value="weekly">Semanal</option>
-                        <option value="yearly">Anual</option>
-                        <option value="custom">Personalizado</option>
-                      </select>
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
-                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
                     <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Dia de Vencimento</label>
                     <input name="due_day" type="number" min="1" max="31" defaultValue="10" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                   </div>
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Grupo de Custos</label>
-                    <div className="relative">
-                      <select name="category" className="w-full appearance-none bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 cursor-pointer">
-                        <option value="assinatura">Software / Assinatura</option>
-                        <option value="moradia">Moradia e Aluguel</option>
-                        <option value="alimentacao">Alimentação / Mercado</option>
-                        <option value="transporte">Transporte / Carro</option>
-                        <option value="saude">Saúde / Farmácia</option>
-                        <option value="educacao">Educação / Cursos</option>
-                        <option value="lazer">Lazer / Estilo de Vida</option>
-                        <option value="imposto">Impostos / Taxas</option>
-                        <option value="pessoal">Gastos Pessoais</option>
-                        <option value="divida">Dívida / Empréstimo</option>
-                        <option value="seguro">Seguros / Proteção</option>
-                        <option value="outro">Outros Custos</option>
-                      </select>
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
-                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                      </div>
-                    </div>
+                </div>
+
+                {/* Cobrança — custom pill selector */}
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block">Cobrança</label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { id: 'monthly',  label: 'Mensal' },
+                      { id: 'biweekly', label: 'Quinzenal' },
+                      { id: 'weekly',   label: 'Semanal' },
+                      { id: 'yearly',   label: 'Anual' },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setCostBillingCycle(opt.id)}
+                        className={cn(
+                          "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
+                          costBillingCycle === opt.id
+                            ? "bg-red-500/20 border-red-500/50 text-red-400"
+                            : "bg-white/5 border-white/10 text-[var(--text-muted)] hover:bg-white/10"
+                        )}
+                      >{opt.label}</button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Grupo de Custos — custom pill selector */}
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block">Grupo de Custos</label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { id: 'assinatura',   label: '💻 Software / Assinatura' },
+                      { id: 'moradia',      label: '🏠 Moradia / Aluguel' },
+                      { id: 'alimentacao',  label: '🛒 Alimentação' },
+                      { id: 'transporte',   label: '🚗 Transporte' },
+                      { id: 'saude',        label: '💊 Saúde' },
+                      { id: 'educacao',     label: '📚 Educação' },
+                      { id: 'lazer',        label: '🎮 Lazer' },
+                      { id: 'imposto',      label: '📋 Impostos' },
+                      { id: 'pessoal',      label: '👤 Pessoal' },
+                      { id: 'divida',       label: '💳 Dívida' },
+                      { id: 'seguro',       label: '🛡️ Seguros' },
+                      { id: 'outro',        label: '📦 Outros' },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setCostCategory(opt.id)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border",
+                          costCategory === opt.id
+                            ? "bg-red-500/20 border-red-500/50 text-red-300"
+                            : "bg-white/5 border-white/10 text-[var(--text-muted)] hover:bg-white/10"
+                        )}
+                      >{opt.label}</button>
+                    ))}
                   </div>
                 </div>
                 
@@ -1462,7 +1490,7 @@ export default function FinancePage() {
         {isPoteModalOpen && (
           <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md bg-[var(--bg-primary)] border border-red-500/20 rounded-3xl p-6 shadow-[0_0_50px_rgba(239,68,68,0.1)] relative">
-              <button onClick={() => setPoteModalOpen(false)} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"><X size={20}/></button>
+              <button onClick={() => { setPoteModalOpen(false); setPoteAllocationType('percentage') }} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"><X size={20}/></button>
               <h2 className="text-2xl font-black text-red-500 mb-6 flex items-center gap-2"><Target size={24}/> Criar Novo Pote</h2>
               <form onSubmit={async (e) => {
                 e.preventDefault()
@@ -1471,13 +1499,14 @@ export default function FinancePage() {
                   title: fd.get('title') as string,
                   target_amount: parseFloat(fd.get('target_amount') as string) || 0,
                   saved_amount: 0,
-                  allocation_type: fd.get('allocation_type') as any,
+                  allocation_type: poteAllocationType,
                   allocation_value: parseFloat(fd.get('allocation_value') as string),
                   color: 'text-red-500',
                   emoji: (fd.get('emoji') as string) || '🎯',
                   monthly_yield_rate: parseFloat(fd.get('monthly_yield_rate') as string) || 0,
                 })
                 setPoteModalOpen(false)
+                setPoteAllocationType('percentage')
               }} className="space-y-4">
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Objetivo do Pote (Emoji & Nome)</label>
@@ -1490,23 +1519,35 @@ export default function FinancePage() {
                   <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Custo Total / Meta (Opcional)</label>
                   <input name="target_amount" type="number" step="0.01" placeholder="Ex: 5000.00" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Tipo de Depósito</label>
-                    <div className="relative">
-                      <select name="allocation_type" className="w-full appearance-none bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 cursor-pointer">
-                        <option value="percentage">% da Sobra do Mês</option>
-                        <option value="fixed_value">Valor Fixo (R$)</option>
-                      </select>
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
-                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                      </div>
-                    </div>
+
+                {/* Tipo de Depósito — custom pill selector */}
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block">Tipo de Depósito</label>
+                  <div className="flex gap-2">
+                    {([
+                      { id: 'percentage',  label: '% da Sobra do Mês' },
+                      { id: 'fixed_value', label: 'Valor Fixo (R$)' },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setPoteAllocationType(opt.id)}
+                        className={cn(
+                          "flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest border transition-all",
+                          poteAllocationType === opt.id
+                            ? "bg-red-500/15 border-red-500/50 text-red-400"
+                            : "bg-white/5 border-white/10 text-[var(--text-muted)] hover:bg-white/10"
+                        )}
+                      >{opt.label}</button>
+                    ))}
                   </div>
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Fatia / Valor</label>
-                    <input name="allocation_value" type="number" step="0.01" required placeholder="Ex: 25" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
-                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">
+                    {poteAllocationType === 'percentage' ? 'Percentual da Sobra (%)' : 'Valor Fixo (R$)'}
+                  </label>
+                  <input name="allocation_value" type="number" step="0.01" required placeholder={poteAllocationType === 'percentage' ? 'Ex: 25' : 'Ex: 500'} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                 </div>
                 <div className="border border-dashed border-white/10 rounded-2xl p-4 space-y-3">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
