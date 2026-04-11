@@ -31,6 +31,7 @@ export function StatusChoiceBubble({
   position
 }: StatusChoiceBubbleProps) {
   const bubbleRef = useRef<HTMLDivElement>(null)
+  const lastActivationRef = useRef(0)
   const [bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
     position: 'fixed',
     top: `${Math.max(8, position.y - 150)}px`,
@@ -80,16 +81,23 @@ export function StatusChoiceBubble({
     }
   }, [isOpen, position.x, position.y])
 
+  const shouldSkipDuplicateActivation = () => {
+    const now = Date.now()
+    if (now - lastActivationRef.current < 350) return true
+    lastActivationRef.current = now
+    return false
+  }
+
   const handleOptionSelect = (event: React.SyntheticEvent, status: string) => {
-    event.preventDefault()
     event.stopPropagation()
+    if (shouldSkipDuplicateActivation()) return
     onSelect(status)
     onClose()
   }
 
   const handleCloseBubble = (event: React.SyntheticEvent) => {
-    event.preventDefault()
     event.stopPropagation()
+    if (shouldSkipDuplicateActivation()) return
     onClose()
   }
 
@@ -102,7 +110,7 @@ export function StatusChoiceBubble({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onPointerDown={handleCloseBubble}
+            onClick={handleCloseBubble}
             className={cn(
               "fixed inset-0 z-[29999] bg-black/[0.1] backdrop-blur-[2px] cursor-default",
               backdropReady ? "pointer-events-auto" : "pointer-events-none"
@@ -117,21 +125,23 @@ export function StatusChoiceBubble({
             exit={{ opacity: 0, scale: 0.5, y: 10 }}
             transition={{ type: "spring", bounce: 0.3, duration: 0.4 }}
             style={bubbleStyle}
-            className="bg-[var(--bg-card)] backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] p-2 flex items-center gap-1.5 shadow-2xl max-w-[95vw]"
+            onClick={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+            onTouchStart={(event) => event.stopPropagation()}
+            className="z-[30000] pointer-events-auto bg-[var(--bg-card)] backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] p-2 flex items-center gap-1.5 shadow-2xl max-w-[95vw]"
           >
             <div className="flex items-center gap-1.5 max-w-full overflow-x-auto scrollbar-none px-1">
               {options.map((opt) => (
-                <motion.button
+                <button
                   key={opt.id}
                   type="button"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onPointerDown={(event) => handleOptionSelect(event, opt.id)}
-                  onClick={(event) => {
-                    if (event.detail === 0) handleOptionSelect(event, opt.id)
+                  onClick={(event) => handleOptionSelect(event, opt.id)}
+                  onTouchEnd={(event) => {
+                    event.preventDefault()
+                    handleOptionSelect(event, opt.id)
                   }}
                   className={cn(
-                    "flex flex-col items-center gap-1.5 p-2 sm:p-3 rounded-[24px] transition-all group flex-shrink-0",
+                    "flex flex-col items-center gap-1.5 p-2 sm:p-3 rounded-[24px] transition-all group flex-shrink-0 hover:scale-105 active:scale-95",
                     opt.bg
                   )}
                 >
@@ -145,20 +155,19 @@ export function StatusChoiceBubble({
                   <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-white/40 group-hover:text-white transition-opacity">
                     {opt.label}
                   </span>
-                </motion.button>
+                </button>
               ))}
 
               <div className="w-px h-10 bg-white/10 mx-1 flex-shrink-0" />
 
-              <motion.button
+              <button
                 type="button"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onPointerDown={handleCloseBubble}
-                onClick={(event) => {
-                  if (event.detail === 0) handleCloseBubble(event)
+                onClick={handleCloseBubble}
+                onTouchEnd={(event) => {
+                  event.preventDefault()
+                  handleCloseBubble(event)
                 }}
-                className="flex flex-col items-center gap-1.5 p-2 sm:p-3 rounded-[24px] transition-all group flex-shrink-0 hover:bg-white/5"
+                className="flex flex-col items-center gap-1.5 p-2 sm:p-3 rounded-[24px] transition-all group flex-shrink-0 hover:bg-white/5 hover:scale-105 active:scale-95"
               >
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center border border-[var(--border-subtle)] bg-[var(--bg-overlay)] text-[var(--text-muted)] group-hover:text-[var(--text-primary)]">
                   <X size={18} strokeWidth={2.5} className="sm:w-[22px] sm:h-[22px]" />
@@ -166,7 +175,7 @@ export function StatusChoiceBubble({
                 <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-opacity">
                   Cancelar
                 </span>
-              </motion.button>
+              </button>
             </div>
           </motion.div>
         </>,
