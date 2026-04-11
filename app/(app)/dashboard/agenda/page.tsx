@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -88,36 +88,30 @@ function EventItem({
   const currentStatus = event.status || 'none'
   const cfg = STATUS_CONFIG_AGENDA[currentStatus] || STATUS_CONFIG_AGENDA.none
 
-  const handleShortPress = (eventData: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
-    if (isBubbleIgnoredTarget(eventData.target)) {
-      return
-    }
-
-    eventData.preventDefault()
-    eventData.stopPropagation()
-
-    if (isSelectionMode) {
-      toggleSelection(event.id)
-      return
-    }
-
-    onOpenBubble?.(resolveBubblePosition(eventData, eventData.currentTarget))
-  }
-
-  const localLongPress = useLongPress(
-    () => {
-      setIsSelectionMode(true)
-      toggleSelection(event.id)
-    },
-    handleShortPress,
-    { delay: 500 }
-  )
+  const longPressTimer = useRef<NodeJS.Timeout>()
+  const didLongPress = useRef(false)
 
   return (
     <motion.div
       layoutId={event.id}
       whileTap={{ scale: 0.985 }}
-      {...localLongPress}
+      onTapStart={() => {
+        didLongPress.current = false
+        longPressTimer.current = setTimeout(() => {
+          didLongPress.current = true
+          setIsSelectionMode(true)
+          toggleSelection(event.id)
+        }, 500)
+      }}
+      onTap={(tapEvent, info) => {
+        clearTimeout(longPressTimer.current)
+        if (didLongPress.current) { didLongPress.current = false; return }
+        const target = (tapEvent as any).target as HTMLElement
+        if (target.closest('[data-bubble-ignore]')) return
+        if (isSelectionMode) { toggleSelection(event.id); return }
+        onOpenBubble?.({ x: info.point.x, y: info.point.y })
+      }}
+      onTapCancel={() => { clearTimeout(longPressTimer.current); didLongPress.current = false }}
       onContextMenu={(e) => {
         e.preventDefault()
         e.stopPropagation()

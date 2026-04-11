@@ -80,25 +80,6 @@ export function HabitCard({
   const longPressTimer = useRef<NodeJS.Timeout>()
   const didLongPress = useRef(false)
 
-  /* ── Click / Long-press handlers ── */
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (didLongPress.current) { didLongPress.current = false; return }
-    const target = e.target as HTMLElement
-    if (target.closest('[data-bubble-ignore]')) return
-    if (isSelectionMode) { onSelect?.(); return }
-    onOpenBubble?.({ x: e.clientX, y: e.clientY })
-  }
-
-  const handleTouchStart = () => {
-    didLongPress.current = false
-    longPressTimer.current = setTimeout(() => {
-      didLongPress.current = true
-      onContextMenu?.()
-    }, 500)
-  }
-
-  const handleTouchEnd = () => clearTimeout(longPressTimer.current)
-
   const isNeutral = currentStatus === 'none'
 
   return (
@@ -106,9 +87,22 @@ export function HabitCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       whileTap={{ scale: 0.98 }}
-      onClick={handleClick}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+      onTapStart={() => {
+        didLongPress.current = false
+        longPressTimer.current = setTimeout(() => {
+          didLongPress.current = true
+          onContextMenu?.()
+        }, 500)
+      }}
+      onTap={(event, info) => {
+        clearTimeout(longPressTimer.current)
+        if (didLongPress.current) { didLongPress.current = false; return }
+        const target = (event as any).target as HTMLElement
+        if (target.closest('[data-bubble-ignore]')) return
+        if (isSelectionMode) { onSelect?.(); return }
+        onOpenBubble?.({ x: info.point.x, y: info.point.y })
+      }}
+      onTapCancel={() => { clearTimeout(longPressTimer.current); didLongPress.current = false }}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onContextMenu?.() }}
       data-status-card="dashboard-habit"
       className={cn(
