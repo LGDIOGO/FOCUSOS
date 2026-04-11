@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion'
-import { memo, useState, useRef } from 'react'
+import { memo, useState } from 'react'
 import { Check, Minus, X, Pencil, Trash2, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
-import { Task, TaskPriority, TaskStatus } from '@/types'
+import { Task, TaskStatus } from '@/types'
+import { useLongPress } from '@/lib/hooks/useLongPress'
 import { CustomDateTimePicker } from './CustomDateTimePicker'
 
 interface TaskItemProps {
@@ -18,8 +19,8 @@ interface TaskItemProps {
   onUpdate?: (id: string, updates: Partial<Task>) => void
 }
 
-function TaskItem({ 
-  task, 
+function TaskItem({
+  task,
   onToggle,
   onStatusChange,
   isSelectionMode,
@@ -38,29 +39,23 @@ function TaskItem({
 
   const dueLabel = (task.due && task.due !== 'Hoje') ? task.due : (task.due_time ? task.due_time : '')
 
-  // ─── Long press + click handling (pointer-based, Framer Motion safe) ──
-  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const longPressActivated = useRef(false)
-
-  function startPress() {
-    longPressActivated.current = false
-    pressTimer.current = setTimeout(() => {
-      longPressActivated.current = true
+  const longPress = useLongPress(
+    () => {
       onContextMenu?.()
-    }, 500)
-  }
-  function cancelPress() {
-    if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null }
-  }
-  function handleClick(e: React.MouseEvent) {
-    if (longPressActivated.current) { longPressActivated.current = false; return }
-    if (isSelectionMode) { e.preventDefault(); e.stopPropagation(); onSelect?.(); return }
+    },
+    () => {},
+    { delay: 500 }
+  )
+
+  const handleStatusClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (isSelectionMode) return
     onOpenBubble?.({ x: e.clientX, y: e.clientY })
   }
 
   const handleSave = async () => {
     if (!editTitle.trim()) return
-    
+
     onUpdate?.(task.id, {
       title: editTitle,
       due_date: editDate,
@@ -81,7 +76,7 @@ function TaskItem({
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Título</label>
-            <input 
+            <input
               autoFocus
               value={editTitle}
               onChange={e => setEditTitle(e.target.value)}
@@ -91,7 +86,7 @@ function TaskItem({
           </div>
 
           <div className="flex gap-3">
-            <CustomDateTimePicker 
+            <CustomDateTimePicker
               label="Data"
               type="date"
               value={editDate}
@@ -100,7 +95,7 @@ function TaskItem({
               isOpen={activePicker === 'date'}
               onToggle={() => setActivePicker(activePicker === 'date' ? null : 'date')}
             />
-            <CustomDateTimePicker 
+            <CustomDateTimePicker
               label="Hora"
               type="time"
               value={editTime}
@@ -137,15 +132,25 @@ function TaskItem({
   return (
     <motion.div
       layout
-      onPointerDown={startPress}
-      onPointerUp={cancelPress}
-      onPointerLeave={cancelPress}
-      onClick={handleClick}
-      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); cancelPress(); onContextMenu?.() }}
-      style={{ touchAction: 'manipulation' }}
+      whileTap={{ scale: 0.98 }}
+      {...longPress}
+      onClick={(e) => {
+        if (isSelectionMode) {
+          e.preventDefault()
+          e.stopPropagation()
+          onSelect?.()
+        } else {
+          handleStatusClick(e)
+        }
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        onContextMenu?.()
+      }}
       className={cn(
         'flex items-center gap-4 p-4 rounded-[28px] border cursor-pointer transition-all duration-300 select-none relative group w-full',
-        (task.status === 'done' || task.done) ? 'bg-green-500/[0.03] border-green-500/20' : 
+        (task.status === 'done' || task.done) ? 'bg-green-500/[0.03] border-green-500/20' :
         task.status === 'partial' ? 'bg-amber-400/[0.03] border-amber-400/20' :
         task.status === 'failed' ? 'bg-red-500/[0.03] border-red-500/20' :
         'bg-[var(--bg-overlay)] border-[var(--border-subtle)]',
@@ -156,6 +161,7 @@ function TaskItem({
         <motion.div
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
+          onClick={handleStatusClick}
           className={cn(
             'w-12 h-12 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all duration-200',
             (task.status === 'done' || task.done) ? 'bg-green-500 border-green-500' :
@@ -170,22 +176,19 @@ function TaskItem({
             <Minus size={16} strokeWidth={4} />
           ) : task.status === 'failed' ? (
             <X size={16} strokeWidth={4} />
-          ) : (
-            null
-          )}
+          ) : null}
         </motion.div>
       )}
 
       {isSelectionMode && (
-         <div className={cn(
-            "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
-            isSelected ? "border-red-600 bg-red-600" : "border-white/10 bg-white/5"
-         )}>
+        <div className={cn(
+          'w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20',
+          isSelected ? 'border-red-600 bg-red-600' : 'border-white/10 bg-white/5'
+        )}>
           {isSelected && <Check size={20} className="text-white" strokeWidth={3} />}
         </div>
       )}
 
-      {/* Emoji/Ícone da tarefa (slot próprio, só aparece quando não tem status ativo) */}
       {!isSelectionMode && task.emoji && (
         <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 bg-[var(--bg-overlay)]">
           {task.emoji}
@@ -236,13 +239,13 @@ function TaskItem({
         )}
         {!isSelectionMode && !isSelected && (task.status === 'done' || task.status === 'partial' || task.status === 'failed') && (
           <div className={cn(
-            "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border",
-            task.status === 'done' && "text-green-400 border-green-400/20 bg-green-400/5",
-            task.status === 'partial' && "text-amber-400 border-amber-400/20 bg-amber-400/5",
-            task.status === 'failed' && "text-red-400 border-red-400/20 bg-red-400/5"
+            'px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border',
+            task.status === 'done' && 'text-green-400 border-green-400/20 bg-green-400/5',
+            task.status === 'partial' && 'text-amber-400 border-amber-400/20 bg-amber-400/5',
+            task.status === 'failed' && 'text-red-400 border-red-400/20 bg-red-400/5'
           )}>
-             {task.status === 'done' ? 'CONCLUÍDO' : 
-              task.status === 'partial' ? 'PARCIAL' : 'FALHOU'}
+            {task.status === 'done' ? 'CONCLUÍDO' :
+             task.status === 'partial' ? 'PARCIAL' : 'FALHOU'}
           </div>
         )}
       </div>
