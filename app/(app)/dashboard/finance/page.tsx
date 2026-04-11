@@ -685,7 +685,59 @@ export default function FinancePage() {
                   </div>
                 </div>
 
-                {/* Filtros Integrados Removidos (Usando filtro global do Dashboard) */}
+                {/* Filtro de Período */}
+                <div className="flex flex-col gap-4 p-5 rounded-[28px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[
+                      { id: 'current_month' as PeriodFilter, label: 'Este Mês' },
+                      { id: 'last_month'    as PeriodFilter, label: 'Mês Passado' },
+                      { id: 'this_year'     as PeriodFilter, label: 'Este Ano' },
+                      { id: 'all_time'      as PeriodFilter, label: 'Todo o Histórico' },
+                      { id: 'custom'        as PeriodFilter, label: 'Personalizado' },
+                    ].map(btn => (
+                      <button
+                        key={btn.id}
+                        onClick={() => {
+                          setPeriodFilter(btn.id)
+                          if (btn.id !== 'custom') setCustomRange({ start: '', end: '' })
+                        }}
+                        className={cn(
+                          "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all",
+                          periodFilter === btn.id
+                            ? "bg-white text-black"
+                            : "bg-white/5 text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-primary)]"
+                        )}
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <AnimatePresence>
+                    {periodFilter === 'custom' && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="grid grid-cols-2 gap-3 pt-1"
+                      >
+                        <CustomDateTimePicker
+                          label="Início"
+                          type="date"
+                          value={customRange.start}
+                          onChange={(val) => setCustomRange({ ...customRange, start: val })}
+                        />
+                        <CustomDateTimePicker
+                          label="Fim"
+                          type="date"
+                          value={customRange.end}
+                          onChange={(val) => setCustomRange({ ...customRange, end: val })}
+                          align="right"
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 {/* Listagem de Despesas */}
                 <div className="space-y-4">

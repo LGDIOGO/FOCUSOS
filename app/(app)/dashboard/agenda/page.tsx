@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
 import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
+import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicker'
 import { useEvents, useDeleteEvent, useUpdateEvent } from '@/lib/hooks/useEvents'
 import { Check, Minus, X, Circle } from 'lucide-react'
 import { db, auth } from '@/lib/firebase/config'
@@ -564,39 +565,25 @@ export default function AgendaPage() {
                         </div>
 
                         {historyPeriod === 'custom' && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex flex-wrap items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10"
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="grid grid-cols-2 gap-3 pt-1"
                           >
-                            <div className="flex flex-col gap-1">
-                              <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Início</label>
-                              <input 
-                                type="date" 
-                                value={historyStartDate}
-                                onChange={(e) => setHistoryStartDate(e.target.value)}
-                                className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
-                              />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Fim</label>
-                              <input 
-                                type="date" 
-                                value={historyEndDate}
-                                onChange={(e) => setHistoryEndDate(e.target.value)}
-                                className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
-                              />
-                            </div>
-                            <button 
-                              onClick={() => {
-                                setHistoryStartDate('')
-                                setHistoryEndDate('')
-                                setHistoryPeriod('all')
-                              }}
-                              className="mt-4 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                            >
-                              Limpar
-                            </button>
+                            <CustomDateTimePicker
+                              label="Início"
+                              type="date"
+                              value={historyStartDate}
+                              onChange={setHistoryStartDate}
+                            />
+                            <CustomDateTimePicker
+                              label="Fim"
+                              type="date"
+                              value={historyEndDate}
+                              onChange={setHistoryEndDate}
+                              align="right"
+                            />
                           </motion.div>
                         )}
                     </div>
