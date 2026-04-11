@@ -64,6 +64,8 @@ export default function FinancePage() {
   const [isGeneratingAI, setIsGeneratingAI] = useState(false)
   const [isParsing, setIsParsing] = useState(false)
   const [isInstallment, setIsInstallment] = useState(false)
+  const [isFixedIncome, setIsFixedIncome] = useState(false)
+  const [fixedIncomeCycle, setFixedIncomeCycle] = useState<'monthly' | 'biweekly' | 'weekly' | 'yearly'>('monthly')
   const [txType, setTxType] = useState<'expense' | 'income'>('expense')
   const [txCategory, setTxCategory] = useState<string>('')
   const [txDate, setTxDate] = useState(() => new Date().toISOString().split('T')[0])
@@ -867,10 +869,31 @@ export default function FinancePage() {
                             
                             <div>
                               <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-2">{pote.title}</h3>
-                              <div className="flex items-center justify-between mt-6">
-                                <span className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)]">Depósito Projetado</span>
+                              {pote.monthly_yield_rate && pote.monthly_yield_rate > 0 && (
+                                <div className="flex items-center justify-between mt-3 p-3 bg-green-500/5 border border-green-500/10 rounded-2xl">
+                                  <span className="text-[11px] font-black uppercase tracking-widest text-green-500/70 flex items-center gap-1.5">
+                                    📈 Rendimento Estimado
+                                  </span>
+                                  <div className="text-right">
+                                    <span className="text-sm font-black text-green-400">+{formatBRL(pote.saved_amount * (pote.monthly_yield_rate / 100))}</span>
+                                    <span className="text-[9px] text-green-500/50 font-black uppercase ml-1">/mês ({pote.monthly_yield_rate}%)</span>
+                                  </div>
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between mt-4">
+                                <span className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                                  {pote.monthly_yield_rate && pote.monthly_yield_rate > 0 ? 'Aporte Projetado' : 'Depósito Projetado'}
+                                </span>
                                 <span className="text-2xl font-black text-[var(--text-primary)]">{formatBRL(poteAllocationValue)}</span>
                               </div>
+                              {pote.monthly_yield_rate && pote.monthly_yield_rate > 0 && (
+                                <div className="flex items-center justify-between mt-1">
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-green-500/60">Total com Rendimento</span>
+                                  <span className="text-base font-black text-green-400">
+                                    {formatBRL(poteAllocationValue + pote.saved_amount * (pote.monthly_yield_rate / 100))}
+                                  </span>
+                                </div>
+                              )}
                               {/* Barra de Progresso Real (Saldo Salvo no Pote vs Meta) */}
                               {pote.target_amount > 0 && (
                                 <div className="mt-4">
@@ -1062,9 +1085,24 @@ export default function FinancePage() {
                     date: baseDateStr
                   })
                 }
-                
+
+                // If user wants to save this income as recurring
+                if (txType === 'income' && isFixedIncome) {
+                  await addCost.mutateAsync({
+                    title,
+                    amount,
+                    category: 'renda_fixa',
+                    billing_cycle: fixedIncomeCycle,
+                    due_day: new Date(baseDateStr).getDate(),
+                    auto_appointment: false,
+                    entry_type: 'income'
+                  })
+                }
+
                 setTransactionModalOpen(false)
                 setIsInstallment(false)
+                setIsFixedIncome(false)
+                setFixedIncomeCycle('monthly')
                 setSelectedNature(null)
                 setTxTitle('')
                 setTxAmount('')
@@ -1211,35 +1249,87 @@ export default function FinancePage() {
                   </div>
                 )}
 
-                {/* PARCELAR — OPCIONAL */}
-                <div className="border border-dashed border-white/10 rounded-2xl overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setIsInstallment(!isInstallment)}
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-8 h-5 rounded-full border transition-all relative",
-                        isInstallment ? "bg-red-500/20 border-red-500/50" : "bg-white/5 border-white/10"
-                      )}>
+                {/* Only show parcelar for expenses */}
+                {txType === 'expense' && (
+                  <div className="border border-dashed border-white/10 rounded-2xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setIsInstallment(!isInstallment)}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
                         <div className={cn(
-                          "absolute top-0.5 w-4 h-4 rounded-full transition-all",
-                          isInstallment ? "left-3 bg-red-400" : "left-0.5 bg-white/20"
-                        )} />
+                          "w-8 h-5 rounded-full border transition-all relative",
+                          isInstallment ? "bg-red-500/20 border-red-500/50" : "bg-white/5 border-white/10"
+                        )}>
+                          <div className={cn(
+                            "absolute top-0.5 w-4 h-4 rounded-full transition-all",
+                            isInstallment ? "left-3 bg-red-400" : "left-0.5 bg-white/20"
+                          )} />
+                        </div>
+                        <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Parcelar este lançamento</span>
                       </div>
-                      <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Parcelar este lançamento</span>
-                    </div>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Opcional</span>
-                  </button>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Opcional</span>
+                    </button>
 
-                  {isInstallment && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="px-4 pb-4 border-t border-white/5">
-                       <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block mt-3">Número de Parcelas</label>
-                       <input name="installments" type="number" min="2" max="60" defaultValue="2" className="w-full bg-[var(--bg-overlay)] border border-red-500/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
-                    </motion.div>
-                  )}
-                </div>
+                    {isInstallment && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="px-4 pb-4 border-t border-white/5">
+                         <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block mt-3">Número de Parcelas</label>
+                         <input name="installments" type="number" min="2" max="60" defaultValue="2" className="w-full bg-[var(--bg-overlay)] border border-red-500/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                      </motion.div>
+                    )}
+                  </div>
+                )}
+
+                {/* Only show fixed income toggle for income type */}
+                {txType === 'income' && (
+                  <div className="border border-dashed border-green-500/20 rounded-2xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setIsFixedIncome(!isFixedIncome)}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-8 h-5 rounded-full border transition-all relative",
+                          isFixedIncome ? "bg-green-500/20 border-green-500/50" : "bg-white/5 border-white/10"
+                        )}>
+                          <div className={cn(
+                            "absolute top-0.5 w-4 h-4 rounded-full transition-all",
+                            isFixedIncome ? "left-3 bg-green-400" : "left-0.5 bg-white/20"
+                          )} />
+                        </div>
+                        <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Salvar como Renda Recorrente</span>
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Opcional</span>
+                    </button>
+                    {isFixedIncome && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="px-4 pb-4 border-t border-white/5 space-y-3">
+                        <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block mt-3">Periodicidade</label>
+                        <div className="flex flex-wrap gap-2">
+                          {([
+                            { id: 'monthly', label: 'Mensal' },
+                            { id: 'biweekly', label: 'Quinzenal' },
+                            { id: 'weekly', label: 'Semanal' },
+                            { id: 'yearly', label: 'Anual' },
+                          ] as const).map(opt => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => setFixedIncomeCycle(opt.id)}
+                              className={cn(
+                                "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                fixedIncomeCycle === opt.id
+                                  ? "bg-green-500/20 border border-green-500/40 text-green-400"
+                                  : "bg-white/5 border border-white/10 text-[var(--text-muted)] hover:bg-white/10"
+                              )}
+                            >{opt.label}</button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
 
                 <button type="submit" disabled={addTransaction.isPending} className="w-full py-4 mt-2 bg-white hover:bg-white/90 text-black font-black rounded-xl transition-all shadow-xl">Confirmar Lançamento</button>
               </form>
@@ -1310,13 +1400,18 @@ export default function FinancePage() {
                   </div>
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Cobrança</label>
-                    <select name="billing_cycle" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500">
-                      <option value="monthly">Mensal</option>
-                      <option value="biweekly">Quinzenal</option>
-                      <option value="weekly">Semanal</option>
-                      <option value="yearly">Anual</option>
-                      <option value="custom">Personalizado</option>
-                    </select>
+                    <div className="relative">
+                      <select name="billing_cycle" className="w-full appearance-none bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 cursor-pointer">
+                        <option value="monthly">Mensal</option>
+                        <option value="biweekly">Quinzenal</option>
+                        <option value="weekly">Semanal</option>
+                        <option value="yearly">Anual</option>
+                        <option value="custom">Personalizado</option>
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
+                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -1326,20 +1421,25 @@ export default function FinancePage() {
                   </div>
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Grupo de Custos</label>
-                    <select name="category" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500">
-                      <option value="assinatura">Software / Assinatura</option>
-                      <option value="moradia">Moradia e Aluguel</option>
-                      <option value="alimentacao">Alimentação / Mercado</option>
-                      <option value="transporte">Transporte / Carro</option>
-                      <option value="saude">Saúde / Farmácia</option>
-                      <option value="educacao">Educação / Cursos</option>
-                      <option value="lazer">Lazer / Estilo de Vida</option>
-                      <option value="imposto">Impostos / Taxas</option>
-                      <option value="pessoal">Gastos Pessoais</option>
-                      <option value="divida">Dívida / Empréstimo</option>
-                      <option value="seguro">Seguros / Proteção</option>
-                      <option value="outro">Outros Custos</option>
-                    </select>
+                    <div className="relative">
+                      <select name="category" className="w-full appearance-none bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 cursor-pointer">
+                        <option value="assinatura">Software / Assinatura</option>
+                        <option value="moradia">Moradia e Aluguel</option>
+                        <option value="alimentacao">Alimentação / Mercado</option>
+                        <option value="transporte">Transporte / Carro</option>
+                        <option value="saude">Saúde / Farmácia</option>
+                        <option value="educacao">Educação / Cursos</option>
+                        <option value="lazer">Lazer / Estilo de Vida</option>
+                        <option value="imposto">Impostos / Taxas</option>
+                        <option value="pessoal">Gastos Pessoais</option>
+                        <option value="divida">Dívida / Empréstimo</option>
+                        <option value="seguro">Seguros / Proteção</option>
+                        <option value="outro">Outros Custos</option>
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
+                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
@@ -1375,6 +1475,7 @@ export default function FinancePage() {
                   allocation_value: parseFloat(fd.get('allocation_value') as string),
                   color: 'text-red-500',
                   emoji: (fd.get('emoji') as string) || '🎯',
+                  monthly_yield_rate: parseFloat(fd.get('monthly_yield_rate') as string) || 0,
                 })
                 setPoteModalOpen(false)
               }} className="space-y-4">
@@ -1392,15 +1493,38 @@ export default function FinancePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Tipo de Depósito</label>
-                    <select name="allocation_type" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500">
-                      <option value="percentage">% da Sobra do Mês</option>
-                      <option value="fixed_value">Valor Fixo (R$)</option>
-                    </select>
+                    <div className="relative">
+                      <select name="allocation_type" className="w-full appearance-none bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 cursor-pointer">
+                        <option value="percentage">% da Sobra do Mês</option>
+                        <option value="fixed_value">Valor Fixo (R$)</option>
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
+                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Fatia / Valor</label>
                     <input name="allocation_value" type="number" step="0.01" required placeholder="Ex: 25" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                   </div>
+                </div>
+                <div className="border border-dashed border-white/10 rounded-2xl p-4 space-y-3">
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
+                    <span>📈</span> Rendimento Mensal (Opcional)
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      name="monthly_yield_rate"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      placeholder="Ex: 0.8"
+                      className="flex-1 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500"
+                    />
+                    <span className="text-[var(--text-muted)] font-black text-sm">% ao mês</span>
+                  </div>
+                  <p className="text-[10px] text-[var(--text-muted)] italic">Se configurado, o saldo do pote será multiplicado por este percentual mensalmente como estimativa de rendimento.</p>
                 </div>
                 <button type="submit" disabled={addPote.isPending} className="w-full py-4 mt-2 bg-red-500 hover:bg-red-400 text-white font-black rounded-xl transition-all shadow-xl">Gênesis do Pote</button>
               </form>

@@ -146,11 +146,12 @@ export interface FinanceRecurringCost {
   user_id: string;
   amount: number;
   title: string;
-  category: string; 
+  category: string;
   billing_cycle: 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
   due_day?: number;
   due_date?: string; // Optional full ISO date for specific starts
   auto_appointment?: boolean;
+  entry_type?: 'expense' | 'income'  // optional, default 'expense'
   created_at: string;
 }
 
@@ -164,6 +165,7 @@ export interface FinancePote {
   allocation_value: number;
   emoji: string;
   color: string;
+  monthly_yield_rate?: number  // optional % monthly yield (e.g. 0.8 for 0.8%)
   created_at: string;
 }
 
