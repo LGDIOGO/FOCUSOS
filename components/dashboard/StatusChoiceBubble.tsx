@@ -31,25 +31,52 @@ export function StatusChoiceBubble({
   position
 }: StatusChoiceBubbleProps) {
   const bubbleRef = useRef<HTMLDivElement>(null)
-  const [adjustedPosition, setAdjustedPosition] = useState({ x: position.x, y: position.y })
+  const [bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
+    position: 'fixed',
+    top: `${Math.max(8, position.y - 150)}px`,
+    left: `${position.x}px`,
+    transform: 'translateX(-50%)',
+    zIndex: 30000,
+    opacity: 0
+  })
+  // Delay backdrop pointer-events so it never captures the same click that opened the bubble
+  const [backdropReady, setBackdropReady] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen) { setBackdropReady(false); return }
+    const t = setTimeout(() => setBackdropReady(true), 80)
+    return () => clearTimeout(t)
+  }, [isOpen])
 
   useEffect(() => {
     if (isOpen && bubbleRef.current) {
       const rect = bubbleRef.current.getBoundingClientRect()
-      const viewportWidth = window.innerWidth
-      const padding = 16 // Margin from screen edge
-      
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      const padding = 12
+
+      // Horizontal clamping
       let x = position.x
-      
-      // Calculate horizontal clamping
-      const halfWidth = rect.width / 2
-      if (x - halfWidth < padding) {
-        x = halfWidth + padding
-      } else if (x + halfWidth > viewportWidth - padding) {
-        x = viewportWidth - halfWidth - padding
-      }
-      
-      setAdjustedPosition({ x, y: position.y })
+      const halfW = rect.width / 2
+      if (x - halfW < padding) x = halfW + padding
+      else if (x + halfW > vw - padding) x = vw - halfW - padding
+
+      // Vertical: prefer above click, flip below if not enough space
+      const bubbleH = rect.height || 100
+      const spaceAbove = position.y - padding
+      const topAbove = position.y - bubbleH - 16
+      const topBelow = position.y + 16
+
+      const top = spaceAbove >= bubbleH ? topAbove : topBelow
+
+      setBubbleStyle({
+        position: 'fixed',
+        top: `${Math.min(Math.max(top, padding), vh - bubbleH - padding)}px`,
+        left: `${x}px`,
+        transform: 'translateX(-50%)',
+        zIndex: 30000,
+        opacity: 1
+      })
     }
   }, [isOpen, position.x, position.y])
 
@@ -57,7 +84,7 @@ export function StatusChoiceBubble({
     <AnimatePresence>
       {isOpen && createPortal(
         <>
-          {/* Transparent Overlay */}
+          {/* Transparent Overlay — só captura eventos após 80ms para não fechar com o mesmo clique */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -66,7 +93,10 @@ export function StatusChoiceBubble({
               e.stopPropagation()
               onClose()
             }}
-            className="fixed inset-0 z-[10000] bg-black/[0.1] backdrop-blur-[2px] cursor-default pointer-events-auto"
+            className={cn(
+              "fixed inset-0 z-[10000] bg-black/[0.1] backdrop-blur-[2px] cursor-default",
+              backdropReady ? "pointer-events-auto" : "pointer-events-none"
+            )}
           />
 
           {/* Bubble Menu */}
@@ -76,12 +106,8 @@ export function StatusChoiceBubble({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.5, y: 10 }}
             transition={{ type: "spring", bounce: 0.3, duration: 0.4 }}
-            style={{ 
-              top: `calc(${adjustedPosition.y}px - 140px)`,
-              left: `${adjustedPosition.x}px`,
-              transform: 'translateX(-50%)'
-            }}
-            className="fixed z-[30000] bg-[var(--bg-card)] backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] p-2 flex items-center gap-1.5 shadow-2xl max-w-[95vw]"
+            style={bubbleStyle}
+            className="bg-[var(--bg-card)] backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] p-2 flex items-center gap-1.5 shadow-2xl max-w-[95vw]"
           >
             <div className="flex items-center gap-1.5 max-w-full overflow-x-auto scrollbar-none px-1">
               {options.map((opt) => (
