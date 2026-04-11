@@ -6,7 +6,7 @@ import { Habit, HabitStatus } from '@/types'
 import { format } from 'date-fns'
 import { getEffectiveOfensiva } from '@/lib/utils/scoring'
 import { useLongPress } from '@/lib/hooks/useLongPress'
-import { isBubbleIgnoredTarget, resolveBubblePosition } from '@/lib/utils/statusBubble'
+import { resolveBubblePosition } from '@/lib/utils/statusBubble'
 
 interface HabitCardProps {
   habit: Habit
@@ -78,18 +78,10 @@ export function HabitCard({
   const activeOfensiva = getEffectiveOfensiva(habit.streak || 0, habit.last_completed_date, currentStatus, todayStr)
 
   const handleShortPress = (eventData: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
-    if (isBubbleIgnoredTarget(eventData.target)) {
-      return
-    }
-
-    eventData.preventDefault()
-    eventData.stopPropagation()
-
     if (isSelectionMode) {
       onSelect?.()
       return
     }
-
     onOpenBubble?.(resolveBubblePosition(eventData, eventData.currentTarget))
   }
 

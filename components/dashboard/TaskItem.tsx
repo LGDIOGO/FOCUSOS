@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils/cn'
 import { Task, TaskStatus } from '@/types'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { CustomDateTimePicker } from './CustomDateTimePicker'
-import { isBubbleIgnoredTarget, resolveBubblePosition } from '@/lib/utils/statusBubble'
+import { resolveBubblePosition } from '@/lib/utils/statusBubble'
 
 interface TaskItemProps {
   task: Task
@@ -41,18 +41,10 @@ function TaskItem({
   const dueLabel = (task.due && task.due !== 'Hoje') ? task.due : (task.due_time ? task.due_time : '')
 
   const handleShortPress = (eventData: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
-    if (isBubbleIgnoredTarget(eventData.target)) {
-      return
-    }
-
-    eventData.preventDefault()
-    eventData.stopPropagation()
-
     if (isSelectionMode) {
       onSelect?.()
       return
     }
-
     onOpenBubble?.(resolveBubblePosition(eventData, eventData.currentTarget))
   }
 

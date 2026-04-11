@@ -5,7 +5,7 @@ import { parse, isAfter, subMinutes, isToday } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
 import { CalendarEvent } from '@/types'
 import { useLongPress } from '@/lib/hooks/useLongPress'
-import { isBubbleIgnoredTarget, resolveBubblePosition } from '@/lib/utils/statusBubble'
+import { resolveBubblePosition } from '@/lib/utils/statusBubble'
 
 interface AgendaItemProps {
   event: CalendarEvent
@@ -83,18 +83,10 @@ function AgendaItem({
   }, [event.time, event.status, event.isOverdue, event.date, currentTime])
 
   const handleShortPress = (eventData: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
-    if (isBubbleIgnoredTarget(eventData.target)) {
-      return
-    }
-
-    eventData.preventDefault()
-    eventData.stopPropagation()
-
     if (isSelectionMode) {
       onSelect?.()
       return
     }
-
     onOpenBubble?.(resolveBubblePosition(eventData, eventData.currentTarget))
   }
 
