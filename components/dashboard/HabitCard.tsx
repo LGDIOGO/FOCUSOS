@@ -1,12 +1,10 @@
-import { useState, memo } from 'react'
+import { useState, memo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Minus, X, Zap, ShieldAlert, Circle, Pencil, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Habit, HabitStatus } from '@/types'
 import { format } from 'date-fns'
 import { getEffectiveOfensiva } from '@/lib/utils/scoring'
-import { useLongPress } from '@/lib/hooks/useLongPress'
-import { StatusChoiceBubble } from './StatusChoiceBubble'
 
 interface HabitCardProps {
   habit: Habit
@@ -79,46 +77,41 @@ export function HabitCard({
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   const activeOfensiva = getEffectiveOfensiva(habit.streak || 0, habit.last_completed_date, currentStatus, todayStr)
 
-  const longPress = useLongPress(
-    () => {
-      onContextMenu?.()
-    },
-    () => {}, // Remove o click do longPress para evitar double-toggling
-    { delay: 500 }
-  )
+  // ─── Long press + click handling (pointer-based, Framer Motion safe) ──
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressActivated = useRef(false)
 
-  const handleStatusClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (isSelectionMode) return
+  function startPress() {
+    longPressActivated.current = false
+    pressTimer.current = setTimeout(() => {
+      longPressActivated.current = true
+      onContextMenu?.()
+    }, 500)
+  }
+  function cancelPress() {
+    if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null }
+  }
+  function handleClick(e: React.MouseEvent) {
+    if (longPressActivated.current) { longPressActivated.current = false; return }
+    if (isSelectionMode) { e.preventDefault(); e.stopPropagation(); onSelect?.(); return }
     onOpenBubble?.({ x: e.clientX, y: e.clientY })
   }
 
-  const STATUS_OPTIONS = [
-    { id: 'done', label: 'CONCLUÍDO', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
-    { id: 'partial', label: 'PARCIAL', icon: Minus, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
-    { id: 'failed', label: 'FALHOU', icon: X, color: 'text-[#e02020]', bg: 'hover:bg-[#e02020]/10' },
-    { id: 'none', label: 'LIMPAR', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' }
-  ]
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      whileTap={{ scale: 0.98 }}
-      {...longPress}
-      onClick={(e) => {
-        if (isSelectionMode) {
-          e.preventDefault()
-          e.stopPropagation()
-          onSelect?.()
-        } else {
-          handleStatusClick(e)
-        }
-      }}
+      onPointerDown={startPress}
+      onPointerUp={cancelPress}
+      onPointerLeave={cancelPress}
+      onClick={handleClick}
       onContextMenu={(e) => {
         e.preventDefault()
         e.stopPropagation()
+        cancelPress()
         onContextMenu?.()
       }}
+      style={{ touchAction: 'manipulation' }}
       className={cn(
         'flex items-center gap-4 rounded-[28px] border p-4 cursor-pointer select-none transition-all duration-300 relative overflow-hidden group',
         cfg.card,
@@ -128,17 +121,14 @@ export function HabitCard({
 
       {/* Status Trigger (Círculo lateral) */}
       {!isSelectionMode && !isSelected && (
-        <motion.div
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={handleStatusClick}
+        <div
           className={cn(
-            "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
+            "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20 flex-none",
             currentStatus === 'none' ? "border-white/10 bg-white/5" : cfg.btn
           )}
         >
           <StatusIcon status={habit.status} />
-        </motion.div>
+        </div>
       )}
 
       {isSelectionMode && (

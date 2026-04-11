@@ -1,11 +1,9 @@
-import { memo, useState, useMemo } from 'react'
+import { memo, useState, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Minus, X, Calendar, Clock, RefreshCcw, Circle, Pencil, AlertCircle } from 'lucide-react'
 import { format, parse, isAfter, subMinutes, isToday } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
 import { CalendarEvent } from '@/types'
-import { useLongPress } from '@/lib/hooks/useLongPress'
-import { StatusChoiceBubble } from './StatusChoiceBubble'
 
 interface AgendaItemProps {
   event: CalendarEvent
@@ -85,47 +83,41 @@ function AgendaItem({
     }
   }, [event.time, event.status, event.isOverdue, event.date, currentTime])
 
-  const longPress = useLongPress(
-    () => {
-      onContextMenu?.()
-    },
-    () => {}, // Remove o click do longPress para evitar double-toggling
-    { delay: 500 }
-  )
+  // ─── Long press + click handling (pointer-based, Framer Motion safe) ──
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressActivated = useRef(false)
 
-  const handleStatusClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (isSelectionMode) return
+  function startPress() {
+    longPressActivated.current = false
+    pressTimer.current = setTimeout(() => {
+      longPressActivated.current = true
+      onContextMenu?.()
+    }, 500)
+  }
+  function cancelPress() {
+    if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null }
+  }
+  function handleClick(e: React.MouseEvent) {
+    if (longPressActivated.current) { longPressActivated.current = false; return }
+    if (isSelectionMode) { e.preventDefault(); e.stopPropagation(); onSelect?.(); return }
     onOpenBubble?.({ x: e.clientX, y: e.clientY })
   }
 
-  const STATUS_OPTIONS = [
-    { id: 'done', label: 'Concluído', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
-    { id: 'partial', label: 'Parcial', icon: Minus, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
-    { id: 'failed', label: 'Falhou', icon: X, color: 'text-red-500', bg: 'hover:bg-red-500/10' },
-    { id: 'todo', label: 'Limpar', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' },
-    { id: 'reschedule', label: 'Remarcar', icon: RefreshCcw, color: 'text-red-400', bg: 'hover:bg-red-500/10' }
-  ]
-
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      {...longPress}
-      onClick={(e) => {
-        if (isSelectionMode) {
-          e.preventDefault()
-          e.stopPropagation()
-          onSelect?.()
-        } else {
-          handleStatusClick(e)
-        }
-      }}
+      onPointerDown={startPress}
+      onPointerUp={cancelPress}
+      onPointerLeave={cancelPress}
+      onClick={handleClick}
       onContextMenu={(e) => {
         e.preventDefault()
         e.stopPropagation()
+        cancelPress()
         onContextMenu?.()
       }}
+      style={{ touchAction: 'manipulation' }}
       className={cn(
         "bg-[var(--bg-overlay)] border rounded-[28px] p-4 flex items-center justify-between gap-4 transition-all group relative overflow-hidden cursor-pointer",
         cfg.border,
@@ -136,17 +128,14 @@ function AgendaItem({
       <div className="flex items-center gap-4 flex-1 min-w-0">
         {/* Status Trigger */}
         {!isSelectionMode && !isSelected && (
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={handleStatusClick}
+          <div
             className={cn(
-              "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
+              "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20 flex-none",
               (event.status === 'todo' || !event.status) ? "border-white/10 bg-white/5" : cfg.icon
             )}
           >
             <StatusIcon status={event.status} />
-          </motion.div>
+          </div>
         )}
 
         {isSelectionMode && (

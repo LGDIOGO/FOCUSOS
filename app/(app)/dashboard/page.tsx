@@ -282,25 +282,13 @@ export default function DashboardPage() {
       const isDoneB = b.status === 'done'
       if (isDoneA && !isDoneB) return 1
       if (!isDoneA && isDoneB) return -1
-
-      // Past items (today) vs upcoming
-      const now = currentTime
-      const timeA = a.time ? parse(a.time, 'HH:mm', now) : null
-      const timeB = b.time ? parse(b.time, 'HH:mm', now) : null
-
-      if (timeA && timeB) {
-        const passedA = isToday(selectedDate) && isAfter(now, timeA)
-        const passedB = isToday(selectedDate) && isAfter(now, timeB)
-
-        if (passedA && !passedB) return 1
-        if (!passedA && passedB) return -1
-
-        // Both passed or both upcoming, sort by time
-        return timeA.getTime() - timeB.getTime()
-      }
+      // Sort by time ascending — no time goes to the end
+      if (a.time && b.time) return a.time.localeCompare(b.time)
+      if (a.time && !b.time) return -1
+      if (!a.time && b.time) return 1
       return 0
     })
-  }, [eventsToday, currentTime, selectedDate])
+  }, [eventsToday])
 
   // Sync AI Insights to Persistent Notifications
   const currentInsights = useMemo(() => generateLocalInsights(habits, tasks), [habits, tasks])

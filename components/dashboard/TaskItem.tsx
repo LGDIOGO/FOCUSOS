@@ -1,10 +1,8 @@
 import { motion } from 'framer-motion'
-import { memo } from 'react'
+import { memo, useState, useRef } from 'react'
 import { Check, Minus, X, Pencil, Trash2, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Task, TaskPriority, TaskStatus } from '@/types'
-import { useLongPress } from '@/lib/hooks/useLongPress'
-import { useState } from 'react'
 import { CustomDateTimePicker } from './CustomDateTimePicker'
 
 interface TaskItemProps {
@@ -40,17 +38,23 @@ function TaskItem({
 
   const dueLabel = (task.due && task.due !== 'Hoje') ? task.due : (task.due_time ? task.due_time : '')
 
-  const longPress = useLongPress(
-    () => {
-      onContextMenu?.()
-    },
-    () => {}, 
-    { delay: 500 }
-  )
+  // ─── Long press + click handling (pointer-based, Framer Motion safe) ──
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressActivated = useRef(false)
 
-  const handleStatusClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (isSelectionMode) return
+  function startPress() {
+    longPressActivated.current = false
+    pressTimer.current = setTimeout(() => {
+      longPressActivated.current = true
+      onContextMenu?.()
+    }, 500)
+  }
+  function cancelPress() {
+    if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null }
+  }
+  function handleClick(e: React.MouseEvent) {
+    if (longPressActivated.current) { longPressActivated.current = false; return }
+    if (isSelectionMode) { e.preventDefault(); e.stopPropagation(); onSelect?.(); return }
     onOpenBubble?.({ x: e.clientX, y: e.clientY })
   }
 
@@ -133,17 +137,12 @@ function TaskItem({
   return (
     <motion.div
       layout
-      whileTap={{ scale: 0.98 }}
-      {...longPress}
-      onClick={(e) => {
-        if (isSelectionMode) {
-          e.preventDefault()
-          e.stopPropagation()
-          onSelect?.()
-        } else {
-          handleStatusClick(e)
-        }
-      }}
+      onPointerDown={startPress}
+      onPointerUp={cancelPress}
+      onPointerLeave={cancelPress}
+      onClick={handleClick}
+      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); cancelPress(); onContextMenu?.() }}
+      style={{ touchAction: 'manipulation' }}
       className={cn(
         'flex items-center gap-4 p-4 rounded-[28px] border cursor-pointer transition-all duration-300 select-none relative group w-full',
         (task.status === 'done' || task.done) ? 'bg-green-500/[0.03] border-green-500/20' : 
