@@ -159,10 +159,10 @@ function TaskItem({
           whileTap={{ scale: 0.9 }}
           className={cn(
             'w-12 h-12 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all duration-200',
-            (task.status === 'done' || task.done) ? 'bg-green-500 border-green-500' : 
+            (task.status === 'done' || task.done) ? 'bg-green-500 border-green-500' :
             task.status === 'partial' ? 'bg-amber-400 border-amber-400 text-black' :
             task.status === 'failed' ? 'bg-red-500 border-red-500' :
-            'border-white/25 bg-white/5'
+            'border-[var(--border-subtle)] bg-[var(--bg-overlay)]'
           )}
         >
           {(task.status === 'done' || task.done) ? (
@@ -186,36 +186,42 @@ function TaskItem({
         </div>
       )}
 
-      <div className="flex-1 min-w-0 flex items-center gap-2">
-        {task.emoji && <span className="text-lg flex-shrink-0">{task.emoji}</span>}
-        <div className="min-w-0 flex-1">
-          <p className={cn('text-base font-bold text-[var(--text-primary)] truncate transition-all', (task.done || task.status === 'done') && 'line-through text-[var(--text-muted)]')}>
-            {task.title}
-          </p>
-          <p className="text-[12px] text-[var(--text-muted)] mt-0.5 truncate font-medium uppercase tracking-widest">{dueLabel}</p>
+      {/* Emoji/Ícone da tarefa (slot próprio, só aparece quando não tem status ativo) */}
+      {!isSelectionMode && task.emoji && !(task.done || task.status === 'done' || task.status === 'partial' || task.status === 'failed') && (
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 bg-[var(--bg-overlay)]">
+          {task.emoji}
         </div>
+      )}
+
+      <div className="flex-1 min-w-0">
+        <p className={cn('text-base font-bold text-[var(--text-primary)] truncate transition-all tracking-tight', (task.done || task.status === 'done') && 'line-through text-[var(--text-muted)]')}>
+          {task.title}
+        </p>
+        {dueLabel ? (
+          <p className="text-[12px] text-[var(--text-muted)] mt-0.5 truncate font-medium uppercase tracking-widest">{dueLabel}</p>
+        ) : null}
       </div>
 
       <div className="flex items-center gap-2">
         {!isSelectionMode && !isSelected && (
-          <button 
+          <button
             onClick={(e) => {
               e.stopPropagation()
               setIsEditing(true)
             }}
-            className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-white hover:bg-white/10 transition-all active:scale-90"
+            className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-white hover:bg-white/10 transition-all active:scale-90 opacity-0 group-hover:opacity-100"
             title="Editar Tarefa"
           >
             <Pencil size={14} />
           </button>
         )}
         {!isSelectionMode && !isSelected && (
-          <button 
+          <button
             onClick={(e) => {
               e.stopPropagation()
               onDelete?.()
             }}
-            className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-all active:scale-90"
+            className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-all active:scale-90 opacity-0 group-hover:opacity-100"
             title="Excluir Tarefa"
           >
             <Trash2 size={14} />

@@ -158,6 +158,13 @@ function AgendaItem({
            </div>
         )}
 
+        {/* Emoji/Ícone do evento (só aparece se tiver emoji e status for todo/none) */}
+        {!isSelectionMode && event.emoji && (event.status === 'todo' || !event.status) && (
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 bg-[var(--bg-overlay)]">
+            {event.emoji}
+          </div>
+        )}
+
         <div className="flex-1 min-w-0">
           <h4 className={cn("text-lg font-bold truncate transition-all tracking-tight", cfg.text)}>
             {event.title}
@@ -192,12 +199,12 @@ function AgendaItem({
 
       <div className="flex items-center gap-2">
         {!isSelectionMode && !isSelected && (
-          <button 
+          <button
             onClick={(e) => {
               e.stopPropagation()
               onEdit?.()
             }}
-            className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/80 transition-all active:scale-90"
+            className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/80 transition-all active:scale-90 opacity-0 group-hover:opacity-100"
             title="Editar Compromisso"
           >
             <Pencil size={14} />
