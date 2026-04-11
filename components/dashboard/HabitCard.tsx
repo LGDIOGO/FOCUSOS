@@ -25,7 +25,7 @@ const STATUS_CONFIG = {
   none: {
     card: 'bg-[var(--bg-overlay)] border-[var(--border-subtle)]',
     icon: 'bg-[var(--bg-overlay)]',
-    btn: 'border-[var(--border-subtle)] bg-[var(--bg-overlay)]',
+    btn: 'border-white/[0.08] bg-white/[0.04]',
     text: 'text-[var(--text-primary)]',
     label: '',
   },
@@ -117,7 +117,7 @@ export function HabitCard({
           whileTap={{ scale: 0.9 }}
           className={cn(
             'w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20 flex-none',
-            currentStatus === 'none' ? 'border-[var(--border-subtle)] bg-[var(--bg-overlay)]' : cfg.btn
+            currentStatus === 'none' ? 'border-white/[0.08] bg-white/[0.04]' : cfg.btn
           )}
           data-status-trigger="true"
         >
@@ -128,7 +128,7 @@ export function HabitCard({
       {isSelectionMode && (
         <div className={cn(
           'w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20',
-          isSelected ? 'border-red-600 bg-red-600' : 'border-[var(--border-subtle)] bg-[var(--bg-overlay)]'
+          isSelected ? 'border-red-600 bg-red-600' : 'border-white/[0.08] bg-white/[0.04]'
         )}>
           {isSelected && <Check size={20} className="text-white" strokeWidth={3} />}
         </div>

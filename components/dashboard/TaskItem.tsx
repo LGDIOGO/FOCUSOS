@@ -161,7 +161,7 @@ function TaskItem({
             (task.status === 'done' || task.done) ? 'bg-green-500 border-green-500' :
             task.status === 'partial' ? 'bg-amber-400 border-amber-400 text-black' :
             task.status === 'failed' ? 'bg-red-500 border-red-500' :
-            'border-[var(--border-subtle)] bg-[var(--bg-overlay)]'
+            'border-white/[0.08] bg-white/[0.04]'
           )}
           data-status-trigger="true"
         >
@@ -178,7 +178,7 @@ function TaskItem({
       {isSelectionMode && (
         <div className={cn(
           'w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20',
-          isSelected ? 'border-red-600 bg-red-600' : 'border-[var(--border-subtle)] bg-[var(--bg-overlay)]'
+          isSelected ? 'border-red-600 bg-red-600' : 'border-white/[0.08] bg-white/[0.04]'
         )}>
           {isSelected && <Check size={20} className="text-white" strokeWidth={3} />}
         </div>
