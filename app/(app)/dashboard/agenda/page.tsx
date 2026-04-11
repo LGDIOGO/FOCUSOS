@@ -7,7 +7,9 @@ import {
   Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle, History
 } from 'lucide-react'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
-import { useEvents, useDeleteEvent } from '@/lib/hooks/useEvents'
+import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
+import { useEvents, useDeleteEvent, useUpdateEvent } from '@/lib/hooks/useEvents'
+import { Check, Minus, X, Circle } from 'lucide-react'
 import { db, auth } from '@/lib/firebase/config'
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { CalendarEvent, EventType } from '@/types'
@@ -30,16 +32,32 @@ const EVENT_TYPES: { type: EventType; label: string; icon: any; color: string }[
 
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 
-function EventItem({ 
-  event, 
-  isSelectionMode, 
-  isSelected, 
-  toggleSelection, 
-  openEditModal, 
+const STATUS_CONFIG_AGENDA: Record<string, { icon: string; border: string }> = {
+  todo:    { icon: 'bg-[var(--bg-overlay)] text-[var(--text-muted)]', border: 'border-[var(--border-subtle)]' },
+  done:    { icon: 'bg-green-500 text-white',                          border: 'border-green-500/30' },
+  partial: { icon: 'bg-amber-400 text-black',                          border: 'border-amber-400/30' },
+  failed:  { icon: 'bg-red-500 text-white',                            border: 'border-red-500/30' },
+  none:    { icon: 'bg-[var(--bg-overlay)] text-[var(--text-muted)]', border: 'border-[var(--border-subtle)]' },
+}
+
+const AGENDA_STATUS_OPTIONS = [
+  { id: 'done',    label: 'Concluído', icon: Check,  color: 'text-green-400', bg: 'hover:bg-green-500/10' },
+  { id: 'partial', label: 'Parcial',   icon: Minus,  color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
+  { id: 'failed',  label: 'Falhou',    icon: X,      color: 'text-red-500',   bg: 'hover:bg-red-500/10' },
+  { id: 'todo',    label: 'Limpar',    icon: Circle, color: 'text-white/20',  bg: 'hover:bg-white/5' },
+]
+
+function EventItem({
+  event,
+  isSelectionMode,
+  isSelected,
+  toggleSelection,
+  openEditModal,
   setIsSelectionMode,
   onDelete,
+  onOpenBubble,
   currentTime = new Date()
-}: { 
+}: {
   event: CalendarEvent
   isSelectionMode: boolean
   isSelected: boolean
@@ -47,6 +65,7 @@ function EventItem({
   openEditModal: (event: CalendarEvent) => void
   setIsSelectionMode: (val: boolean) => void
   onDelete: (id: string) => void
+  onOpenBubble?: (pos: { x: number; y: number }) => void
   currentTime?: Date
 }) {
   const localLongPress = useLongPress(
@@ -76,15 +95,24 @@ function EventItem({
     }
   }, [event.time, event.isOverdue, event.status, event.date, currentTime])
 
+  const currentStatus = event.status || 'none'
+  const cfg = STATUS_CONFIG_AGENDA[currentStatus] || STATUS_CONFIG_AGENDA.none
+
+  const handleStatusClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (isSelectionMode) return
+    onOpenBubble?.({ x: e.clientX, y: e.clientY })
+  }
+
   return (
     <motion.div
       layoutId={event.id}
       {...localLongPress}
-      onClick={() => {
+      onClick={(e) => {
         if (isSelectionMode) {
           toggleSelection(event.id)
         } else {
-          openEditModal(event)
+          handleStatusClick(e)
         }
       }}
       onContextMenu={(e) => {
@@ -95,17 +123,44 @@ function EventItem({
       }}
       className={cn(
         "group flex items-center gap-6 p-6 bg-[var(--bg-overlay)] border rounded-[32px] hover:bg-[var(--bg-overlay)]/80 transition-all cursor-pointer relative transition-colors duration-300",
-        isSelected ? "border-red-500 bg-red-500/5" : "border-[var(--border-subtle)]"
+        isSelected ? "border-red-500 bg-red-500/5" : cfg.border
       )}
     >
-      <div 
-        className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-110"
+      {/* Status Circle */}
+      {!isSelectionMode && (
+        <motion.div
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={handleStatusClick}
+          className={cn(
+            "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
+            currentStatus === 'none' || currentStatus === 'todo'
+              ? 'border-[var(--border-subtle)] bg-[var(--bg-overlay)]'
+              : cfg.icon
+          )}
+        >
+          {currentStatus === 'done'    && <Check size={18} strokeWidth={3} className="text-white" />}
+          {currentStatus === 'partial' && <Minus size={18} strokeWidth={3} className="text-white" />}
+          {currentStatus === 'failed'  && <X     size={18} strokeWidth={3} className="text-white" />}
+        </motion.div>
+      )}
+      {isSelectionMode && (
+        <div className={cn(
+          "w-12 h-12 rounded-full border-2 flex items-center justify-center flex-shrink-0 z-20",
+          isSelected ? "border-red-500 bg-red-500" : "border-white/10 bg-white/5"
+        )}>
+          {isSelected && <Check size={20} className="text-white" strokeWidth={3} />}
+        </div>
+      )}
+
+      <div
+        className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
         style={{ backgroundColor: event.color ? `${event.color}20` : 'rgba(255,255,255,0.05)', color: event.color || '#FFFFFF' }}
       >
         {event.emoji || (
-          event.type === 'meeting' ? <Users size={24} /> :
-          event.type === 'birthday' ? <Cake size={24} /> :
-          event.type === 'event' ? <Star size={24} /> : <CalendarIcon size={24} />
+          event.type === 'meeting' ? <Users size={18} /> :
+          event.type === 'birthday' ? <Cake size={18} /> :
+          event.type === 'event' ? <Star size={18} /> : <CalendarIcon size={18} />
         )}
       </div>
 
@@ -173,6 +228,7 @@ function EventItem({
 export default function AgendaPage() {
   const { data: events, isLoading } = useEvents()
   const deleteEvent = useDeleteEvent()
+  const updateEvent = useUpdateEvent()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const searchParams = useSearchParams()
   const [logs, setLogs] = useState<Map<string, string>>(new Map())
@@ -186,6 +242,12 @@ export default function AgendaPage() {
   const [historyStartDate, setHistoryStartDate] = useState<string>('')
   const [historyEndDate, setHistoryEndDate] = useState<string>('')
   const [historyPeriod, setHistoryPeriod] = useState<'all' | 'custom'>('all')
+  const [activeBubble, setActiveBubble] = useState<{
+    id: string
+    position: { x: number; y: number }
+    options: any[]
+    onSelect: (status: string) => void
+  } | null>(null)
 
   // Update logic for real-time visual alerts
   useEffect(() => {
@@ -548,7 +610,7 @@ export default function AgendaPage() {
                         </div>
                         <div className="space-y-3">
                           {eventList.map(event => (
-                            <EventItem 
+                            <EventItem
                               key={event.id}
                               event={event}
                               isSelectionMode={isSelectionMode}
@@ -558,6 +620,15 @@ export default function AgendaPage() {
                               setIsSelectionMode={setIsSelectionMode}
                               onDelete={(id) => deleteEvent.mutate(id)}
                               currentTime={currentTime}
+                              onOpenBubble={(position) => setActiveBubble({
+                                id: event.id,
+                                position,
+                                options: AGENDA_STATUS_OPTIONS,
+                                onSelect: (status) => {
+                                  updateEvent.mutate({ id: event.id, status: status as any })
+                                  setActiveBubble(null)
+                                }
+                              })}
                             />
                           ))}
                         </div>
@@ -645,14 +716,24 @@ export default function AgendaPage() {
 
 
 
-      <AgendaModal 
-        isOpen={showAddModal} 
+      <AgendaModal
+        isOpen={showAddModal}
         onClose={() => {
           setShowAddModal(false)
           setEventToEdit(null)
-        }} 
-        eventToEdit={eventToEdit} 
+        }}
+        eventToEdit={eventToEdit}
       />
+
+      {activeBubble && (
+        <StatusChoiceBubble
+          isOpen={true}
+          onClose={() => setActiveBubble(null)}
+          onSelect={activeBubble.onSelect}
+          options={activeBubble.options}
+          position={activeBubble.position}
+        />
+      )}
 
 
 

@@ -7,7 +7,9 @@ import {
   Plus, Trash2, Zap, ShieldAlert, Sparkles, TrendingUp, RefreshCcw, History, ChevronRight, CheckCircle2
 } from 'lucide-react'
 import { HabitModal } from '@/components/dashboard/HabitModal'
-import { useHabits, useDeleteHabit, useHabitsHistory } from '@/lib/hooks/useHabits'
+import { useHabits, useDeleteHabit, useHabitsHistory, useLogHabit } from '@/lib/hooks/useHabits'
+import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
+import { Check, Minus, X, Circle } from 'lucide-react'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { Habit } from '@/types'
 import { cn } from '@/lib/utils/cn'
@@ -172,8 +174,15 @@ export default function HabitsPage() {
     return getDateRangeFromPeriod(periodFilter, customRange)
   }, [periodFilter, customRange])
 
+  const [activeBubble, setActiveBubble] = useState<{
+    habitId: string
+    logDate: string
+    position: { x: number; y: number }
+  } | null>(null)
+
   const { data: habits, isLoading } = useHabits()
   const deleteHabit = useDeleteHabit()
+  const logHabit = useLogHabit()
   const { data: historyLogs } = useHabitsHistory(resolvedDateRange.start, resolvedDateRange.end)
   const { data: categories } = useCategories()
 
@@ -370,17 +379,28 @@ export default function HabitsPage() {
                         </h4>
                         
                         <div className="space-y-2">
-                           {group.items.map((item, i) => (
-                             <div key={i} className="flex items-center gap-3 px-4 py-3 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl w-fit pr-8">
-                                <div className="w-6 h-6 rounded-md bg-green-500/10 text-green-500 flex items-center justify-center">
-                                  <CheckCircle2 size={12} strokeWidth={3} />
-                                </div>
-                                <div>
-                                  <span className="text-sm font-bold text-[var(--text-primary)]">{item.habit.name}</span>
-                                  {item.note && <span className="text-[10px] text-[var(--text-muted)] ml-2 italic">&quot;{item.note}&quot;</span>}
-                                </div>
-                             </div>
-                           ))}
+                           {group.items.map((item, i) => {
+                             const statusColor = item.status === 'partial'
+                               ? 'bg-amber-400/10 text-amber-400 border-amber-400/20'
+                               : 'bg-green-500/10 text-green-500 border-green-500/20'
+                             return (
+                               <button
+                                 key={i}
+                                 onClick={(e) => setActiveBubble({ habitId: item.habit_id, logDate: item.log_date, position: { x: e.clientX, y: e.clientY } })}
+                                 className="flex items-center gap-3 px-4 py-3 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl w-fit pr-8 hover:border-white/20 hover:bg-white/5 transition-all group text-left"
+                               >
+                                 <div className={`w-6 h-6 rounded-md border flex items-center justify-center ${statusColor}`}>
+                                   {item.status === 'partial'
+                                     ? <Minus size={12} strokeWidth={3} />
+                                     : <Check size={12} strokeWidth={3} />}
+                                 </div>
+                                 <div>
+                                   <span className="text-sm font-bold text-[var(--text-primary)]">{item.habit.name}</span>
+                                   {item.note && <span className="text-[10px] text-[var(--text-muted)] ml-2 italic">&quot;{item.note}&quot;</span>}
+                                 </div>
+                               </button>
+                             )
+                           })}
                         </div>
                      </div>
                    ))
@@ -388,14 +408,32 @@ export default function HabitsPage() {
               </div>
       </SharedHistoryBar>
 
-      <HabitModal 
-        isOpen={showAddModal} 
+      <HabitModal
+        isOpen={showAddModal}
         onClose={() => {
           setShowAddModal(false)
           setHabitToEdit(null)
-        }} 
-        habitToEdit={habitToEdit} 
+        }}
+        habitToEdit={habitToEdit}
       />
+
+      {activeBubble && (
+        <StatusChoiceBubble
+          isOpen={true}
+          onClose={() => setActiveBubble(null)}
+          options={[
+            { id: 'done',    label: 'Concluído', icon: Check,  color: 'text-green-400', bg: 'hover:bg-green-500/10' },
+            { id: 'partial', label: 'Parcial',   icon: Minus,  color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
+            { id: 'failed',  label: 'Falhou',    icon: X,      color: 'text-red-500',   bg: 'hover:bg-red-500/10' },
+            { id: 'none',    label: 'Limpar',    icon: Circle, color: 'text-white/20',  bg: 'hover:bg-white/5' },
+          ]}
+          position={activeBubble.position}
+          onSelect={(status) => {
+            logHabit.mutate({ habitId: activeBubble.habitId, status, logDate: activeBubble.logDate })
+            setActiveBubble(null)
+          }}
+        />
+      )}
 
       <AnimatePresence>
         {isSelectionMode && (
