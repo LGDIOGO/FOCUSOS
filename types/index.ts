@@ -47,7 +47,7 @@ export interface Task {
   due_date?: string;
   due_time?: string;
   due?: string; // Virtual/formatted string for UI
-  completed_at?: string;
+  completed_at?: string | null;
   emoji?: string;
   done: boolean;
 }

@@ -9,7 +9,7 @@ import {
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
 import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
 import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicker'
-import { useEvents, useDeleteEvent, useUpdateEvent } from '@/lib/hooks/useEvents'
+import { useEvents, useDeleteEvent, useLogEvent } from '@/lib/hooks/useEvents'
 import { Check, Minus, X, Circle } from 'lucide-react'
 import { db, auth } from '@/lib/firebase/config'
 import { collection, query, where, getDocs } from 'firebase/firestore'
@@ -44,6 +44,7 @@ const STATUS_CONFIG_AGENDA: Record<string, { icon: string; border: string }> = {
 const AGENDA_STATUS_OPTIONS = [
   { id: 'done',    label: 'Concluído', icon: Check,  color: 'text-green-400', bg: 'hover:bg-green-500/10' },
   { id: 'partial', label: 'Parcial',   icon: Minus,  color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
+  { id: 'reschedule', label: 'Remarcar', icon: RefreshCcw, color: 'text-red-400', bg: 'hover:bg-red-500/10' },
   { id: 'failed',  label: 'Falhou',    icon: X,      color: 'text-red-500',   bg: 'hover:bg-red-500/10' },
   { id: 'todo',    label: 'Limpar',    icon: Circle, color: 'text-white/20',  bg: 'hover:bg-white/5' },
 ]
@@ -229,7 +230,7 @@ function EventItem({
 export default function AgendaPage() {
   const { data: events, isLoading } = useEvents()
   const deleteEvent = useDeleteEvent()
-  const updateEvent = useUpdateEvent()
+  const logEvent = useLogEvent()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const searchParams = useSearchParams()
   const [logs, setLogs] = useState<Map<string, string>>(new Map())
@@ -298,6 +299,25 @@ export default function AgendaPage() {
   const openEditModal = (event: CalendarEvent) => {
     setEventToEdit(event)
     setShowAddModal(true)
+  }
+
+  const handleEventStatusChange = (event: CalendarEvent, status: string) => {
+    if (status === 'reschedule') {
+      openEditModal(event)
+      return
+    }
+
+    logEvent.mutate({
+      eventId: event.id,
+      status,
+      logDate: event.date
+    })
+
+    setLogs(prev => {
+      const next = new Map(prev)
+      next.set(`${event.id}_${event.date}`, status)
+      return next
+    })
   }
 
   const toggleSelection = (id: string) => {
@@ -612,7 +632,7 @@ export default function AgendaPage() {
                                 position,
                                 options: AGENDA_STATUS_OPTIONS,
                                 onSelect: (status) => {
-                                  updateEvent.mutate({ id: event.id, status: status as any })
+                                  handleEventStatusChange(event, status)
                                   setActiveBubble(null)
                                 }
                               })}
@@ -667,6 +687,15 @@ export default function AgendaPage() {
                       setIsSelectionMode={setIsSelectionMode}
                       onDelete={(id) => deleteEvent.mutate(id)}
                       currentTime={currentTime}
+                      onOpenBubble={(position) => setActiveBubble({
+                        id: event.id,
+                        position,
+                        options: AGENDA_STATUS_OPTIONS,
+                        onSelect: (status) => {
+                          handleEventStatusChange(event, status)
+                          setActiveBubble(null)
+                        }
+                      })}
                     />
                   ))}
                 </div>

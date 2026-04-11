@@ -186,7 +186,7 @@ function TaskItem({
       )}
 
       {/* Emoji/Ícone da tarefa (slot próprio, só aparece quando não tem status ativo) */}
-      {!isSelectionMode && task.emoji && !(task.done || task.status === 'done' || task.status === 'partial' || task.status === 'failed') && (
+      {!isSelectionMode && task.emoji && (
         <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 bg-[var(--bg-overlay)]">
           {task.emoji}
         </div>

@@ -1,6 +1,6 @@
-import { useState, memo, useRef } from 'react'
+import { memo, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Minus, X, Zap, ShieldAlert, Circle, Pencil, Clock } from 'lucide-react'
+import { Check, Minus, X, Pencil, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Habit, HabitStatus } from '@/types'
 import { format } from 'date-fns'
@@ -141,7 +141,7 @@ export function HabitCard({
       )}
 
       {/* Ícone do hábito */}
-      {!isSelectionMode && habit.status === 'none' && habit.emoji && (
+      {!isSelectionMode && habit.emoji && (
         <div 
           className={cn('w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 transition-colors duration-200', cfg.icon)}
           style={{ backgroundColor: habit.color ? `${habit.color}20` : undefined, color: habit.color }}

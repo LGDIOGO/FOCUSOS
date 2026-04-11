@@ -80,6 +80,19 @@ export function StatusChoiceBubble({
     }
   }, [isOpen, position.x, position.y])
 
+  const handleOptionSelect = (event: React.SyntheticEvent, status: string) => {
+    event.preventDefault()
+    event.stopPropagation()
+    onSelect(status)
+    onClose()
+  }
+
+  const handleCloseBubble = (event: React.SyntheticEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+    onClose()
+  }
+
   return (
     <AnimatePresence>
       {isOpen && createPortal(
@@ -89,12 +102,9 @@ export function StatusChoiceBubble({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={(e) => {
-              e.stopPropagation()
-              onClose()
-            }}
+            onPointerDown={handleCloseBubble}
             className={cn(
-              "fixed inset-0 z-[10000] bg-black/[0.1] backdrop-blur-[2px] cursor-default",
+              "fixed inset-0 z-[29999] bg-black/[0.1] backdrop-blur-[2px] cursor-default",
               backdropReady ? "pointer-events-auto" : "pointer-events-none"
             )}
           />
@@ -113,12 +123,12 @@ export function StatusChoiceBubble({
               {options.map((opt) => (
                 <motion.button
                   key={opt.id}
+                  type="button"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onSelect(opt.id)
-                    onClose()
+                  onPointerDown={(event) => handleOptionSelect(event, opt.id)}
+                  onClick={(event) => {
+                    if (event.detail === 0) handleOptionSelect(event, opt.id)
                   }}
                   className={cn(
                     "flex flex-col items-center gap-1.5 p-2 sm:p-3 rounded-[24px] transition-all group flex-shrink-0",
@@ -141,11 +151,12 @@ export function StatusChoiceBubble({
               <div className="w-px h-10 bg-white/10 mx-1 flex-shrink-0" />
 
               <motion.button
+                type="button"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onClose()
+                onPointerDown={handleCloseBubble}
+                onClick={(event) => {
+                  if (event.detail === 0) handleCloseBubble(event)
                 }}
                 className="flex flex-col items-center gap-1.5 p-2 sm:p-3 rounded-[24px] transition-all group flex-shrink-0 hover:bg-white/5"
               >

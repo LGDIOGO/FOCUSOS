@@ -1,6 +1,6 @@
-import { memo, useState, useMemo, useRef } from 'react'
+import { memo, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Minus, X, Calendar, Clock, RefreshCcw, Circle, Pencil, AlertCircle } from 'lucide-react'
+import { Check, Minus, X, Clock, Pencil, AlertCircle } from 'lucide-react'
 import { format, parse, isAfter, subMinutes, isToday } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
 import { CalendarEvent } from '@/types'
@@ -131,7 +131,7 @@ function AgendaItem({
           <div
             className={cn(
               "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20 flex-none",
-              (event.status === 'todo' || !event.status) ? "border-white/10 bg-white/5" : cfg.icon
+              (event.status === 'todo' || !event.status) ? "border-[var(--border-subtle)] bg-[var(--bg-overlay)]" : cfg.icon
             )}
           >
             <StatusIcon status={event.status} />
@@ -148,8 +148,11 @@ function AgendaItem({
         )}
 
         {/* Emoji/Ícone do evento (só aparece se tiver emoji e status for todo/none) */}
-        {!isSelectionMode && event.emoji && (event.status === 'todo' || !event.status) && (
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 bg-[var(--bg-overlay)]">
+        {!isSelectionMode && event.emoji && (
+          <div
+            className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0"
+            style={{ backgroundColor: event.color ? `${event.color}20` : 'rgba(255,255,255,0.05)', color: event.color || '#FFFFFF' }}
+          >
             {event.emoji}
           </div>
         )}

@@ -332,18 +332,15 @@ export default function DashboardPage() {
     return () => clearTimeout(t)
   }, [toast])
 
-  function setEventStatus(id: string, status: any, date?: string) {
+  function setEventStatus(id: string, status: 'todo' | 'done' | 'partial' | 'failed', date?: string) {
     logEvent({ eventId: id, status, logDate: date || todayStr })
 
-    if (status === 'partial') {
-      const ev = todayEvents.find(e => e.id === id)
-      if (ev) {
-        setEventToReschedule(ev)
-        setIsRescheduleOpen(true)
-      }
+    const labels: Record<'todo' | 'done' | 'partial' | 'failed', string> = {
+      done: '✓ Concluído!',
+      partial: '½ Parcial registrado.',
+      failed: '✗ Falhou.',
+      todo: 'Compromisso limpo.'
     }
-
-    const labels: any = { done: '✓ Concluído!', partial: '½ Parcial - Reagendar?', failed: '✗ Falhou.' }
     if (labels[status]) setToast(labels[status])
   }
 
@@ -390,18 +387,11 @@ export default function DashboardPage() {
     setToast('Tarefa adicionada!')
   }
 
-  // Toggle task done/undone
-  function toggleTask(id: string, isDone: boolean) {
-    const nextStatus = isDone ? 'todo' : 'done'
-    updateTask({ id, status: nextStatus, completed_at: nextStatus === 'done' ? new Date().toISOString() : undefined })
-    setToast(isDone ? 'Marcado como pendente.' : '✓ Tarefa concluída!')
-  }
-  // Update task status: done, todo, partial, failed
-  function updateTaskStatus(id: string, nextStatus: TaskStatus) {
+  function setTaskStatus(id: string, nextStatus: TaskStatus) {
     updateTask({
       id,
       status: nextStatus,
-      completed_at: nextStatus === 'done' ? new Date().toISOString() : undefined,
+      completed_at: nextStatus === 'done' ? new Date().toISOString() : null,
       done: nextStatus === 'done'
     })
 
@@ -579,7 +569,7 @@ export default function DashboardPage() {
                         setEventToReschedule(event)
                         setIsRescheduleOpen(true)
                       } else {
-                        setEventStatus(event.id, status)
+                        setEventStatus(event.id, status as 'todo' | 'done' | 'partial' | 'failed', event.date)
                       }
                       setActiveBubble(null)
                     }
@@ -697,12 +687,8 @@ export default function DashboardPage() {
                 <TaskItem
                   key={t.id}
                   task={t}
-                  onToggle={() => toggleTask(t.id, t.done)}
-                  onStatusChange={(status) => {
-                    if (status === 'done') toggleTask(t.id, false)
-                    else if (status === 'todo') toggleTask(t.id, true)
-                    else updateTaskStatus(t.id, status)
-                  }}
+                  onToggle={() => setTaskStatus(t.id, t.done ? 'todo' : 'done')}
+                  onStatusChange={(status) => setTaskStatus(t.id, status)}
                   isSelectionMode={isSelectionMode}
                   isSelected={selectedItems.some(item => item.id === t.id)}
                   onSelect={() => toggleSelection(t.id, 'task')}
@@ -718,9 +704,7 @@ export default function DashboardPage() {
                     position,
                     options: TASK_OPTIONS,
                     onSelect: (status) => {
-                      if (status === 'done') toggleTask(t.id, false)
-                      else if (status === 'todo') toggleTask(t.id, true)
-                      else updateTaskStatus(t.id, status)
+                      setTaskStatus(t.id, status as TaskStatus)
                       setActiveBubble(null)
                     }
                   })}
