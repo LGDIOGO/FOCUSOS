@@ -6,6 +6,7 @@ import { Habit, HabitStatus } from '@/types'
 import { format } from 'date-fns'
 import { getEffectiveOfensiva } from '@/lib/utils/scoring'
 import { useLongPress } from '@/lib/hooks/useLongPress'
+import { isBubbleIgnoredTarget, resolveBubblePosition } from '@/lib/utils/statusBubble'
 
 interface HabitCardProps {
   habit: Habit
@@ -76,19 +77,29 @@ export function HabitCard({
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   const activeOfensiva = getEffectiveOfensiva(habit.streak || 0, habit.last_completed_date, currentStatus, todayStr)
 
+  const handleShortPress = (eventData: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
+    if (isBubbleIgnoredTarget(eventData.target)) {
+      return
+    }
+
+    eventData.preventDefault()
+    eventData.stopPropagation()
+
+    if (isSelectionMode) {
+      onSelect?.()
+      return
+    }
+
+    onOpenBubble?.(resolveBubblePosition(eventData, eventData.currentTarget))
+  }
+
   const longPress = useLongPress(
     () => {
       onContextMenu?.()
     },
-    () => {},
+    handleShortPress,
     { delay: 500 }
   )
-
-  const handleStatusClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (isSelectionMode) return
-    onOpenBubble?.({ x: e.clientX, y: e.clientY })
-  }
 
   return (
     <motion.div
@@ -96,20 +107,12 @@ export function HabitCard({
       animate={{ opacity: 1, y: 0 }}
       whileTap={{ scale: 0.98 }}
       {...longPress}
-      onClick={(e) => {
-        if (isSelectionMode) {
-          e.preventDefault()
-          e.stopPropagation()
-          onSelect?.()
-        } else {
-          handleStatusClick(e)
-        }
-      }}
       onContextMenu={(e) => {
         e.preventDefault()
         e.stopPropagation()
         onContextMenu?.()
       }}
+      data-status-card="dashboard-habit"
       className={cn(
         'flex items-center gap-4 rounded-[28px] border p-4 cursor-pointer select-none transition-all duration-300 relative overflow-hidden group',
         cfg.card,
@@ -120,11 +123,11 @@ export function HabitCard({
         <motion.div
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          onClick={handleStatusClick}
           className={cn(
             'w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20 flex-none',
-            currentStatus === 'none' ? 'border-white/10 bg-white/5' : cfg.btn
+            currentStatus === 'none' ? 'border-[var(--border-subtle)] bg-[var(--bg-overlay)]' : cfg.btn
           )}
+          data-status-trigger="true"
         >
           <StatusIcon status={habit.status} />
         </motion.div>
@@ -133,7 +136,7 @@ export function HabitCard({
       {isSelectionMode && (
         <div className={cn(
           'w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20',
-          isSelected ? 'border-red-600 bg-red-600' : 'border-white/10 bg-white/5'
+          isSelected ? 'border-red-600 bg-red-600' : 'border-[var(--border-subtle)] bg-[var(--bg-overlay)]'
         )}>
           {isSelected && <Check size={20} className="text-white" strokeWidth={3} />}
         </div>
@@ -173,10 +176,19 @@ export function HabitCard({
       <div className="flex items-center gap-2">
         {!isSelectionMode && !isSelected && (
           <button
+            type="button"
+            data-bubble-ignore="true"
+            data-ignore-action="edit"
             onClick={(e) => {
               e.stopPropagation()
               onEdit?.()
             }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
             className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/80 transition-all active:scale-90 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
             title="Editar Hábito"
           >

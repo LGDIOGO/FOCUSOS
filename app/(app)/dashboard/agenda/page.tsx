@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
+import {
   Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle, History
 } from 'lucide-react'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
@@ -15,13 +15,14 @@ import { db, auth } from '@/lib/firebase/config'
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { CalendarEvent, EventType } from '@/types'
 import { cn } from '@/lib/utils/cn'
-import { 
-  format, isToday, isTomorrow, parseISO, addMonths, subMonths, startOfMonth, endOfMonth, 
-  eachDayOfInterval, getDay, differenceInWeeks, differenceInDays, parse, startOfYear, endOfYear 
+import {
+  format, isToday, isTomorrow, parseISO, addMonths, subMonths, startOfMonth, endOfMonth,
+  eachDayOfInterval, getDay, differenceInWeeks, differenceInDays, parse, startOfYear, endOfYear
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { isAfter, subMinutes } from 'date-fns'
+import { isBubbleIgnoredTarget, resolveBubblePosition } from '@/lib/utils/statusBubble'
 
 const EVENT_TYPES: { type: EventType; label: string; icon: any; color: string }[] = [
   { type: 'meeting', label: 'Reunião', icon: Users, color: 'text-red-400 bg-red-400/10' },
@@ -31,14 +32,12 @@ const EVENT_TYPES: { type: EventType; label: string; icon: any; color: string }[
   { type: 'other', label: 'Outros', icon: CalendarIcon, color: 'text-white/60 bg-white/5' },
 ]
 
-const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
-
 const STATUS_CONFIG_AGENDA: Record<string, { icon: string; border: string }> = {
-  todo:    { icon: 'bg-[var(--bg-overlay)] text-[var(--text-muted)]', border: 'border-[var(--border-subtle)]' },
-  done:    { icon: 'bg-green-500 text-white',                          border: 'border-green-500/30' },
-  partial: { icon: 'bg-amber-400 text-black',                          border: 'border-amber-400/30' },
-  failed:  { icon: 'bg-red-500 text-white',                            border: 'border-red-500/30' },
-  none:    { icon: 'bg-[var(--bg-overlay)] text-[var(--text-muted)]', border: 'border-[var(--border-subtle)]' },
+  todo: { icon: 'bg-[var(--bg-overlay)] text-[var(--text-muted)]', border: 'border-[var(--border-subtle)]' },
+  done: { icon: 'bg-green-500 text-white', border: 'border-green-500/30' },
+  partial: { icon: 'bg-amber-400 text-black', border: 'border-amber-400/30' },
+  failed: { icon: 'bg-red-500 text-white', border: 'border-red-500/30' },
+  none: { icon: 'bg-[var(--bg-overlay)] text-[var(--text-muted)]', border: 'border-[var(--border-subtle)]' },
 }
 
 const AGENDA_STATUS_OPTIONS = [
@@ -54,7 +53,6 @@ function EventItem({
   isSelectionMode,
   isSelected,
   toggleSelection,
-  openEditModal,
   setIsSelectionMode,
   onDelete,
   onOpenBubble,
@@ -64,21 +62,11 @@ function EventItem({
   isSelectionMode: boolean
   isSelected: boolean
   toggleSelection: (id: string) => void
-  openEditModal: (event: CalendarEvent) => void
   setIsSelectionMode: (val: boolean) => void
   onDelete: (id: string) => void
   onOpenBubble?: (pos: { x: number; y: number }) => void
   currentTime?: Date
 }) {
-  const localLongPress = useLongPress(
-    () => {
-      setIsSelectionMode(true)
-      toggleSelection(event.id)
-    },
-    () => {},
-    { delay: 500 }
-  )
-
   const timeStatus = useMemo(() => {
     if (!event.time || event.isOverdue || event.status === 'done') return { approaching: false, passed: !!event.isOverdue }
     
@@ -100,29 +88,43 @@ function EventItem({
   const currentStatus = event.status || 'none'
   const cfg = STATUS_CONFIG_AGENDA[currentStatus] || STATUS_CONFIG_AGENDA.none
 
-  const handleStatusClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (isSelectionMode) return
-    onOpenBubble?.({ x: e.clientX, y: e.clientY })
+  const handleShortPress = (eventData: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
+    if (isBubbleIgnoredTarget(eventData.target)) {
+      return
+    }
+
+    eventData.preventDefault()
+    eventData.stopPropagation()
+
+    if (isSelectionMode) {
+      toggleSelection(event.id)
+      return
+    }
+
+    onOpenBubble?.(resolveBubblePosition(eventData, eventData.currentTarget))
   }
+
+  const localLongPress = useLongPress(
+    () => {
+      setIsSelectionMode(true)
+      toggleSelection(event.id)
+    },
+    handleShortPress,
+    { delay: 500 }
+  )
 
   return (
     <motion.div
       layoutId={event.id}
+      whileTap={{ scale: 0.985 }}
       {...localLongPress}
-      onClick={(e) => {
-        if (isSelectionMode) {
-          toggleSelection(event.id)
-        } else {
-          handleStatusClick(e)
-        }
-      }}
       onContextMenu={(e) => {
         e.preventDefault()
         e.stopPropagation()
         setIsSelectionMode(true)
         toggleSelection(event.id)
       }}
+      data-status-card="agenda-page-event"
       className={cn(
         "group flex items-center gap-6 p-6 bg-[var(--bg-overlay)] border rounded-[32px] hover:bg-[var(--bg-overlay)]/80 transition-all cursor-pointer relative transition-colors duration-300",
         isSelected ? "border-red-500 bg-red-500/5" : cfg.border
@@ -133,13 +135,13 @@ function EventItem({
         <motion.div
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          onClick={handleStatusClick}
           className={cn(
             "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
             currentStatus === 'none' || currentStatus === 'todo'
-              ? 'border-[var(--border-subtle)] bg-[var(--bg-overlay)]'
+              ? 'border-white/10 bg-white/5'
               : cfg.icon
           )}
+          data-status-trigger="true"
         >
           {currentStatus === 'done'    && <Check size={18} strokeWidth={3} className="text-white" />}
           {currentStatus === 'partial' && <Minus size={18} strokeWidth={3} className="text-white" />}
@@ -206,6 +208,9 @@ function EventItem({
       </div>
 
       <button 
+        type="button"
+        data-bubble-ignore="true"
+        data-ignore-action="delete"
         onClick={(e) => {
           e.stopPropagation()
           if (isSelectionMode) return
@@ -214,8 +219,10 @@ function EventItem({
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
+        title="Excluir Compromisso"
         className={cn(
           "p-3 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100",
           isSelectionMode ? "hidden" : "text-white/5"
@@ -623,7 +630,6 @@ export default function AgendaPage() {
                               isSelectionMode={isSelectionMode}
                               isSelected={selectedIds.includes(event.id)}
                               toggleSelection={toggleSelection}
-                              openEditModal={openEditModal}
                               setIsSelectionMode={setIsSelectionMode}
                               onDelete={(id) => deleteEvent.mutate(id)}
                               currentTime={currentTime}
@@ -683,7 +689,6 @@ export default function AgendaPage() {
                       isSelectionMode={isSelectionMode}
                       isSelected={selectedIds.includes(event.id)}
                       toggleSelection={toggleSelection}
-                      openEditModal={openEditModal}
                       setIsSelectionMode={setIsSelectionMode}
                       onDelete={(id) => deleteEvent.mutate(id)}
                       currentTime={currentTime}

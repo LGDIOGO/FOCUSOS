@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils/cn'
 import { Task, TaskStatus } from '@/types'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { CustomDateTimePicker } from './CustomDateTimePicker'
+import { isBubbleIgnoredTarget, resolveBubblePosition } from '@/lib/utils/statusBubble'
 
 interface TaskItemProps {
   task: Task
@@ -39,19 +40,29 @@ function TaskItem({
 
   const dueLabel = (task.due && task.due !== 'Hoje') ? task.due : (task.due_time ? task.due_time : '')
 
+  const handleShortPress = (eventData: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
+    if (isBubbleIgnoredTarget(eventData.target)) {
+      return
+    }
+
+    eventData.preventDefault()
+    eventData.stopPropagation()
+
+    if (isSelectionMode) {
+      onSelect?.()
+      return
+    }
+
+    onOpenBubble?.(resolveBubblePosition(eventData, eventData.currentTarget))
+  }
+
   const longPress = useLongPress(
     () => {
       onContextMenu?.()
     },
-    () => {},
+    handleShortPress,
     { delay: 500 }
   )
-
-  const handleStatusClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (isSelectionMode) return
-    onOpenBubble?.({ x: e.clientX, y: e.clientY })
-  }
 
   const handleSave = async () => {
     if (!editTitle.trim()) return
@@ -134,20 +145,12 @@ function TaskItem({
       layout
       whileTap={{ scale: 0.98 }}
       {...longPress}
-      onClick={(e) => {
-        if (isSelectionMode) {
-          e.preventDefault()
-          e.stopPropagation()
-          onSelect?.()
-        } else {
-          handleStatusClick(e)
-        }
-      }}
       onContextMenu={(e) => {
         e.preventDefault()
         e.stopPropagation()
         onContextMenu?.()
       }}
+      data-status-card="dashboard-task"
       className={cn(
         'flex items-center gap-4 p-4 rounded-[28px] border cursor-pointer transition-all duration-300 select-none relative group w-full',
         (task.status === 'done' || task.done) ? 'bg-green-500/[0.03] border-green-500/20' :
@@ -161,7 +164,6 @@ function TaskItem({
         <motion.div
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          onClick={handleStatusClick}
           className={cn(
             'w-12 h-12 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all duration-200',
             (task.status === 'done' || task.done) ? 'bg-green-500 border-green-500' :
@@ -169,6 +171,7 @@ function TaskItem({
             task.status === 'failed' ? 'bg-red-500 border-red-500' :
             'border-[var(--border-subtle)] bg-[var(--bg-overlay)]'
           )}
+          data-status-trigger="true"
         >
           {(task.status === 'done' || task.done) ? (
             <Check size={16} strokeWidth={4} className="text-white" />
@@ -183,7 +186,7 @@ function TaskItem({
       {isSelectionMode && (
         <div className={cn(
           'w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20',
-          isSelected ? 'border-red-600 bg-red-600' : 'border-white/10 bg-white/5'
+          isSelected ? 'border-red-600 bg-red-600' : 'border-[var(--border-subtle)] bg-[var(--bg-overlay)]'
         )}>
           {isSelected && <Check size={20} className="text-white" strokeWidth={3} />}
         </div>
@@ -215,10 +218,19 @@ function TaskItem({
       <div className="flex items-center gap-2">
         {!isSelectionMode && !isSelected && (
           <button
+            type="button"
+            data-bubble-ignore="true"
+            data-ignore-action="edit"
             onClick={(e) => {
               e.stopPropagation()
               setIsEditing(true)
             }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
             className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-white hover:bg-white/10 transition-all active:scale-90 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
             title="Editar Tarefa"
           >
@@ -227,10 +239,19 @@ function TaskItem({
         )}
         {!isSelectionMode && !isSelected && (
           <button
+            type="button"
+            data-bubble-ignore="true"
+            data-ignore-action="delete"
             onClick={(e) => {
               e.stopPropagation()
               onDelete?.()
             }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
             className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-all active:scale-90 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
             title="Excluir Tarefa"
           >

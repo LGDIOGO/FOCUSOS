@@ -32,6 +32,7 @@ export function StatusChoiceBubble({
 }: StatusChoiceBubbleProps) {
   const bubbleRef = useRef<HTMLDivElement>(null)
   const lastActivationRef = useRef(0)
+  const openedAtRef = useRef(0)
   const [bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
     position: 'fixed',
     top: `${Math.max(8, position.y - 150)}px`,
@@ -45,6 +46,7 @@ export function StatusChoiceBubble({
 
   useEffect(() => {
     if (!isOpen) { setBackdropReady(false); return }
+    openedAtRef.current = Date.now()
     const t = setTimeout(() => setBackdropReady(true), 80)
     return () => clearTimeout(t)
   }, [isOpen])
@@ -97,6 +99,7 @@ export function StatusChoiceBubble({
 
   const handleCloseBubble = (event: React.SyntheticEvent) => {
     event.stopPropagation()
+    if (Date.now() - openedAtRef.current < 250) return
     if (shouldSkipDuplicateActivation()) return
     onClose()
   }
@@ -128,6 +131,7 @@ export function StatusChoiceBubble({
             onClick={(event) => event.stopPropagation()}
             onMouseDown={(event) => event.stopPropagation()}
             onTouchStart={(event) => event.stopPropagation()}
+            data-status-bubble="true"
             className="z-[30000] pointer-events-auto bg-[var(--bg-card)] backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] p-2 flex items-center gap-1.5 shadow-2xl max-w-[95vw]"
           >
             <div className="flex items-center gap-1.5 max-w-full overflow-x-auto scrollbar-none px-1">
