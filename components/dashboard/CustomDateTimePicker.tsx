@@ -16,20 +16,24 @@ interface CustomDateTimePickerProps {
   onChange: (val: string) => void
   align?: 'left' | 'right'
   direction?: 'up' | 'down'
-  isOpen: boolean
-  onToggle: () => void
+  isOpen?: boolean
+  onToggle?: () => void
 }
 
-export function CustomDateTimePicker({ 
-  label, 
-  type, 
-  value, 
-  onChange, 
+export function CustomDateTimePicker({
+  label,
+  type,
+  value,
+  onChange,
   align = 'left',
   direction = 'down',
-  isOpen,
-  onToggle
+  isOpen: isOpenProp,
+  onToggle: onToggleProp
 }: CustomDateTimePickerProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = isOpenProp !== undefined
+  const isOpen = isControlled ? isOpenProp : internalOpen
+  const onToggle = isControlled ? onToggleProp! : () => setInternalOpen(v => !v)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const getDisplayValue = () => {

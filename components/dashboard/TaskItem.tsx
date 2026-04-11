@@ -60,7 +60,7 @@ function TaskItem({
     onUpdate?.(task.id, {
       title: editTitle,
       due_date: editDate,
-      due_time: editTime || null
+      due_time: editTime || undefined
     })
     setIsEditing(false)
     setActivePicker(null)
