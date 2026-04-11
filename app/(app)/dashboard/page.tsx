@@ -253,10 +253,26 @@ export default function DashboardPage() {
 
   const habits = useMemo(() => {
     if (!habitsData) return []
-    return [...habitsData].sort((a, b) => (b.streak || 0) - (a.streak || 0))
+    return [...habitsData].sort((a, b) => {
+      // Items with time come first, ordered by time asc
+      if (a.time && b.time) return a.time.localeCompare(b.time)
+      if (a.time && !b.time) return -1
+      if (!a.time && b.time) return 1
+      // Fallback: streak desc
+      return (b.streak || 0) - (a.streak || 0)
+    })
   }, [habitsData])
 
-  const tasks = useMemo(() => tasksData || [], [tasksData])
+  const tasks = useMemo(() => {
+    if (!tasksData) return []
+    return [...tasksData].sort((a, b) => {
+      // Items with due_time come first, ordered by time asc
+      if (a.due_time && b.due_time) return a.due_time.localeCompare(b.due_time)
+      if (a.due_time && !b.due_time) return -1
+      if (!a.due_time && b.due_time) return 1
+      return 0
+    })
+  }, [tasksData])
 
   const todayEvents = useMemo(() => {
     if (!eventsToday) return []

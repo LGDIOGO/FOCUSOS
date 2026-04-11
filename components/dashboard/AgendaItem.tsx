@@ -142,7 +142,7 @@ function AgendaItem({
             onClick={handleStatusClick}
             className={cn(
               "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
-              (event.status === 'todo' || !event.status) ? "border-[var(--border-subtle)] bg-[var(--bg-overlay)]" : cfg.icon
+              (event.status === 'todo' || !event.status) ? "border-white/10 bg-white/5" : cfg.icon
             )}
           >
             <StatusIcon status={event.status} />

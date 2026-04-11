@@ -1,6 +1,6 @@
 import { useState, memo } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Minus, X, Zap, ShieldAlert, Circle, Pencil } from 'lucide-react'
+import { Check, Minus, X, Zap, ShieldAlert, Circle, Pencil, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Habit, HabitStatus } from '@/types'
 import { format } from 'date-fns'
@@ -165,13 +165,20 @@ export function HabitCard({
         <p className={cn('text-lg font-bold text-[var(--text-primary)] truncate transition-all duration-300 tracking-tight', cfg.text)}>
           {habit.name}
         </p>
-        <div className="flex items-center gap-2 mt-0.5">
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
           {isNegative && (
             <span className="text-[10px] font-black uppercase tracking-widest text-[#e02020] bg-[#e02020]/10 px-1.5 py-0.5 rounded-md">Evitar</span>
           )}
-          <span className="text-xs font-medium text-white/30 truncate uppercase tracking-widest">{habit.meta}</span>
+          {habit.time && (
+            <span className="flex items-center gap-1 text-[12px] font-medium text-white/40 uppercase tracking-widest">
+              <Clock size={11} /> {habit.time}
+            </span>
+          )}
+          {habit.meta && (
+            <span className="text-xs font-medium text-white/30 truncate uppercase tracking-widest">{habit.meta}</span>
+          )}
           {activeOfensiva > 0 && currentStatus !== 'failed' && (
-            <span className="text-[12px] font-black text-amber-400 ml-1 flex-shrink-0 bg-amber-400/10 px-2 py-0.5 rounded-lg border border-amber-400/20">🔥 {activeOfensiva}</span>
+            <span className="text-[12px] font-black text-amber-400 flex-shrink-0 bg-amber-400/10 px-2 py-0.5 rounded-lg border border-amber-400/20">🔥 {activeOfensiva}</span>
           )}
         </div>
       </div>

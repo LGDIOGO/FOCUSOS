@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { memo } from 'react'
-import { Check, Minus, X, Pencil, Trash2 } from 'lucide-react'
+import { Check, Minus, X, Pencil, Trash2, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Task, TaskPriority, TaskStatus } from '@/types'
 import { useLongPress } from '@/lib/hooks/useLongPress'
@@ -197,9 +197,17 @@ function TaskItem({
         <p className={cn('text-base font-bold text-[var(--text-primary)] truncate transition-all tracking-tight', (task.done || task.status === 'done') && 'line-through text-[var(--text-muted)]')}>
           {task.title}
         </p>
-        {dueLabel ? (
-          <p className="text-[12px] text-[var(--text-muted)] mt-0.5 truncate font-medium uppercase tracking-widest">{dueLabel}</p>
-        ) : null}
+        {(task.due_time || dueLabel) && (
+          <div className="flex items-center gap-1.5 mt-0.5">
+            {task.due_time ? (
+              <span className="flex items-center gap-1 text-[12px] font-medium text-white/40 uppercase tracking-widest">
+                <Clock size={11} /> {task.due_time}
+              </span>
+            ) : dueLabel ? (
+              <span className="text-[12px] text-[var(--text-muted)] truncate font-medium uppercase tracking-widest">{dueLabel}</span>
+            ) : null}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
