@@ -132,18 +132,22 @@ export function useLogEvent() {
   return useMutation({
     onMutate: async (vars: { eventId: string; status: string; logDate?: string }) => {
       if (!user) return
-      const targetDate = vars.logDate || format(new Date(), 'yyyy-MM-dd')
-      const queryKey = ['eventsToday', targetDate, user.uid]
-      await qc.cancelQueries({ queryKey })
-      const prev = qc.getQueryData(queryKey)
-      qc.setQueryData(queryKey, (old: any[] | undefined) => {
-        if (!old) return old
-        return old.map(e => e.id === vars.eventId ? { ...e, status: vars.status } : e)
+      // Update ALL eventsToday caches (the event's date may differ from the viewed date)
+      await qc.cancelQueries({ queryKey: ['eventsToday'] })
+      const allKeys = qc.getQueriesData<any[]>({ queryKey: ['eventsToday'] })
+      allKeys.forEach(([key]) => {
+        qc.setQueryData(key, (old: any[] | undefined) => {
+          if (!old) return old
+          return old.map(e => e.id === vars.eventId
+            ? { ...e, status: vars.status, isOverdue: false }
+            : e
+          )
+        })
       })
-      return { prev, queryKey }
+      return { allKeys }
     },
     onError: (_err: any, _vars: any, context: any) => {
-      if (context?.prev) qc.setQueryData(context.queryKey, context.prev)
+      context?.allKeys?.forEach(([key, data]: any) => qc.setQueryData(key, data))
     },
     mutationFn: async ({ eventId, status, logDate }: {
       eventId: string;
@@ -163,9 +167,8 @@ export function useLogEvent() {
         logged_at: Timestamp.now()
       }, { merge: true })
     },
-    onSuccess: (_, variables) => {
-      const targetDate = variables.logDate || format(new Date(), 'yyyy-MM-dd')
-      qc.invalidateQueries({ queryKey: ['eventsToday', targetDate, user?.uid] })
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['eventsToday'] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
@@ -245,14 +248,11 @@ export function useEventsToday(selectedDate: Date = new Date()) {
         )
         const logsPastSnap = await getDocs(logsPastQ)
         
-        // Map: eventId -> Set of COMPLETED/FAILED/PARTIAL dates (any status that isn't 'none' or 'todo')
-        const handledMap = new Map<string, Set<string>>()
+        // Map: `${eventId}_${date}` -> status for all logged past events
+        const pastLogStatusMap = new Map<string, string>()
         logsPastSnap.docs.forEach(d => {
           const data = d.data()
-          if (data.status !== 'none' && data.status !== 'todo') {
-            if (!handledMap.has(data.event_id)) handledMap.set(data.event_id, new Set())
-            handledMap.get(data.event_id)!.add(data.log_date)
-          }
+          pastLogStatusMap.set(`${data.event_id}_${data.log_date}`, data.status)
         })
 
         // Check each event for past occurrences that aren't handled
@@ -279,13 +279,15 @@ export function useEventsToday(selectedDate: Date = new Date()) {
                 }
              }
 
-             if (occursOnPastDate && !handledMap.get(e.id)?.has(pDate)) {
-                // Not handled on this past date -> OVERDUE
+             if (occursOnPastDate) {
+                const logStatus = pastLogStatusMap.get(`${e.id}_${pDate}`)
+                const isHandled = !!logStatus && logStatus !== 'none' && logStatus !== 'todo'
+                // Show both unhandled (overdue) AND handled (done/partial/failed) past events
                 overdueResults.push({
                   ...e,
-                  date: pDate, 
-                  status: 'none',
-                  isOverdue: true
+                  date: pDate,
+                  status: (isHandled ? logStatus : 'none') as 'todo' | 'done' | 'partial' | 'failed' | 'none',
+                  isOverdue: !isHandled
                 })
              }
           })
