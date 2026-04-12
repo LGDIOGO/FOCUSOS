@@ -835,9 +835,16 @@ export default function DashboardPage() {
         )}
       </AnimatePresence>
       
-      <NotificationsCenter 
-        isOpen={isNotificationsOpen} 
-        onClose={() => setIsNotificationsOpen(false)} 
+      <RescheduleModal
+        isOpen={isRescheduleOpen}
+        onClose={() => { setIsRescheduleOpen(false); setEventToReschedule(null) }}
+        onConfirm={handleRescheduleConfirm}
+        event={eventToReschedule}
+      />
+
+      <NotificationsCenter
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
       />
       <AnimatePresence>
         {isBulkDeleteModalOpen && (
