@@ -1100,7 +1100,7 @@ export default function FinancePage() {
                     amount,
                     category: 'renda_fixa',
                     billing_cycle: fixedIncomeCycle,
-                    due_day: new Date(baseDateStr).getDate(),
+                    due_day: parseISO(baseDateStr).getDate(),
                     auto_appointment: false,
                     entry_type: 'income'
                   })

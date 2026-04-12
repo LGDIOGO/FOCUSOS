@@ -2,7 +2,7 @@
 
 import { useState, useRef, useLayoutEffect } from 'react'
 import { Calendar, Clock } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AppleDatePicker } from './AppleDatePicker'
@@ -40,7 +40,7 @@ export function CustomDateTimePicker({
     if (!value) return type === 'date' ? '00/00/0000' : '00:00'
     try {
       if (type === 'date') {
-        return format(new Date(value), "dd/MM/yyyy")
+        return format(parseISO(value), "dd/MM/yyyy")
       }
       return value
     } catch (e) {
