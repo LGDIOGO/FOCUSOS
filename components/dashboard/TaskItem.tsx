@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { Check, Clock, Minus, Pencil, Trash2, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { useLongPress } from '@/lib/hooks/useLongPress'
-import { isBubbleIgnoredTarget, resolveBubblePosition } from '@/lib/utils/statusBubble'
+import { resolveBubblePosition } from '@/lib/utils/statusBubble'
 import { Task, TaskStatus } from '@/types'
 import { CustomDateTimePicker } from './CustomDateTimePicker'
 
@@ -58,13 +58,8 @@ function TaskItem({
   }
 
   const handleShortPress = (eventData: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
-    if (isBubbleIgnoredTarget(eventData.target)) {
-      return
-    }
-
-    eventData.preventDefault()
-    eventData.stopPropagation()
-
+    // Do NOT check isBubbleIgnoredTarget — it blocks clicks via button ancestors even when buttons are pointer-events-none
+    // Buttons protect themselves with e.stopPropagation()
     if (isSelectionMode) {
       onSelect?.()
       return

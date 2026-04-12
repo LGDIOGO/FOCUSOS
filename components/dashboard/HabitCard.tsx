@@ -6,7 +6,7 @@ import { Check, Clock, Minus, Pencil, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
 import { useLongPress } from '@/lib/hooks/useLongPress'
-import { isBubbleIgnoredTarget, resolveBubblePosition } from '@/lib/utils/statusBubble'
+import { resolveBubblePosition } from '@/lib/utils/statusBubble'
 import { getEffectiveOfensiva } from '@/lib/utils/scoring'
 import { Habit, HabitStatus } from '@/types'
 
@@ -80,13 +80,8 @@ export function HabitCard({
   const activeOfensiva = getEffectiveOfensiva(habit.streak || 0, habit.last_completed_date, currentStatus, todayStr)
 
   const handleShortPress = (eventData: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
-    if (isBubbleIgnoredTarget(eventData.target)) {
-      return
-    }
-
-    eventData.preventDefault()
-    eventData.stopPropagation()
-
+    // Do NOT check isBubbleIgnoredTarget — it blocks clicks via button ancestors even when buttons are pointer-events-none
+    // Buttons protect themselves with e.stopPropagation()
     if (isSelectionMode) {
       onSelect?.()
       return

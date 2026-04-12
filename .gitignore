@@ -48,3 +48,10 @@ yarn-debug.log*
 yarn-error.log*
 .DS_Store
 .claude/
+
+# arquivos temporários de debug/teste local
+.tmp-chrome-profile/
+.tmp-dom.html
+.tmp-status-server.log
+app/status-bubble-harness/
+components/dashboard/AgendaEventListItem.tsx

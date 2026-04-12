@@ -6,7 +6,7 @@ import { AlertCircle, Check, Clock, Minus, Pencil, X } from 'lucide-react'
 import { isAfter, isToday, parse, subMinutes } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
 import { useLongPress } from '@/lib/hooks/useLongPress'
-import { isBubbleIgnoredTarget, resolveBubblePosition } from '@/lib/utils/statusBubble'
+import { resolveBubblePosition } from '@/lib/utils/statusBubble'
 import { CalendarEvent } from '@/types'
 
 interface AgendaItemProps {
@@ -53,13 +53,8 @@ function AgendaItem({
   const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.none
 
   const handleShortPress = (eventData: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
-    if (isBubbleIgnoredTarget(eventData.target)) {
-      return
-    }
-
-    eventData.preventDefault()
-    eventData.stopPropagation()
-
+    // Do NOT check isBubbleIgnoredTarget — it blocks clicks via button ancestors even when buttons are pointer-events-none
+    // Buttons protect themselves with e.stopPropagation()
     if (isSelectionMode) {
       onSelect?.()
       return
