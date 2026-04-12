@@ -101,22 +101,16 @@ function getFirstRecurringOccurrence(cost: FinanceRecurringCost) {
   const seed = parseISO(normalizeFinanceDate(cost.due_date || cost.created_at || new Date().toISOString()))
   const dueDay = Math.max(1, Math.min(cost.due_day ?? seed.getDate(), 31))
 
+  if (cost.due_date) {
+    return startOfDay(seed)
+  }
+
   if (cost.billing_cycle === 'monthly' || cost.billing_cycle === 'custom') {
-    let occurrence = new Date(seed.getFullYear(), seed.getMonth(), clampDayToMonth(seed, dueDay))
-    if (isBefore(occurrence, startOfDay(seed))) {
-      const nextMonth = addMonths(new Date(seed.getFullYear(), seed.getMonth(), 1), 1)
-      occurrence = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), clampDayToMonth(nextMonth, dueDay))
-    }
-    return occurrence
+    return new Date(seed.getFullYear(), seed.getMonth(), clampDayToMonth(seed, dueDay))
   }
 
   if (cost.billing_cycle === 'yearly') {
-    let occurrence = new Date(seed.getFullYear(), seed.getMonth(), clampDayToMonth(seed, dueDay))
-    if (isBefore(occurrence, startOfDay(seed))) {
-      const nextYearBase = new Date(seed.getFullYear() + 1, seed.getMonth(), 1)
-      occurrence = new Date(nextYearBase.getFullYear(), nextYearBase.getMonth(), clampDayToMonth(nextYearBase, dueDay))
-    }
-    return occurrence
+    return new Date(seed.getFullYear(), seed.getMonth(), clampDayToMonth(seed, dueDay))
   }
 
   return startOfDay(seed)
@@ -737,6 +731,9 @@ export default function FinancePage() {
                   <div className="text-5xl font-black tracking-tighter text-[var(--text-primary)]">
                     {formatBRL(financeTotalIncome)}
                   </div>
+                  <button onClick={() => openTransactionModal('income')} className="mt-4 text-xs font-black uppercase tracking-widest text-green-400/70 hover:text-green-400 transition-colors">
+                    adicionar entrada
+                  </button>
                 </div>
                 
                 {/* Custo / Comprometimento */}
@@ -794,11 +791,16 @@ export default function FinancePage() {
                       </div>
                    ) : (
                      <div className="space-y-3">
-                       {recentTransactions.map(t => (
+                       {recentTransactions.map((t: any) => (
                          <div key={t.id} className="p-4 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] flex items-center justify-between group">
                             <div>
                               <div className="flex items-center gap-2">
                                 <p className="font-bold text-[var(--text-primary)] text-sm">{t.title}</p>
+                                {t.sourceType === 'recurring' && (
+                                  <span className="text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">
+                                    recorrente
+                                  </span>
+                                )}
                                 {t.nature && (
                                   <span className={cn(
                                     "text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded",
