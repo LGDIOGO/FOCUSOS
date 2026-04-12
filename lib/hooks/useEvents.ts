@@ -83,6 +83,8 @@ export function useEventLogsRange(startDate?: string, endDate?: string) {
     },
     enabled: !!user,
     staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   })
 }
 

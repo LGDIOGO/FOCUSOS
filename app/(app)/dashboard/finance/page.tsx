@@ -231,6 +231,7 @@ export default function FinancePage() {
   const [isAporteModalOpen, setIsAporteModalOpen] = useState(false)
   const [aportePoteId, setAportePoteId] = useState<string | null>(null)
   
+  const [txErrorMsg, setTxErrorMsg] = useState<string | null>(null)
   const [isGeneratingAI, setIsGeneratingAI] = useState(false)
   const [isParsing, setIsParsing] = useState(false)
   const [isInstallment, setIsInstallment] = useState(false)
@@ -259,6 +260,7 @@ export default function FinancePage() {
     setTxTitle('')
     setTxAmount('')
     setIsTransactionTypeLocked(locked)
+    setTxErrorMsg(null)
   }
 
   const openTransactionModal = (type: 'expense' | 'income', locked = true) => {
@@ -1354,58 +1356,62 @@ export default function FinancePage() {
               
               <form onSubmit={async (e) => {
                 e.preventDefault()
+                setTxErrorMsg(null)
                 const fd = new FormData(e.currentTarget)
                 const baseDateStr = txDate || new Date().toISOString().split('T')[0]
                 const installments = isInstallment ? parseInt(fd.get('installments') as string) : 1
-                const amount = parseFloat(txAmount)
+                const amount = parseFloat(txAmount.replace(',', '.'))
                 const title = txTitle.trim()
                 const type = txType
                 const category = txCategory || (txType === 'expense' ? 'outros_gasto' : 'outros_renda')
 
-                if (!title || Number.isNaN(amount) || amount <= 0) {
-                  return
-                }
+                if (!title) { setTxErrorMsg('Preencha a descrição.'); return }
+                if (Number.isNaN(amount) || amount <= 0) { setTxErrorMsg('Informe um valor válido.'); return }
 
-                if (isInstallment && installments > 1) {
-                  const installmentAmount = amount / installments
-                  const baseDate = parseISO(baseDateStr)
-                  
-                  for (let i = 0; i < installments; i++) {
-                    const currentDate = addMonths(baseDate, i)
+                try {
+                  if (isInstallment && installments > 1) {
+                    const installmentAmount = amount / installments
+                    const baseDate = parseISO(baseDateStr)
+
+                    for (let i = 0; i < installments; i++) {
+                      const currentDate = addMonths(baseDate, i)
+                      await addTransaction.mutateAsync({
+                        title: `${title} (${i + 1}/${installments})`,
+                        amount: installmentAmount,
+                        type,
+                        category,
+                        nature: type === 'expense' ? selectedNature || undefined : undefined,
+                        date: format(currentDate, 'yyyy-MM-dd')
+                      })
+                    }
+                  } else {
                     await addTransaction.mutateAsync({
-                      title: `${title} (${i + 1}/${installments})`,
-                      amount: installmentAmount,
+                      title,
+                      amount,
                       type,
                       category,
                       nature: type === 'expense' ? selectedNature || undefined : undefined,
-                      date: format(currentDate, 'yyyy-MM-dd')
+                      date: baseDateStr
                     })
                   }
-                } else {
-                  await addTransaction.mutateAsync({
-                    title,
-                    amount,
-                    type,
-                    category,
-                    nature: type === 'expense' ? selectedNature || undefined : undefined,
-                    date: baseDateStr
-                  })
-                }
 
-                // If user wants to save this income as recurring
-                if (txType === 'income' && isFixedIncome) {
-                  await addCost.mutateAsync({
-                    title,
-                    amount,
-                    category,
-                    billing_cycle: fixedIncomeCycle,
-                    due_day: parseISO(baseDateStr).getDate(),
-                    auto_appointment: false,
-                    entry_type: 'income'
-                  })
-                }
+                  // If user wants to save this income as recurring
+                  if (txType === 'income' && isFixedIncome) {
+                    await addCost.mutateAsync({
+                      title,
+                      amount,
+                      category,
+                      billing_cycle: fixedIncomeCycle,
+                      due_day: parseISO(baseDateStr).getDate(),
+                      auto_appointment: false,
+                      entry_type: 'income'
+                    })
+                  }
 
-                resetTransactionModalState()
+                  resetTransactionModalState()
+                } catch (err: any) {
+                  setTxErrorMsg(err?.message || 'Erro ao salvar. Tente novamente.')
+                }
               }} className="space-y-4">
                 <div className="relative">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Descrição</label>
@@ -1632,7 +1638,13 @@ export default function FinancePage() {
                   </div>
                 )}
 
-                <button type="submit" disabled={addTransaction.isPending} className="w-full py-4 mt-2 bg-white hover:bg-white/90 text-black font-black rounded-xl transition-all shadow-xl">Confirmar Lançamento</button>
+                {txErrorMsg && (
+                  <p className="text-red-400 text-xs font-bold text-center px-2">{txErrorMsg}</p>
+                )}
+                <button type="submit" disabled={addTransaction.isPending || addCost.isPending} className="w-full py-4 mt-2 bg-white hover:bg-white/90 text-black font-black rounded-xl transition-all shadow-xl disabled:opacity-60 flex items-center justify-center gap-2">
+                  {(addTransaction.isPending || addCost.isPending) && <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />}
+                  Confirmar Lançamento
+                </button>
               </form>
             </motion.div>
           </div>

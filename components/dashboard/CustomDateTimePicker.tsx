@@ -160,11 +160,11 @@ function PickerPortal({
 
   return createPortal(
     <>
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[99998] bg-black/60 backdrop-blur-md" 
+        exit={{ opacity: 0, transition: { duration: 0 } }}
+        className="fixed inset-0 z-[99998] bg-black/60 backdrop-blur-md"
         onPointerDown={(e) => {
           e.stopPropagation()
           onClose()
