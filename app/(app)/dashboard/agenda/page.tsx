@@ -55,6 +55,7 @@ function EventItem({
   toggleSelection,
   setIsSelectionMode,
   onDelete,
+  onEdit,
   onOpenBubble,
   currentTime = new Date()
 }: {
@@ -64,6 +65,7 @@ function EventItem({
   toggleSelection: (id: string) => void
   setIsSelectionMode: (val: boolean) => void
   onDelete: (id: string) => void
+  onEdit?: () => void
   onOpenBubble?: (pos: { x: number; y: number }) => void
   currentTime?: Date
 }) {
@@ -103,13 +105,14 @@ function EventItem({
           toggleSelection(event.id)
         }, 500)
       }}
-      onTap={(tapEvent, info) => {
+      onTap={(tapEvent, _info) => {
         clearTimeout(longPressTimer.current)
         if (didLongPress.current) { didLongPress.current = false; return }
         const target = (tapEvent as any).target as HTMLElement
         if (target.closest('[data-bubble-ignore]')) return
         if (isSelectionMode) { toggleSelection(event.id); return }
-        onOpenBubble?.({ x: info.point.x, y: info.point.y })
+        // On the Agenda page, tapping a card opens the edit modal
+        onEdit?.()
       }}
       onTapCancel={() => { clearTimeout(longPressTimer.current); didLongPress.current = false }}
       onContextMenu={(e) => {
@@ -626,16 +629,8 @@ export default function AgendaPage() {
                               toggleSelection={toggleSelection}
                               setIsSelectionMode={setIsSelectionMode}
                               onDelete={(id) => deleteEvent.mutate(id)}
+                              onEdit={() => openEditModal(event)}
                               currentTime={currentTime}
-                              onOpenBubble={(position) => setActiveBubble({
-                                id: event.id,
-                                position,
-                                options: AGENDA_STATUS_OPTIONS,
-                                onSelect: (status) => {
-                                  handleEventStatusChange(event, status)
-                                  setActiveBubble(null)
-                                }
-                              })}
                             />
                           ))}
                         </div>
@@ -677,7 +672,7 @@ export default function AgendaPage() {
 
                 <div className="space-y-3">
                   {eventList.map((event: CalendarEvent) => (
-                    <EventItem 
+                    <EventItem
                       key={event.id}
                       event={event}
                       isSelectionMode={isSelectionMode}
@@ -685,16 +680,8 @@ export default function AgendaPage() {
                       toggleSelection={toggleSelection}
                       setIsSelectionMode={setIsSelectionMode}
                       onDelete={(id) => deleteEvent.mutate(id)}
+                      onEdit={() => openEditModal(event)}
                       currentTime={currentTime}
-                      onOpenBubble={(position) => setActiveBubble({
-                        id: event.id,
-                        position,
-                        options: AGENDA_STATUS_OPTIONS,
-                        onSelect: (status) => {
-                          handleEventStatusChange(event, status)
-                          setActiveBubble(null)
-                        }
-                      })}
                     />
                   ))}
                 </div>
