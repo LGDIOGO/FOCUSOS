@@ -138,6 +138,18 @@ export function useDeleteFinanceRecurringCost() {
   })
 }
 
+export function useUpdateFinanceRecurringCost() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<FinanceRecurringCost> & { id: string }) => {
+      await updateDoc(doc(db, 'finance_recurring_costs', id), stripUndefinedFields(updates))
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance_recurring_costs'] })
+    },
+  })
+}
+
 // --- Potes (Jars) --- //
 
 export function useFinancePotes() {
