@@ -251,14 +251,20 @@ export default function DashboardPage() {
   const todayDay = getDay(selectedDate)
   const isViewingToday = isToday(selectedDate)
 
+  // done/partial/failed → neutral means no status yet
+  const isStatusNeutral = (s: string | undefined) => !s || s === 'none' || s === 'todo'
+
   const habits = useMemo(() => {
     if (!habitsData) return []
     return [...habitsData].sort((a, b) => {
-      // Items with time come first, ordered by time asc
+      const aNeutral = isStatusNeutral(a.status)
+      const bNeutral = isStatusNeutral(b.status)
+      if (aNeutral && !bNeutral) return -1  // pending stays above completed
+      if (!aNeutral && bNeutral) return 1
+      // Same tier — sort by time asc, then streak
       if (a.time && b.time) return a.time.localeCompare(b.time)
       if (a.time && !b.time) return -1
       if (!a.time && b.time) return 1
-      // Fallback: streak desc
       return (b.streak || 0) - (a.streak || 0)
     })
   }, [habitsData])
@@ -266,7 +272,10 @@ export default function DashboardPage() {
   const tasks = useMemo(() => {
     if (!tasksData) return []
     return [...tasksData].sort((a, b) => {
-      // Items with due_time come first, ordered by time asc
+      const aNeutral = isStatusNeutral(a.status)
+      const bNeutral = isStatusNeutral(b.status)
+      if (aNeutral && !bNeutral) return -1
+      if (!aNeutral && bNeutral) return 1
       if (a.due_time && b.due_time) return a.due_time.localeCompare(b.due_time)
       if (a.due_time && !b.due_time) return -1
       if (!a.due_time && b.due_time) return 1
@@ -277,12 +286,10 @@ export default function DashboardPage() {
   const todayEvents = useMemo(() => {
     if (!eventsToday) return []
     return [...eventsToday].sort((a, b) => {
-      // Done items always last
-      const isDoneA = a.status === 'done'
-      const isDoneB = b.status === 'done'
-      if (isDoneA && !isDoneB) return 1
-      if (!isDoneA && isDoneB) return -1
-      // Sort by time ascending — no time goes to the end
+      const aNeutral = isStatusNeutral(a.status)
+      const bNeutral = isStatusNeutral(b.status)
+      if (aNeutral && !bNeutral) return -1
+      if (!aNeutral && bNeutral) return 1
       if (a.time && b.time) return a.time.localeCompare(b.time)
       if (a.time && !b.time) return -1
       if (!a.time && b.time) return 1

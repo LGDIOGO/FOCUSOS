@@ -130,16 +130,31 @@ export function useLogEvent() {
   const user = auth.currentUser
 
   return useMutation({
-    mutationFn: async ({ eventId, status, logDate }: { 
-      eventId: string; 
-      status: string; 
+    onMutate: async (vars: { eventId: string; status: string; logDate?: string }) => {
+      if (!user) return
+      const targetDate = vars.logDate || format(new Date(), 'yyyy-MM-dd')
+      const queryKey = ['eventsToday', targetDate, user.uid]
+      await qc.cancelQueries({ queryKey })
+      const prev = qc.getQueryData(queryKey)
+      qc.setQueryData(queryKey, (old: any[] | undefined) => {
+        if (!old) return old
+        return old.map(e => e.id === vars.eventId ? { ...e, status: vars.status } : e)
+      })
+      return { prev, queryKey }
+    },
+    onError: (_err: any, _vars: any, context: any) => {
+      if (context?.prev) qc.setQueryData(context.queryKey, context.prev)
+    },
+    mutationFn: async ({ eventId, status, logDate }: {
+      eventId: string;
+      status: string;
       logDate?: string;
     }) => {
       if (!user) throw new Error('Not authenticated')
-      
+
       const targetDate = logDate || format(new Date(), 'yyyy-MM-dd')
       const logId = `${eventId}_${targetDate}`
-      
+
       await setDoc(doc(db, 'event_logs', logId), {
         user_id: user.uid,
         event_id: eventId,
@@ -150,8 +165,7 @@ export function useLogEvent() {
     },
     onSuccess: (_, variables) => {
       const targetDate = variables.logDate || format(new Date(), 'yyyy-MM-dd')
-      qc.invalidateQueries({ queryKey: ['events'] })
-      qc.invalidateQueries({ queryKey: ['eventsToday', targetDate] })
+      qc.invalidateQueries({ queryKey: ['eventsToday', targetDate, user?.uid] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
