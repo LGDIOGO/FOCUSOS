@@ -15,6 +15,8 @@ import {
 import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, differenceInDays, isToday, subDays } from 'date-fns'
 import { CalendarEvent, HabitStatus } from '@/types'
 
+export type EventLogStatusMap = Record<string, string>
+
 export function useEvents() {
   const user = auth.currentUser
 
@@ -46,6 +48,41 @@ export function useEvents() {
     },
     enabled: !!user,
     staleTime: 5_000,
+  })
+}
+
+export function useEventLogsRange(startDate?: string, endDate?: string) {
+  const user = auth.currentUser
+
+  return useQuery({
+    queryKey: ['event_logs', user?.uid, startDate, endDate],
+    queryFn: async () => {
+      if (!user) {
+        return {} as EventLogStatusMap
+      }
+
+      const baseCollection = collection(db, 'event_logs')
+      const logsQuery = startDate && endDate
+        ? query(
+            baseCollection,
+            where('user_id', '==', user.uid),
+            where('log_date', '>=', startDate),
+            where('log_date', '<=', endDate)
+          )
+        : query(
+            baseCollection,
+            where('user_id', '==', user.uid)
+          )
+
+      const logsSnapshot = await getDocs(logsQuery)
+      return logsSnapshot.docs.reduce<EventLogStatusMap>((acc, logDoc) => {
+        const data = logDoc.data()
+        acc[`${data.event_id}_${data.log_date}`] = data.status
+        return acc
+      }, {})
+    },
+    enabled: !!user,
+    staleTime: 0,
   })
 }
 
@@ -121,6 +158,8 @@ export function useDeleteEvent() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['events', user?.uid] })
+      qc.invalidateQueries({ queryKey: ['eventsToday'] })
+      qc.invalidateQueries({ queryKey: ['event_logs', user?.uid] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
@@ -132,9 +171,12 @@ export function useLogEvent() {
   return useMutation({
     onMutate: async (vars: { eventId: string; status: string; logDate?: string }) => {
       if (!user) return
+      const targetDate = vars.logDate || format(new Date(), 'yyyy-MM-dd')
       // Update ALL eventsToday caches (the event's date may differ from the viewed date)
       await qc.cancelQueries({ queryKey: ['eventsToday'] })
+      await qc.cancelQueries({ queryKey: ['event_logs', user.uid] })
       const allKeys = qc.getQueriesData<any[]>({ queryKey: ['eventsToday'] })
+      const logKeys = qc.getQueriesData<EventLogStatusMap>({ queryKey: ['event_logs', user.uid] })
       allKeys.forEach(([key]) => {
         qc.setQueryData(key, (old: any[] | undefined) => {
           if (!old) return old
@@ -144,10 +186,17 @@ export function useLogEvent() {
           )
         })
       })
-      return { allKeys }
+      logKeys.forEach(([key]) => {
+        qc.setQueryData(key, (old: EventLogStatusMap | undefined) => ({
+          ...(old || {}),
+          [`${vars.eventId}_${targetDate}`]: vars.status
+        }))
+      })
+      return { allKeys, logKeys }
     },
     onError: (_err: any, _vars: any, context: any) => {
       context?.allKeys?.forEach(([key, data]: any) => qc.setQueryData(key, data))
+      context?.logKeys?.forEach(([key, data]: any) => qc.setQueryData(key, data))
     },
     mutationFn: async ({ eventId, status, logDate }: {
       eventId: string;
@@ -169,6 +218,7 @@ export function useLogEvent() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['eventsToday'] })
+      qc.invalidateQueries({ queryKey: ['event_logs', user?.uid] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })

@@ -75,6 +75,26 @@ export default function FinancePage() {
   const [txAmount, setTxAmount] = useState<string>('')
   const [isTransactionTypeLocked, setIsTransactionTypeLocked] = useState(false)
 
+  const resetTransactionModalState = (nextType: 'expense' | 'income' = 'expense', locked = false) => {
+    setTransactionModalOpen(false)
+    setIsInstallment(false)
+    setIsFixedIncome(false)
+    setFixedIncomeCycle('monthly')
+    setTxCategory('')
+    setTxType(nextType)
+    setShowNature(false)
+    setSelectedNature(null)
+    setTxDate(new Date().toISOString().split('T')[0])
+    setTxTitle('')
+    setTxAmount('')
+    setIsTransactionTypeLocked(locked)
+  }
+
+  const openTransactionModal = (type: 'expense' | 'income', locked = true) => {
+    resetTransactionModalState(type, locked)
+    setTransactionModalOpen(true)
+  }
+
   // CUSTO FIXO MODAL — custom dropdown states (replace native select)
   const [costBillingCycle, setCostBillingCycle] = useState<'monthly' | 'biweekly' | 'weekly' | 'yearly' | 'custom'>('monthly')
   const [costCategory, setCostCategory] = useState<string>('assinatura')
@@ -411,10 +431,7 @@ export default function FinancePage() {
         
         {/* Quick Add Buttons */}
         <div className="flex items-center gap-3">
-          <button onClick={() => {
-            setIsTransactionTypeLocked(false)
-            setTransactionModalOpen(true)
-          }} className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-overlay)] hover:bg-white/5 border border-[var(--border-subtle)] hover:border-white/10 rounded-xl text-sm font-bold transition-all shadow-sm">
+          <button onClick={() => openTransactionModal('expense', false)} className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-overlay)] hover:bg-white/5 border border-[var(--border-subtle)] hover:border-white/10 rounded-xl text-sm font-bold transition-all shadow-sm">
              <Plus size={16} /> Movimentação Rápida
           </button>
         </div>
@@ -486,11 +503,7 @@ export default function FinancePage() {
                      <h3 className="text-xl font-black tracking-tight flex items-center gap-3">
                        <Wallet className="text-[var(--text-muted)]" /> Diário de Caixa
                      </h3>
-                     <button onClick={() => {
-                        setTxType('income')
-                        setIsTransactionTypeLocked(true)
-                        setTransactionModalOpen(true)
-                      }} className="text-xs font-bold bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors text-[var(--text-secondary)]">Adicionar Novo</button>
+                     <button onClick={() => openTransactionModal('income')} className="text-xs font-bold bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors text-[var(--text-secondary)]">Adicionar Novo</button>
                    </div>
                    
                    {recentTransactions.length === 0 ? (
@@ -683,13 +696,9 @@ export default function FinancePage() {
                       <p className="text-[var(--text-secondary)] mt-1 font-medium italic">Baseado nos filtros de período selecionados abaixo.</p>
                     </div>
                     <div className="flex gap-4">
-                       <button onClick={() => {
-                          setTxType('expense')
-                          setIsTransactionTypeLocked(true)
-                          setTransactionModalOpen(true)
-                        }} className="px-6 py-4 bg-white text-black font-black text-sm uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl">
-                         Lançar Novo Gasto
-                       </button>
+                      <button onClick={() => openTransactionModal('expense')} className="px-6 py-4 bg-white text-black font-black text-sm uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl">
+                        Lançar Novo Gasto
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1037,16 +1046,7 @@ export default function FinancePage() {
           <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
               <button 
-                onClick={() => {
-                  setTransactionModalOpen(false)
-                  setIsInstallment(false)
-                  setTxCategory('')
-                  setTxType('expense')
-                  setShowNature(false)
-                  setTxDate(new Date().toISOString().split('T')[0])
-                  setTxTitle('')
-                  setTxAmount('')
-                }} 
+                onClick={() => resetTransactionModalState()} 
                 className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"
               >
                 <X size={20}/>
@@ -1059,13 +1059,16 @@ export default function FinancePage() {
               <form onSubmit={async (e) => {
                 e.preventDefault()
                 const fd = new FormData(e.currentTarget)
-                const baseDateStr = (fd.get('date') as string) || new Date().toISOString().split('T')[0]
+                const baseDateStr = txDate || new Date().toISOString().split('T')[0]
                 const installments = isInstallment ? parseInt(fd.get('installments') as string) : 1
-                const amount = parseFloat(fd.get('amount') as string)
-                
-                const title = fd.get('title') as string
-                const type = fd.get('type') as any
-                const category = fd.get('category') as any
+                const amount = parseFloat(txAmount)
+                const title = txTitle.trim()
+                const type = txType
+                const category = txCategory || (txType === 'expense' ? 'outros_gasto' : 'outros_renda')
+
+                if (!title || Number.isNaN(amount) || amount <= 0) {
+                  return
+                }
 
                 if (isInstallment && installments > 1) {
                   const installmentAmount = amount / installments
@@ -1078,7 +1081,7 @@ export default function FinancePage() {
                       amount: installmentAmount,
                       type,
                       category,
-                      nature: selectedNature || undefined,
+                      nature: type === 'expense' ? selectedNature || undefined : undefined,
                       date: format(currentDate, 'yyyy-MM-dd')
                     })
                   }
@@ -1088,7 +1091,7 @@ export default function FinancePage() {
                     amount,
                     type,
                     category,
-                    nature: selectedNature || undefined,
+                    nature: type === 'expense' ? selectedNature || undefined : undefined,
                     date: baseDateStr
                   })
                 }
@@ -1106,13 +1109,7 @@ export default function FinancePage() {
                   })
                 }
 
-                setTransactionModalOpen(false)
-                setIsInstallment(false)
-                setIsFixedIncome(false)
-                setFixedIncomeCycle('monthly')
-                setSelectedNature(null)
-                setTxTitle('')
-                setTxAmount('')
+                resetTransactionModalState()
               }} className="space-y-4">
                 <div className="relative">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Descrição</label>
@@ -1177,6 +1174,7 @@ export default function FinancePage() {
                 )}
                 {/* Hidden input to carry the value always */}
                 <input type="hidden" name="type" value={txType} />
+                <input type="hidden" name="date" value={txDate} />
 
                 {/* CLASSIFICAÇÃO */}
                 <div className="space-y-2">

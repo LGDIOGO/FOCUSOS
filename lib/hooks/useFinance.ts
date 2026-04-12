@@ -16,6 +16,12 @@ import {
 } from 'firebase/firestore'
 import { FinanceTransaction, FinanceRecurringCost, FinancePote, FinanceRoadmap } from '@/types'
 
+function stripUndefinedFields<T extends Record<string, any>>(data: T) {
+  return Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== undefined)
+  ) as T
+}
+
 // --- Transactions --- //
 
 export function useFinanceTransactions() {
@@ -52,7 +58,7 @@ export function useAddFinanceTransaction() {
       if (!user) throw new Error('Not authenticated')
       
       await addDoc(collection(db, 'finance_transactions'), {
-        ...data,
+        ...stripUndefinedFields(data),
         user_id: user.uid,
         created_at: new Date().toISOString()
       })
@@ -109,7 +115,7 @@ export function useAddFinanceRecurringCost() {
       if (!user) throw new Error('Not authenticated')
       
       await addDoc(collection(db, 'finance_recurring_costs'), {
-        ...data,
+        ...stripUndefinedFields(data),
         user_id: user.uid,
         created_at: new Date().toISOString()
       })
@@ -166,7 +172,7 @@ export function useAddFinancePote() {
       if (!user) throw new Error('Not authenticated')
       
       await addDoc(collection(db, 'finance_potes'), {
-        ...data,
+        ...stripUndefinedFields(data),
         user_id: user.uid,
         created_at: new Date().toISOString()
       })
@@ -193,7 +199,7 @@ export function useUpdateFinancePote() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<FinancePote> & { id: string }) => {
-      await updateDoc(doc(db, 'finance_potes', id), updates)
+      await updateDoc(doc(db, 'finance_potes', id), stripUndefinedFields(updates))
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['finance_potes'] })

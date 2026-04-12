@@ -1,18 +1,16 @@
 'use client'
 
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle, History
+  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle, History, Pencil
 } from 'lucide-react'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
 import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
 import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicker'
-import { useEvents, useDeleteEvent, useLogEvent } from '@/lib/hooks/useEvents'
+import { useEvents, useDeleteEvent, useEventLogsRange, useLogEvent } from '@/lib/hooks/useEvents'
 import { Check, Minus, X, Circle } from 'lucide-react'
-import { db, auth } from '@/lib/firebase/config'
-import { collection, query, where, getDocs } from 'firebase/firestore'
 import { CalendarEvent, EventType } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import {
@@ -90,31 +88,36 @@ function EventItem({
   const currentStatus = event.status || 'none'
   const cfg = STATUS_CONFIG_AGENDA[currentStatus] || STATUS_CONFIG_AGENDA.none
 
-  const longPressTimer = useRef<NodeJS.Timeout>()
-  const didLongPress = useRef(false)
+  const handleShortPress = (eventData: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
+    if (isBubbleIgnoredTarget(eventData.target)) {
+      return
+    }
+
+    eventData.preventDefault()
+    eventData.stopPropagation()
+
+    if (isSelectionMode) {
+      toggleSelection(event.id)
+      return
+    }
+
+    onOpenBubble?.(resolveBubblePosition(eventData, eventData.currentTarget))
+  }
+
+  const longPress = useLongPress(
+    () => {
+      setIsSelectionMode(true)
+      toggleSelection(event.id)
+    },
+    handleShortPress,
+    { delay: 500 }
+  )
 
   return (
     <motion.div
       layoutId={event.id}
       whileTap={{ scale: 0.985 }}
-      onTapStart={() => {
-        didLongPress.current = false
-        longPressTimer.current = setTimeout(() => {
-          didLongPress.current = true
-          setIsSelectionMode(true)
-          toggleSelection(event.id)
-        }, 500)
-      }}
-      onTap={(tapEvent, _info) => {
-        clearTimeout(longPressTimer.current)
-        if (didLongPress.current) { didLongPress.current = false; return }
-        const target = (tapEvent as any).target as HTMLElement
-        if (target.closest('[data-bubble-ignore]')) return
-        if (isSelectionMode) { toggleSelection(event.id); return }
-        // On the Agenda page, tapping a card opens the edit modal
-        onEdit?.()
-      }}
-      onTapCancel={() => { clearTimeout(longPressTimer.current); didLongPress.current = false }}
+      {...longPress}
       onContextMenu={(e) => {
         e.preventDefault()
         e.stopPropagation()
@@ -207,6 +210,30 @@ function EventItem({
       <button 
         type="button"
         data-bubble-ignore="true"
+        data-ignore-action="edit"
+        onClick={(e) => {
+          e.stopPropagation()
+          if (isSelectionMode) return
+          onEdit?.()
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+        title="Editar Compromisso"
+        className={cn(
+          "p-3 hover:text-white transition-colors opacity-0 group-hover:opacity-100",
+          isSelectionMode ? "hidden" : "text-white/10"
+        )}
+      >
+        <Pencil size={18} />
+      </button>
+
+      <button 
+        type="button"
+        data-bubble-ignore="true"
         data-ignore-action="delete"
         onClick={(e) => {
           e.stopPropagation()
@@ -237,8 +264,7 @@ export default function AgendaPage() {
   const logEvent = useLogEvent()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const searchParams = useSearchParams()
-  const [logs, setLogs] = useState<Map<string, string>>(new Map())
-  const [loadingLogs, setLoadingLogs] = useState(false)
+  const { data: logs = {} } = useEventLogsRange()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showAddModal, setShowAddModal] = useState(false)
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null)
@@ -261,39 +287,6 @@ export default function AgendaPage() {
     return () => clearInterval(timer)
   }, [])
 
-  // Fetch logs for the current month view
-  useEffect(() => {
-    const fetchLogs = async () => {
-      const user = auth.currentUser
-      if (!user || !events) return
-      
-      setLoadingLogs(true)
-      try {
-        const start = format(startOfMonth(currentMonth), 'yyyy-MM-dd')
-        const end = format(endOfMonth(currentMonth), 'yyyy-MM-dd')
-        
-        const q = query(
-          collection(db, 'event_logs'),
-          where('user_id', '==', user.uid),
-          where('log_date', '>=', start),
-          where('log_date', '<=', end)
-        )
-        const snap = await getDocs(q)
-        const newLogs = new Map()
-        snap.docs.forEach(d => {
-          const data = d.data()
-          newLogs.set(`${data.event_id}_${data.log_date}`, data.status)
-        })
-        setLogs(newLogs)
-      } catch (e) {
-        console.error('Error fetching logs:', e)
-      } finally {
-        setLoadingLogs(false)
-      }
-    }
-    fetchLogs()
-  }, [events, currentMonth])
-
   useEffect(() => {
     if (searchParams.get('add') === 'true') {
       setShowAddModal(true)
@@ -315,12 +308,6 @@ export default function AgendaPage() {
       eventId: event.id,
       status,
       logDate: event.date
-    })
-
-    setLogs(prev => {
-      const next = new Map(prev)
-      next.set(`${event.id}_${event.date}`, status)
-      return next
     })
   }
 
@@ -404,7 +391,7 @@ export default function AgendaPage() {
         }
         return false
       }).map(e => {
-        const status = logs.get(`${e.id}_${dateStr}`) || 'none'
+        const status = logs[`${e.id}_${dateStr}`] || 'none'
         return {
           ...e,
           status,
@@ -458,7 +445,7 @@ export default function AgendaPage() {
       if (!grouped[e.date]) grouped[e.date] = []
       grouped[e.date].push({
         ...e,
-        status: (logs.get(`${e.id}_${e.date}`) || 'none') as CalendarEvent['status']
+        status: (logs[`${e.id}_${e.date}`] || 'none') as CalendarEvent['status']
       })
     })
 
@@ -630,6 +617,15 @@ export default function AgendaPage() {
                               setIsSelectionMode={setIsSelectionMode}
                               onDelete={(id) => deleteEvent.mutate(id)}
                               onEdit={() => openEditModal(event)}
+                              onOpenBubble={(position) => setActiveBubble({
+                                id: event.id,
+                                position,
+                                options: AGENDA_STATUS_OPTIONS,
+                                onSelect: (status) => {
+                                  handleEventStatusChange(event, status)
+                                  setActiveBubble(null)
+                                }
+                              })}
                               currentTime={currentTime}
                             />
                           ))}
@@ -681,6 +677,15 @@ export default function AgendaPage() {
                       setIsSelectionMode={setIsSelectionMode}
                       onDelete={(id) => deleteEvent.mutate(id)}
                       onEdit={() => openEditModal(event)}
+                      onOpenBubble={(position) => setActiveBubble({
+                        id: event.id,
+                        position,
+                        options: AGENDA_STATUS_OPTIONS,
+                        onSelect: (status) => {
+                          handleEventStatusChange(event, status)
+                          setActiveBubble(null)
+                        }
+                      })}
                       currentTime={currentTime}
                     />
                   ))}
@@ -745,7 +750,7 @@ export default function AgendaPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[1000] w-[95%] md:w-auto max-w-5xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-3 md:gap-10 shadow-2xl ring-1 ring-[var(--text-primary)]/5"
+            className="fixed bottom-6 md:bottom-10 left-1/2 lg:left-[calc(50%+8rem)] -translate-x-1/2 z-[1000] w-[calc(100vw-1.5rem)] md:w-auto max-w-5xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-8 lg:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-3 md:gap-8 lg:gap-10 shadow-2xl ring-1 ring-[var(--text-primary)]/5"
           >
             <div className="flex flex-col items-center justify-center min-w-[60px] md:min-w-[80px]">
               <span className="text-2xl md:text-3xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>

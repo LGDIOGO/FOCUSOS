@@ -342,6 +342,8 @@ export function useLogHabit() {
     onSuccess: (_, variables) => {
       const targetDate = variables.logDate || format(new Date(), 'yyyy-MM-dd')
       qc.invalidateQueries({ queryKey: ['habits', 'date', targetDate, user?.uid] })
+      qc.invalidateQueries({ queryKey: ['habits'] })
+      qc.invalidateQueries({ queryKey: ['goals'] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
