@@ -745,71 +745,77 @@ export default function DashboardPage() {
 
       <AnimatePresence>
         {isSelectionMode && (
+          /* Wrapper ocupa exatamente a área de conteúdo (sem sidebar) */
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 lg:left-[calc(50%+8rem)] lg:-translate-x-1/2 z-[10000] w-[calc(100vw-1.5rem)] md:w-auto md:max-w-3xl lg:max-w-4xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[28px] md:rounded-[36px] px-3 md:px-6 lg:px-8 py-3 md:py-4 flex items-center gap-2 md:gap-6 shadow-2xl ring-1 ring-white/5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none]"
+            className="fixed bottom-6 md:bottom-10 left-0 lg:left-64 right-0 z-[10000] flex justify-center px-3 pointer-events-none"
           >
-            {/* Count */}
-            <div className="flex flex-col items-center justify-center min-w-[48px] md:min-w-[64px] shrink-0">
-              <span className="text-xl md:text-2xl font-black text-white leading-none">{selectedItems.length}</span>
-              <span className="text-[7px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mt-0.5">
-                {selectedItems.length === 1 ? 'Item' : 'Itens'}
-              </span>
-            </div>
+            {/* Pill centralizado */}
+            <div className="pointer-events-auto bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[28px] md:rounded-[36px] px-3 md:px-6 lg:px-8 py-3 md:py-4 flex items-center gap-2 md:gap-5 shadow-2xl ring-1 ring-white/5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] max-w-full">
 
-            <div className="h-8 md:h-10 w-px bg-white/10 shrink-0" />
+              {/* Count */}
+              <div className="flex flex-col items-center justify-center min-w-[48px] md:min-w-[60px] shrink-0">
+                <span className="text-xl md:text-2xl font-black text-white leading-none">{selectedItems.length}</span>
+                <span className="text-[7px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mt-0.5">
+                  {selectedItems.length === 1 ? 'Item' : 'Itens'}
+                </span>
+              </div>
 
-            {/* Group select buttons */}
-            <div className="flex items-center gap-2 md:gap-4 shrink-0">
-              {[
-                { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
-                { label: 'Compromissos', icon: Calendar, onClick: () => handleSelectGroup('events') },
-                { label: 'Hábitos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
-                { label: 'A Evitar', icon: Target, onClick: () => handleSelectGroup('negative') },
-                { label: 'Rascunhos', icon: FileText, onClick: () => handleSelectGroup('tasks') },
-              ].map(btn => (
+              <div className="h-8 md:h-10 w-px bg-white/10 shrink-0" />
+
+              {/* Group select buttons */}
+              <div className="flex items-center gap-2 md:gap-3 shrink-0">
+                {[
+                  { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
+                  { label: 'Compromissos', icon: Calendar, onClick: () => handleSelectGroup('events') },
+                  { label: 'Hábitos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
+                  { label: 'A Evitar', icon: Target, onClick: () => handleSelectGroup('negative') },
+                  { label: 'Rascunhos', icon: FileText, onClick: () => handleSelectGroup('tasks') },
+                ].map(btn => (
+                  <button
+                    key={btn.label}
+                    onClick={btn.onClick}
+                    title={btn.label}
+                    className="relative flex flex-col items-center group/sel"
+                  >
+                    <div className="w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all duration-300">
+                      <btn.icon size={16} />
+                    </div>
+                    <span className="mt-1 text-[7px] font-black uppercase tracking-widest text-white/40 opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap hidden md:block">
+                      {btn.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-8 md:h-10 w-px bg-white/10 shrink-0" />
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 md:gap-3 shrink-0">
                 <button
-                  key={btn.label}
-                  onClick={btn.onClick}
-                  title={btn.label}
-                  className="relative flex flex-col items-center group/sel"
+                  onClick={handleBulkDelete}
+                  disabled={selectedItems.length === 0 || loading}
+                  title="Excluir selecionados"
+                  className="relative flex flex-col items-center group/del disabled:opacity-20"
                 >
-                  <div className="w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all duration-300">
-                    <btn.icon size={16} />
+                  <div className="w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all duration-300 text-red-500">
+                    {loading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Trash2 size={16} />}
                   </div>
-                  <span className="mt-1 text-[7px] font-black uppercase tracking-widest text-white/40 opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap hidden md:block">
-                    {btn.label}
-                  </span>
                 </button>
-              ))}
-            </div>
 
-            <div className="h-8 md:h-10 w-px bg-white/10 shrink-0" />
+                <button
+                  onClick={() => {
+                    setIsSelectionMode(false)
+                    setSelectedItems([])
+                  }}
+                  className="h-9 md:h-11 px-4 md:px-7 bg-white/10 hover:bg-white text-white hover:text-black rounded-xl md:rounded-2xl font-black uppercase tracking-[0.12em] text-[9px] md:text-[10px] transition-all duration-300 whitespace-nowrap"
+                >
+                  Cancelar
+                </button>
+              </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2 md:gap-4 shrink-0">
-              <button
-                onClick={handleBulkDelete}
-                disabled={selectedItems.length === 0 || loading}
-                title="Excluir selecionados"
-                className="relative flex flex-col items-center group/del disabled:opacity-20"
-              >
-                <div className="w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all duration-300 text-red-500">
-                  {loading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Trash2 size={16} />}
-                </div>
-              </button>
-
-              <button
-                onClick={() => {
-                  setIsSelectionMode(false)
-                  setSelectedItems([])
-                }}
-                className="h-9 md:h-11 px-4 md:px-8 bg-white/10 hover:bg-white text-white hover:text-black rounded-xl md:rounded-2xl font-black uppercase tracking-[0.12em] text-[9px] md:text-[10px] transition-all duration-300 whitespace-nowrap"
-              >
-                Cancelar
-              </button>
             </div>
           </motion.div>
         )}
