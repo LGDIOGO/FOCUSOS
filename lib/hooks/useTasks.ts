@@ -36,8 +36,18 @@ export function useTasksToday(selectedDate: Date = new Date()) {
         done: d.data().status === 'done'
       })) as any[]
 
-      // Filter by due_date in memory (Firestore OR is complex)
-      const filtered = tasks.filter(t => !t.due_date || t.due_date === targetDay) as Task[]
+      // Filter tasks for the selected day:
+      // - due_date === today → always show (the task belongs to this day)
+      // - due_date in the past → show only if not yet completed (overdue)
+      // - due_date in the future → never show
+      // - no due_date → show only if pending (not done/partial/failed)
+      const isCompleted = (t: any) => t.status === 'done' || t.status === 'partial' || t.status === 'failed'
+      const filtered = tasks.filter(t => {
+        if (!t.due_date) return !isCompleted(t)           // inbox: só pendentes
+        if (t.due_date === targetDay) return true          // hoje: sempre mostra
+        if (t.due_date < targetDay) return !isCompleted(t) // atrasado: só se pendente
+        return false                                        // futuro: nunca mostra
+      }) as Task[]
       
       // Sort chronologically by due_time. Items without time go to the end.
       return filtered.sort((a, b) => {

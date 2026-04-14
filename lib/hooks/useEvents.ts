@@ -334,13 +334,16 @@ export function useEventsToday(selectedDate: Date = new Date()) {
              if (occursOnPastDate) {
                 const logStatus = pastLogStatusMap.get(`${e.id}_${pDate}`)
                 const isHandled = !!logStatus && logStatus !== 'none' && logStatus !== 'todo'
-                // Show both unhandled (overdue) AND handled (done/partial/failed) past events
-                overdueResults.push({
-                  ...e,
-                  date: pDate,
-                  status: (isHandled ? logStatus : 'none') as 'todo' | 'done' | 'partial' | 'failed' | 'none',
-                  isOverdue: !isHandled
-                })
+                // Só exibe eventos NÃO tratados como atrasados.
+                // Eventos já concluídos/parciais/falhos ficam apenas no histórico do seu dia.
+                if (!isHandled) {
+                  overdueResults.push({
+                    ...e,
+                    date: pDate,
+                    status: 'none' as const,
+                    isOverdue: true
+                  })
+                }
              }
           })
         })
