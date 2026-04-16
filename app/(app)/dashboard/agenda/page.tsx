@@ -476,10 +476,15 @@ export default function AgendaPage() {
     
     const grouped: Record<string, CalendarEvent[]> = {}
     past.forEach(e => {
+      const status = logs[`${e.id}_${e.date}`]
+      // Só inclui no histórico eventos com status finalizado.
+      // Eventos sem status (atrasados) já aparecem na lista principal como ATRASADO — não duplicar.
+      const isFinished = status === 'done' || status === 'partial' || status === 'failed'
+      if (!isFinished) return
       if (!grouped[e.date]) grouped[e.date] = []
       grouped[e.date].push({
         ...e,
-        status: (logs[`${e.id}_${e.date}`] || 'none') as CalendarEvent['status']
+        status: status as CalendarEvent['status']
       })
     })
 
