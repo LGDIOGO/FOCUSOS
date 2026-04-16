@@ -258,8 +258,9 @@ export function useEventsToday(selectedDate: Date = new Date()) {
              return diff % interval === 0
           }
           if (freq === 'weekly') {
-             const diff = Math.abs(differenceInWeeks(selectedDate, evDate))
-             return diff % interval === 0 && todayDay === getDay(evDate)
+            if (todayDay !== getDay(evDate)) return false
+            const diffDays = Math.abs(differenceInDays(selectedDate, evDate))
+            return diffDays % (7 * interval) === 0
           }
           if (freq === 'specific_days') {
              const diff = Math.abs(differenceInWeeks(selectedDate, evDate))
@@ -324,7 +325,12 @@ export function useEventsToday(selectedDate: Date = new Date()) {
                    const interval = e.recurrence.interval || 1
                    const freq = e.recurrence.frequency
                    if (freq === 'daily') occursOnPastDate = (Math.abs(differenceInDays(pDateObj, evDate)) % interval === 0)
-                   if (freq === 'weekly') occursOnPastDate = (Math.abs(differenceInWeeks(pDateObj, evDate)) % interval === 0 && pDay === getDay(evDate))
+                   if (freq === 'weekly') {
+                     if (pDay === getDay(evDate)) {
+                       const diffDays = Math.abs(differenceInDays(pDateObj, evDate))
+                       occursOnPastDate = diffDays % (7 * interval) === 0
+                     }
+                   }
                    if (freq === 'specific_days') occursOnPastDate = (Math.abs(differenceInWeeks(pDateObj, evDate)) % interval === 0 && !!e.recurrence.days_of_week?.includes(pDay))
                    if (freq === 'monthly') occursOnPastDate = (getDate(pDateObj) === getDate(evDate))
                    if (freq === 'yearly') occursOnPastDate = (getDate(pDateObj) === getDate(evDate) && getMonth(pDateObj) === getMonth(evDate))

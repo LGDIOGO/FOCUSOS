@@ -4,18 +4,18 @@ import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle, History, Pencil
+  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle, History, Pencil, Copy
 } from 'lucide-react'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
 import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
 import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicker'
-import { useEvents, useDeleteEvent, useEventLogsRange, useLogEvent } from '@/lib/hooks/useEvents'
+import { useEvents, useDeleteEvent, useEventLogsRange, useLogEvent, useAddEvent } from '@/lib/hooks/useEvents'
 import { Check, Minus, X, Circle } from 'lucide-react'
 import { CalendarEvent, EventType } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import {
   format, isToday, isTomorrow, parseISO, addMonths, subMonths, startOfMonth, endOfMonth,
-  eachDayOfInterval, getDay, differenceInWeeks, differenceInDays, parse, startOfYear, endOfYear
+  eachDayOfInterval, getDay, differenceInWeeks, differenceInDays, parse, startOfYear, endOfYear, getDate, getMonth
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useLongPress } from '@/lib/hooks/useLongPress'
@@ -54,6 +54,7 @@ function EventItem({
   setIsSelectionMode,
   onDelete,
   onEdit,
+  onDuplicate,
   onOpenBubble,
   currentTime = new Date()
 }: {
@@ -64,6 +65,7 @@ function EventItem({
   setIsSelectionMode: (val: boolean) => void
   onDelete: (id: string) => void
   onEdit?: () => void
+  onDuplicate?: () => void
   onOpenBubble?: (pos: { x: number; y: number }) => void
   currentTime?: Date
 }) {
@@ -231,7 +233,31 @@ function EventItem({
         <Pencil size={18} />
       </button>
 
-      <button 
+      <button
+        type="button"
+        data-bubble-ignore="true"
+        data-ignore-action="duplicate"
+        onClick={(e) => {
+          e.stopPropagation()
+          if (isSelectionMode) return
+          onDuplicate?.()
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+        title="Duplicar Compromisso"
+        className={cn(
+          "p-3 hover:text-white transition-colors opacity-0 group-hover:opacity-100",
+          isSelectionMode ? "hidden" : "text-white/10"
+        )}
+      >
+        <Copy size={18} />
+      </button>
+
+      <button
         type="button"
         data-bubble-ignore="true"
         data-ignore-action="delete"
@@ -261,6 +287,7 @@ function EventItem({
 export default function AgendaPage() {
   const { data: events, isLoading } = useEvents()
   const deleteEvent = useDeleteEvent()
+  const addEvent = useAddEvent()
   const logEvent = useLogEvent()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const searchParams = useSearchParams()
@@ -379,8 +406,9 @@ export default function AgendaPage() {
              return diff % interval === 0
           }
           if (freq === 'weekly') {
-             const diff = Math.abs(differenceInWeeks(day, evDate))
-             return diff % interval === 0 && dayOfWeek === getDay(evDate)
+            if (dayOfWeek !== getDay(evDate)) return false
+            const diffDays = Math.abs(differenceInDays(day, evDate))
+            return diffDays % (7 * interval) === 0
           }
           if (freq === 'specific_days') {
              const diff = Math.abs(differenceInWeeks(day, evDate))
@@ -420,7 +448,13 @@ export default function AgendaPage() {
           }
           return (a.time || '00:00').localeCompare(b.time || '00:00')
         })
-        grouped[dateStr] = sortedDayEvents
+        // On today's date, only show events that are NOT yet completed — completed ones go to the past section
+        const visibleDayEvents = isToday(day)
+          ? (sortedDayEvents as CalendarEvent[]).filter(e => e.status !== 'done' && e.status !== 'partial' && e.status !== 'failed')
+          : sortedDayEvents as CalendarEvent[]
+        if (visibleDayEvents.length > 0) {
+          grouped[dateStr] = visibleDayEvents
+        }
       }
     })
     
@@ -449,11 +483,78 @@ export default function AgendaPage() {
       })
     })
 
+    // Prepend today's completed events so they appear at the top of the history section
+    const todayStr2 = format(currentTime, 'yyyy-MM-dd')
+    const todayDay2 = getDay(currentTime)
+    const todayCompletedForHistory: CalendarEvent[] = events
+      .filter(e => {
+        if (e.date === todayStr2) return true
+        if (!e.recurrence) return false
+        const evDate = parseISO(e.date)
+        if (todayStr2 < e.date) return false
+        const interval = e.recurrence.interval || 1
+        const freq = e.recurrence.frequency
+        if (freq === 'daily') return Math.abs(differenceInDays(currentTime, evDate)) % interval === 0
+        if (freq === 'weekly') return Math.abs(differenceInWeeks(currentTime, evDate)) % interval === 0 && todayDay2 === getDay(evDate)
+        if (freq === 'specific_days') return Math.abs(differenceInWeeks(currentTime, evDate)) % interval === 0 && !!e.recurrence.days_of_week?.includes(todayDay2)
+        if (freq === 'monthly') return getDate(currentTime) === getDate(evDate)
+        if (freq === 'yearly') return getDate(currentTime) === getDate(evDate) && getMonth(currentTime) === getMonth(evDate)
+        return false
+      })
+      .filter(e => {
+        const status = logs[`${e.id}_${todayStr2}`]
+        return status === 'done' || status === 'partial' || status === 'failed'
+      })
+      .map(e => ({
+        ...e,
+        date: todayStr2,
+        status: logs[`${e.id}_${todayStr2}`] as CalendarEvent['status'],
+        isOverdue: false
+      }))
+
+    if (todayCompletedForHistory.length > 0) {
+      grouped[todayStr2] = todayCompletedForHistory
+    }
+
     // Sort dates in descending order (most recent first)
     return Object.fromEntries(
       Object.entries(grouped).sort((a, b) => b[0].localeCompare(a[0]))
     )
   }, [events, logs, currentTime, historyStartDate, historyEndDate, historyPeriod])
+
+  // Events that occurred today and have been completed (done/partial/failed)
+  // They are moved to the "past" collapsible section
+  const todayCompletedEvents = useMemo(() => {
+    if (!events || !logs) return []
+    const todayStr = format(currentTime, 'yyyy-MM-dd')
+    const todayDay = getDay(currentTime)
+
+    return events
+      .filter(e => {
+        if (e.date === todayStr) return true
+        if (!e.recurrence) return false
+        const evDate = parseISO(e.date)
+        if (todayStr < e.date) return false
+        const interval = e.recurrence.interval || 1
+        const freq = e.recurrence.frequency
+        if (freq === 'daily') return Math.abs(differenceInDays(currentTime, evDate)) % interval === 0
+        if (freq === 'weekly') return Math.abs(differenceInWeeks(currentTime, evDate)) % interval === 0 && todayDay === getDay(evDate)
+        if (freq === 'specific_days') return Math.abs(differenceInWeeks(currentTime, evDate)) % interval === 0 && !!e.recurrence.days_of_week?.includes(todayDay)
+        if (freq === 'monthly') return getDate(currentTime) === getDate(evDate)
+        if (freq === 'yearly') return getDate(currentTime) === getDate(evDate) && getMonth(currentTime) === getMonth(evDate)
+        return false
+      })
+      .filter(e => {
+        const status = logs[`${e.id}_${todayStr}`]
+        return status === 'done' || status === 'partial' || status === 'failed'
+      })
+      .map(e => ({
+        ...e,
+        date: todayStr,
+        status: logs[`${e.id}_${todayStr}`] as CalendarEvent['status'],
+        isOverdue: false
+      }))
+  }, [events, logs, currentTime])
 
   return (
     <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10">
@@ -617,6 +718,10 @@ export default function AgendaPage() {
                               setIsSelectionMode={setIsSelectionMode}
                               onDelete={(id) => deleteEvent.mutate(id)}
                               onEdit={() => openEditModal(event)}
+                              onDuplicate={() => {
+                                const { id, status, isOverdue, ...rest } = event as any
+                                addEvent.mutate({ ...rest })
+                              }}
                               onOpenBubble={(position) => setActiveBubble({
                                 id: event.id,
                                 position,
@@ -677,6 +782,10 @@ export default function AgendaPage() {
                       setIsSelectionMode={setIsSelectionMode}
                       onDelete={(id) => deleteEvent.mutate(id)}
                       onEdit={() => openEditModal(event)}
+                      onDuplicate={() => {
+                        const { id, status, isOverdue, ...rest } = event as any
+                        addEvent.mutate({ ...rest })
+                      }}
                       onOpenBubble={(position) => setActiveBubble({
                         id: event.id,
                         position,

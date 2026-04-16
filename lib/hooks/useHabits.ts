@@ -17,7 +17,7 @@ import {
   Timestamp,
   increment 
 } from 'firebase/firestore'
-import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, subDays } from 'date-fns'
+import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, differenceInDays, subDays } from 'date-fns'
 import { Habit } from '@/types'
 
 export function useHabitsHistory(startDate?: string, endDate?: string) {
@@ -110,7 +110,7 @@ export function useHabitsToday(selectedDate: Date = new Date()) {
         if (h.end_date && todayStr > h.end_date) return false
         if (!h.recurrence) return true
         
-        const baseDateStr = h.start_date || h.created_at.split('T')[0]
+        const baseDateStr = h.start_date || format(new Date(h.created_at), 'yyyy-MM-dd')
         if (todayStr < baseDateStr) return false
 
         const freq = h.recurrence.frequency
@@ -120,11 +120,12 @@ export function useHabitsToday(selectedDate: Date = new Date()) {
         if (freq === 'daily') return true
         if (freq === 'specific_days') return h.recurrence.days_of_week?.includes(todayDay) ?? false
         if (freq === 'weekly') {
-           if (interval > 1) {
-              const diffWeeks = Math.abs(differenceInWeeks(selectedDate, evDate));
-              if (diffWeeks % interval !== 0) return false;
-           }
-           return todayDay === getDay(evDate)
+          if (todayDay !== getDay(evDate)) return false
+          if (interval > 1) {
+            const diffDays = Math.abs(differenceInDays(selectedDate, evDate))
+            return diffDays % (7 * interval) === 0
+          }
+          return true
         }
         if (freq === 'monthly') return getDate(selectedDate) === getDate(evDate)
         if (freq === 'yearly') return getDate(selectedDate) === getDate(evDate) && getMonth(selectedDate) === getMonth(evDate)
