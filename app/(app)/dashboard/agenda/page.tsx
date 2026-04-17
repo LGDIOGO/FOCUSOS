@@ -78,7 +78,7 @@ function EventItem({
 
   return (
     <motion.div
-      layoutId={event.id}
+      layoutId={`${event.id}_${event.date || ''}`}
       {...localLongPress}
       onClick={() => {
         if (isSelectionMode) {
@@ -134,11 +134,15 @@ function EventItem({
               <Clock size={14} className={cn(timeStatus.passed || timeStatus.approaching ? "text-[#FF453A]" : "")} />
               {event.time}
             </div>
-            {event.isOverdue && (
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-lg text-[#FF453A] text-[10px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-500">
-                <AlertCircle size={10} /> ATRASADO
-              </span>
-            )}
+            {event.isOverdue && (() => {
+              const daysLate = event.date ? differenceInDays(new Date(), parseISO(event.date)) : 0
+              return (
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-lg text-[#FF453A] text-[10px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-500">
+                  <AlertCircle size={10} />
+                  {daysLate > 0 ? `${daysLate}d atraso` : 'ATRASADO'}
+                </span>
+              )
+            })()}
             {event.description && (
               <div className="flex items-center gap-1.5 truncate">
                 <div className="w-1 h-1 rounded-full bg-white/10" />
@@ -283,56 +287,56 @@ export default function AgendaPage() {
     const start = startOfMonth(currentMonth)
     const end = endOfMonth(currentMonth)
     const days = eachDayOfInterval({ start, end })
-    
-    const grouped: Record<string, CalendarEvent[]> = {}
-    
+    const todayStr = format(new Date(), 'yyyy-MM-dd')
+
+    const grouped: Record<string, (CalendarEvent & { isOverdue?: boolean })[]> = {}
+
     days.forEach((day: Date) => {
       const dateStr = format(day, 'yyyy-MM-dd')
+      // Skip past days — they belong to pastEventsGrouped
+      if (dateStr < todayStr) return
+
       const dayOfWeek = getDay(day)
-      const isPastDay = isAfter(new Date(), day) && !isToday(day)
-      
+
       const dayEvents = events.filter(e => {
         if (e.date === dateStr) return true
         if (e.recurrence) {
           const evDate = parseISO(e.date)
           if (dateStr < e.date) return false
-          
+
           const interval = e.recurrence.interval || 1
           const freq = e.recurrence.frequency
 
-          if (freq === 'daily') {
-             const diff = Math.abs(differenceInDays(day, evDate))
-             return diff % interval === 0
-          }
+          if (freq === 'daily') return Math.abs(differenceInDays(day, evDate)) % interval === 0
           if (freq === 'weekly') {
-             const diff = Math.abs(differenceInWeeks(day, evDate))
-             return diff % interval === 0 && dayOfWeek === getDay(evDate)
+            if (dayOfWeek !== getDay(evDate)) return false
+            return Math.abs(differenceInDays(day, evDate)) % (7 * interval) === 0
           }
           if (freq === 'specific_days') {
              const diff = Math.abs(differenceInWeeks(day, evDate))
-             return diff % interval === 0 && e.recurrence.days_of_week?.includes(dayOfWeek)
+             return diff % interval === 0 && !!e.recurrence.days_of_week?.includes(dayOfWeek)
           }
           if (freq === 'monthly') return format(day, 'dd') === format(evDate, 'dd')
           if (freq === 'yearly') return format(day, 'MM-dd') === format(evDate, 'MM-dd')
         }
         return false
-      }).map(e => {
-        const status = logs.get(`${e.id}_${dateStr}`) || 'none'
-        return {
-          ...e,
-          status,
-          isOverdue: isPastDay && status !== 'done'
-        }
-      })
+      }).map(e => ({
+        ...e,
+        status: (logs.get(`${e.id}_${dateStr}`) || 'none') as CalendarEvent['status'],
+        isOverdue: false
+      }))
 
-      if (dayEvents.length > 0) {
-        // Sort items: done/past at bottom
-        const sortedDayEvents = (dayEvents as CalendarEvent[]).sort((a, b) => {
+      // For today: hide completed events (they go to history)
+      const visibleEvents = dateStr === todayStr
+        ? dayEvents.filter(e => e.status !== 'done' && e.status !== 'partial' && e.status !== 'failed')
+        : dayEvents
+
+      if (visibleEvents.length > 0) {
+        const sorted = (visibleEvents as CalendarEvent[]).sort((a, b) => {
           const isDoneA = a.status === 'done'
           const isDoneB = b.status === 'done'
           if (isDoneA && !isDoneB) return 1
           if (!isDoneA && isDoneB) return -1
-
           if (isToday(day)) {
             const timeA = a.time ? parse(a.time, 'HH:mm', currentTime) : null
             const timeB = b.time ? parse(b.time, 'HH:mm', currentTime) : null
@@ -346,10 +350,70 @@ export default function AgendaPage() {
           }
           return (a.time || '00:00').localeCompare(b.time || '00:00')
         })
-        grouped[dateStr] = sortedDayEvents
+        grouped[dateStr] = sorted
       }
     })
-    
+
+    // Inject overdue items (past 30 days, uncompleted) into today's group at the top
+    const overdueItems: (CalendarEvent & { isOverdue: boolean })[] = []
+    const today = new Date()
+
+    for (let i = 1; i <= 30; i++) {
+      const pastDate = new Date(today)
+      pastDate.setDate(today.getDate() - i)
+      const pastDateStr = format(pastDate, 'yyyy-MM-dd')
+      const pastDayOfWeek = getDay(pastDate)
+
+      events.forEach(e => {
+        if (e.created_at) {
+          try {
+            if (pastDateStr < format(new Date(e.created_at), 'yyyy-MM-dd')) return
+          } catch {}
+        }
+
+        let occursOnPastDate = false
+        if (e.date === pastDateStr) {
+          occursOnPastDate = true
+        } else if (e.recurrence) {
+          const evDate = parseISO(e.date)
+          if (pastDateStr >= e.date) {
+            const interval = e.recurrence.interval || 1
+            const freq = e.recurrence.frequency
+            if (freq === 'daily') occursOnPastDate = Math.abs(differenceInDays(pastDate, evDate)) % interval === 0
+            if (freq === 'weekly') {
+              if (pastDayOfWeek === getDay(evDate)) {
+                occursOnPastDate = Math.abs(differenceInDays(pastDate, evDate)) % (7 * interval) === 0
+              }
+            }
+            if (freq === 'specific_days') occursOnPastDate = Math.abs(differenceInWeeks(pastDate, evDate)) % interval === 0 && !!e.recurrence.days_of_week?.includes(pastDayOfWeek)
+            if (freq === 'monthly') occursOnPastDate = format(pastDate, 'dd') === format(evDate, 'dd')
+            if (freq === 'yearly') occursOnPastDate = format(pastDate, 'MM-dd') === format(evDate, 'MM-dd')
+          }
+        }
+
+        if (occursOnPastDate) {
+          const status = logs.get(`${e.id}_${pastDateStr}`) || 'none'
+          const isCompleted = status === 'done' || status === 'partial' || status === 'failed'
+          const alreadyAdded = overdueItems.some(o => o.id === e.id && o.date === pastDateStr)
+          if (!isCompleted && !alreadyAdded) {
+            overdueItems.push({
+              ...e,
+              date: pastDateStr,
+              status: status as CalendarEvent['status'],
+              isOverdue: true
+            })
+          }
+        }
+      })
+    }
+
+    if (overdueItems.length > 0) {
+      grouped[todayStr] = [...overdueItems, ...(grouped[todayStr] || [])]
+    }
+
+    // Remove empty groups
+    Object.keys(grouped).forEach(key => { if (grouped[key].length === 0) delete grouped[key] })
+
     return grouped
   }, [events, currentMonth, logs, currentTime])
 

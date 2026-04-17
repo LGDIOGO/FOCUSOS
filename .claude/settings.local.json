@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(grep -E \"\\\\.tsx$\")",
+      "Bash(gh pr create --title 'fix & feat: correções de bugs e melhorias no FocusOS' --body ':*)",
+      "Bash(echo \"EXIT:$?\")"
+    ]
+  }
+}
