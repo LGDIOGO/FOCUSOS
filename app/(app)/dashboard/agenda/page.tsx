@@ -117,7 +117,7 @@ function EventItem({
 
   return (
     <motion.div
-      layoutId={event.id}
+      layoutId={`${event.id}_${event.date || ''}`}
       whileTap={{ scale: 0.985 }}
       {...longPress}
       onContextMenu={(e) => {
@@ -485,7 +485,7 @@ export default function AgendaPage() {
     if (!events) return {}
     const todayStr = format(currentTime, 'yyyy-MM-dd')
     const past = events.filter(e => {
-      if (e.date >= todayStr) return false
+      if (!e.date || e.date >= todayStr) return false
       
       if (historyPeriod === 'custom') {
         if (historyStartDate && e.date < historyStartDate) return false
@@ -649,13 +649,16 @@ export default function AgendaPage() {
                 />
               </button>
 
-              <AnimatePresence>
+              <AnimatePresence initial={false}>
                 {isHistoryOpen && (
                   <motion.div
+                    key="history-content"
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden space-y-8"
+                    transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+                    style={{ overflow: 'hidden' }}
+                    className="space-y-8"
                   >
                     {/* Filter Bar */}
                     <div className="flex flex-col gap-4 p-6 bg-[var(--bg-overlay)] rounded-3xl border border-[var(--border-subtle)]">
