@@ -420,23 +420,30 @@ export default function AgendaPage() {
   const pastEventsGrouped = useMemo(() => {
     if (!events) return {}
     const todayStr = format(currentTime, 'yyyy-MM-dd')
-    const past = events.filter(e => {
-      if (e.date >= todayStr) return false
-      
-      if (historyPeriod === 'custom') {
-        if (historyStartDate && e.date < historyStartDate) return false
-        if (historyEndDate && e.date > historyEndDate) return false
-      }
-      return true
-    })
-    
+
     const grouped: Record<string, CalendarEvent[]> = {}
-    past.forEach(e => {
+
+    events.forEach(e => {
+      // Skip events with no date (safety guard)
+      if (!e.date) return
+      // Skip future events
+      if (e.date > todayStr) return
+
+      const status = (logs.get(`${e.id}_${e.date}`) || 'none') as CalendarEvent['status']
+
+      // For today: only include events that have a non-pending status
+      if (e.date === todayStr) {
+        if (status === 'none' || status === 'todo') return
+      }
+
+      // Apply period filter
+      if (historyPeriod === 'custom') {
+        if (historyStartDate && e.date < historyStartDate) return
+        if (historyEndDate && e.date > historyEndDate) return
+      }
+
       if (!grouped[e.date]) grouped[e.date] = []
-      grouped[e.date].push({
-        ...e,
-        status: (logs.get(`${e.id}_${e.date}`) || 'none') as CalendarEvent['status']
-      })
+      grouped[e.date].push({ ...e, status })
     })
 
     // Sort dates in descending order (most recent first)
@@ -513,13 +520,16 @@ export default function AgendaPage() {
                 />
               </button>
 
-              <AnimatePresence>
+              <AnimatePresence initial={false}>
                 {isHistoryOpen && (
                   <motion.div
+                    key="history-content"
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden space-y-8"
+                    transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+                    style={{ overflow: 'hidden' }}
+                    className="space-y-8"
                   >
                     {/* Filter Bar */}
                     <div className="flex flex-col gap-4 p-6 bg-[var(--bg-overlay)] rounded-3xl border border-[var(--border-subtle)]">
