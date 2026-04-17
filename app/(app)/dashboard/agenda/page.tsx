@@ -117,7 +117,7 @@ function EventItem({
 
   return (
     <motion.div
-      layoutId={`${event.id}_${event.date || ''}`}
+      layout="position"
       whileTap={{ scale: 0.985 }}
       {...longPress}
       onContextMenu={(e) => {
@@ -384,6 +384,7 @@ export default function AgendaPage() {
 
   // Helper: verifica se um evento ocorre em uma data específica
   const eventOccursOnDate = (e: CalendarEvent, dateStr: string, day: Date): boolean => {
+    if (!e.date) return false
     if (e.date === dateStr) return true
     if (!e.recurrence) return false
     const evDate = parseISO(e.date)
@@ -513,6 +514,7 @@ export default function AgendaPage() {
     const todayDay2 = getDay(currentTime)
     const todayCompletedForHistory: CalendarEvent[] = events
       .filter(e => {
+        if (!e.date) return false
         if (e.date === todayStr2) return true
         if (!e.recurrence) return false
         const evDate = parseISO(e.date)
@@ -556,6 +558,7 @@ export default function AgendaPage() {
 
     return events
       .filter(e => {
+        if (!e.date) return false
         if (e.date === todayStr) return true
         if (!e.recurrence) return false
         const evDate = parseISO(e.date)
@@ -738,7 +741,7 @@ export default function AgendaPage() {
                         <div className="space-y-3">
                           {eventList.map(event => (
                             <EventItem
-                              key={event.id}
+                              key={`hist_${event.id}_${event.date}`}
                               event={event}
                               isSelectionMode={isSelectionMode}
                               isSelected={selectedIds.includes(event.id)}
@@ -802,7 +805,7 @@ export default function AgendaPage() {
                 <div className="space-y-3">
                   {eventList.map((event: CalendarEvent) => (
                     <EventItem
-                      key={event.id}
+                      key={`${event.id}_${event.date}`}
                       event={event}
                       isSelectionMode={isSelectionMode}
                       isSelected={selectedIds.includes(event.id)}
