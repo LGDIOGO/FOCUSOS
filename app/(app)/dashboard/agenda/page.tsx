@@ -195,11 +195,15 @@ function EventItem({
               <Clock size={14} className={cn(timeStatus.passed || timeStatus.approaching ? "text-[#FF453A]" : "")} />
               {event.time}
             </div>
-            {event.isOverdue && (
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-lg text-[#FF453A] text-[10px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-500">
-                <AlertCircle size={10} /> ATRASADO
-              </span>
-            )}
+            {event.isOverdue && (() => {
+              const daysLate = differenceInDays(new Date(), parseISO(event.date))
+              return (
+                <span className="flex items-center gap-1.5 px-2 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-lg text-[#FF453A] text-[10px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-500">
+                  <AlertCircle size={10} />
+                  {daysLate > 0 ? `${daysLate}d atraso` : 'ATRASADO'}
+                </span>
+              )
+            })()}
             {event.description && (
               <div className="flex items-center gap-1.5 truncate">
                 <div className="w-1 h-1 rounded-full bg-white/10" />
@@ -378,63 +382,58 @@ export default function AgendaPage() {
     }
   }
 
+  // Helper: verifica se um evento ocorre em uma data específica
+  const eventOccursOnDate = (e: CalendarEvent, dateStr: string, day: Date): boolean => {
+    if (e.date === dateStr) return true
+    if (!e.recurrence) return false
+    const evDate = parseISO(e.date)
+    if (dateStr < e.date) return false
+    const interval = e.recurrence.interval || 1
+    const freq = e.recurrence.frequency
+    const dow = getDay(day)
+    if (freq === 'daily') return Math.abs(differenceInDays(day, evDate)) % interval === 0
+    if (freq === 'weekly') {
+      if (dow !== getDay(evDate)) return false
+      return Math.abs(differenceInDays(day, evDate)) % (7 * interval) === 0
+    }
+    if (freq === 'specific_days') {
+      const diff = Math.abs(differenceInWeeks(day, evDate))
+      return diff % interval === 0 && !!e.recurrence.days_of_week?.includes(dow)
+    }
+    if (freq === 'monthly') return format(day, 'dd') === format(evDate, 'dd')
+    if (freq === 'yearly') return format(day, 'MM-dd') === format(evDate, 'MM-dd')
+    return false
+  }
+
   const groupedEvents = useMemo(() => {
     if (!events) return {}
 
+    const todayStr = format(currentTime, 'yyyy-MM-dd')
     const start = startOfMonth(currentMonth)
     const end = endOfMonth(currentMonth)
     const days = eachDayOfInterval({ start, end })
-    
+
     const grouped: Record<string, CalendarEvent[]> = {}
-    
+
+    // Só processa HOJE e dias FUTUROS — dias passados vão para o colapsável
     days.forEach((day: Date) => {
       const dateStr = format(day, 'yyyy-MM-dd')
-      const dayOfWeek = getDay(day)
-      const isPastDay = isAfter(new Date(), day) && !isToday(day)
-      
-      const dayEvents = events.filter(e => {
-        if (e.date === dateStr) return true
-        if (e.recurrence) {
-          const evDate = parseISO(e.date)
-          if (dateStr < e.date) return false
-          
-          const interval = e.recurrence.interval || 1
-          const freq = e.recurrence.frequency
+      if (dateStr < todayStr) return // ignora dias passados
 
-          if (freq === 'daily') {
-             const diff = Math.abs(differenceInDays(day, evDate))
-             return diff % interval === 0
-          }
-          if (freq === 'weekly') {
-            if (dayOfWeek !== getDay(evDate)) return false
-            const diffDays = Math.abs(differenceInDays(day, evDate))
-            return diffDays % (7 * interval) === 0
-          }
-          if (freq === 'specific_days') {
-             const diff = Math.abs(differenceInWeeks(day, evDate))
-             return diff % interval === 0 && e.recurrence.days_of_week?.includes(dayOfWeek)
-          }
-          if (freq === 'monthly') return format(day, 'dd') === format(evDate, 'dd')
-          if (freq === 'yearly') return format(day, 'MM-dd') === format(evDate, 'MM-dd')
-        }
-        return false
-      }).map(e => {
-        const status = logs[`${e.id}_${dateStr}`] || 'none'
-        return {
-          ...e,
-          status,
-          isOverdue: isPastDay && status !== 'done'
-        }
-      })
+      const dayEvents = events
+        .filter(e => eventOccursOnDate(e, dateStr, day))
+        .map(e => {
+          const status = logs[`${e.id}_${dateStr}`] || 'none'
+          return { ...e, status, isOverdue: false }
+        })
 
       if (dayEvents.length > 0) {
-        // Sort items: done/past at bottom
-        const sortedDayEvents = (dayEvents as CalendarEvent[]).sort((a, b) => {
-          const isDoneA = a.status === 'done'
-          const isDoneB = b.status === 'done'
+        const sortedEvents = (dayEvents as CalendarEvent[]).sort((a, b) => {
+          // Concluídos vão pro final
+          const isDoneA = a.status === 'done' || a.status === 'partial' || a.status === 'failed'
+          const isDoneB = b.status === 'done' || b.status === 'partial' || b.status === 'failed'
           if (isDoneA && !isDoneB) return 1
           if (!isDoneA && isDoneB) return -1
-
           if (isToday(day)) {
             const timeA = a.time ? parse(a.time, 'HH:mm', currentTime) : null
             const timeB = b.time ? parse(b.time, 'HH:mm', currentTime) : null
@@ -448,18 +447,37 @@ export default function AgendaPage() {
           }
           return (a.time || '00:00').localeCompare(b.time || '00:00')
         })
-        // Para hoje E para dias passados: oculta concluídos/parciais/falhos da lista principal.
-        // Esses itens ficam apenas na aba "Compromissos Passados" (colapsável).
-        // Dias futuros mostram todos os eventos normalmente.
-        const visibleDayEvents = (isToday(day) || isPastDay)
-          ? (sortedDayEvents as CalendarEvent[]).filter(e => e.status !== 'done' && e.status !== 'partial' && e.status !== 'failed')
-          : sortedDayEvents as CalendarEvent[]
-        if (visibleDayEvents.length > 0) {
-          grouped[dateStr] = visibleDayEvents
-        }
+        // Para hoje: remove concluídos (vão pro colapsável). Futuros: mostra tudo.
+        const visibleEvents = isToday(day)
+          ? sortedEvents.filter(e => e.status !== 'done' && e.status !== 'partial' && e.status !== 'failed')
+          : sortedEvents as CalendarEvent[]
+        if (visibleEvents.length > 0) grouped[dateStr] = visibleEvents
       }
     })
-    
+
+    // Injeta atrasados (passados não concluídos) no grupo de HOJE
+    // Eles aparecem no topo de hoje como lembrete, com isOverdue: true
+    const overdueForToday: CalendarEvent[] = []
+    for (let i = 1; i <= 30; i++) {
+      const pastDay = new Date(currentTime)
+      pastDay.setDate(pastDay.getDate() - i)
+      const pastDateStr = format(pastDay, 'yyyy-MM-dd')
+      events.forEach(e => {
+        if (!eventOccursOnDate(e, pastDateStr, pastDay)) return
+        const status = logs[`${e.id}_${pastDateStr}`]
+        const isHandled = status === 'done' || status === 'partial' || status === 'failed'
+        if (!isHandled) {
+          // Evita duplicatas (mesmo evento em datas diferentes)
+          if (!overdueForToday.find(o => o.id === e.id && o.date === pastDateStr)) {
+            overdueForToday.push({ ...e, date: pastDateStr, status: 'none' as const, isOverdue: true })
+          }
+        }
+      })
+    }
+    if (overdueForToday.length > 0) {
+      grouped[todayStr] = [...overdueForToday, ...(grouped[todayStr] || [])]
+    }
+
     return grouped
   }, [events, currentMonth, logs, currentTime])
 
@@ -478,15 +496,15 @@ export default function AgendaPage() {
     
     const grouped: Record<string, CalendarEvent[]> = {}
     past.forEach(e => {
-      const status = logs[`${e.id}_${e.date}`]
-      // Só inclui no histórico eventos com status finalizado.
-      // Eventos sem status (atrasados) já aparecem na lista principal como ATRASADO — não duplicar.
-      const isFinished = status === 'done' || status === 'partial' || status === 'failed'
-      if (!isFinished) return
+      const status = logs[`${e.id}_${e.date}`] || 'none'
+      // Inclui TODOS os eventos passados — concluídos E atrasados.
+      // O usuário pode marcar os atrasados como concluídos direto aqui.
+      const isPastOverdue = status === 'none' || status === 'todo'
       if (!grouped[e.date]) grouped[e.date] = []
       grouped[e.date].push({
         ...e,
-        status: status as CalendarEvent['status']
+        status: status as CalendarEvent['status'],
+        isOverdue: isPastOverdue
       })
     })
 
