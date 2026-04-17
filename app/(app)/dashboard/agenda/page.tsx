@@ -448,8 +448,10 @@ export default function AgendaPage() {
           }
           return (a.time || '00:00').localeCompare(b.time || '00:00')
         })
-        // On today's date, only show events that are NOT yet completed — completed ones go to the past section
-        const visibleDayEvents = isToday(day)
+        // Para hoje E para dias passados: oculta concluídos/parciais/falhos da lista principal.
+        // Esses itens ficam apenas na aba "Compromissos Passados" (colapsável).
+        // Dias futuros mostram todos os eventos normalmente.
+        const visibleDayEvents = (isToday(day) || isPastDay)
           ? (sortedDayEvents as CalendarEvent[]).filter(e => e.status !== 'done' && e.status !== 'partial' && e.status !== 'failed')
           : sortedDayEvents as CalendarEvent[]
         if (visibleDayEvents.length > 0) {
