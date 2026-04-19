@@ -767,18 +767,30 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         exit={{ height: 0, opacity: 0 }}
                         style={{ overflow: 'hidden' }}
                       >
-                        <div className="space-y-4 p-5 bg-black/30 border border-white/5 rounded-2xl text-xs font-mono">
-                          <div>
-                            <p className="text-white/40 font-sans font-bold mb-2">1. Instale o servidor MCP (uma vez só)</p>
-                            <code className="block bg-black/50 p-3 rounded-lg text-green-300 whitespace-pre">cd focusos-mcp && npm install</code>
+                        <div className="space-y-5 p-5 bg-black/30 border border-white/5 rounded-2xl text-xs">
+                          <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-xl">
+                            <Zap size={14} className="text-green-400 shrink-0" />
+                            <p className="text-green-300 font-bold">MCP remoto — sem instalação local, funciona direto no Cowork!</p>
                           </div>
+
                           <div>
-                            <p className="text-white/40 font-sans font-bold mb-2">2. Adicione ao Claude Code</p>
-                            <code className="block bg-black/50 p-3 rounded-lg text-green-300 whitespace-pre">{`FOCUSOS_API_KEY=sua_chave \\\nFOCUSOS_API_URL=https://focusos-rlvs.vercel.app \\\nclaude mcp add focusos -- node ./focusos-mcp/index.js`}</code>
+                            <p className="text-white/50 font-bold mb-2 font-sans">1. Copie sua chave de API (gerada acima)</p>
+                            <p className="text-white/30 font-sans">Formato: <code className="text-white/50">fos_live_...</code></p>
                           </div>
+
                           <div>
-                            <p className="text-white/40 font-sans font-bold mb-2">3. Pronto! No Claude Cowork você pode digitar:</p>
-                            <code className="block bg-black/50 p-3 rounded-lg text-blue-300 whitespace-pre leading-relaxed">{`"Crie um hábito de meditação às 7h"\n"Quais meus compromissos desta semana?"\n"Meu desempenho nos últimos 30 dias"\n"Crie uma tarefa: estudar TypeScript amanhã"`}</code>
+                            <p className="text-white/50 font-bold mb-2 font-sans">2. No terminal, adicione ao Claude Code</p>
+                            <code className="block bg-black/60 p-3 rounded-lg text-green-300 font-mono whitespace-pre leading-relaxed">{`claude mcp add focusos \\\n  --transport http \\\n  https://focusos-rlvs.vercel.app/api/mcp \\\n  --header "X-API-Key: fos_live_SUA_CHAVE"`}</code>
+                          </div>
+
+                          <div>
+                            <p className="text-white/50 font-bold mb-2 font-sans">Alternativa — adicione ao arquivo <code className="text-white/70">~/.claude/mcp.json</code></p>
+                            <code className="block bg-black/60 p-3 rounded-lg text-blue-300 font-mono whitespace-pre leading-relaxed">{`{\n  "mcpServers": {\n    "focusos": {\n      "type": "http",\n      "url": "https://focusos-rlvs.vercel.app/api/mcp",\n      "headers": {\n        "X-API-Key": "fos_live_SUA_CHAVE"\n      }\n    }\n  }\n}`}</code>
+                          </div>
+
+                          <div>
+                            <p className="text-white/50 font-bold mb-2 font-sans">3. No Claude Cowork, use naturalmente:</p>
+                            <code className="block bg-black/60 p-3 rounded-lg text-purple-300 font-mono whitespace-pre leading-relaxed">{`"Quais meus compromissos desta semana?"\n"Crie um hábito de meditação às 7h"\n"Como foi meu desempenho nos últimos 30 dias?"\n"Crie uma tarefa: revisar relatório amanhã 14h"\n"Quais metas estou próximo de concluir?"`}</code>
                           </div>
                         </div>
                       </motion.div>
