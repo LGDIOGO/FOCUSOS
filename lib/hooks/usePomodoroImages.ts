@@ -1,87 +1,123 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth, db, app } from '@/lib/firebase/config'
-import { collection, addDoc, deleteDoc, doc, query, where, orderBy, onSnapshot } from 'firebase/firestore'
-import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 export interface PomodoroImage {
   id: string
   url: string
   name: string
-  storage_path: string
   created_at: string
+}
+
+interface StoredImage {
+  id: string
+  blob: Blob
+  name: string
+  created_at: string
+}
+
+const DB_NAME = 'focusos-pomodoro'
+const STORE_NAME = 'images'
+
+function openDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1)
+    req.onerror = () => reject(req.error)
+    req.onsuccess = () => resolve(req.result)
+    req.onupgradeneeded = e => {
+      const db = (e.target as IDBOpenDBRequest).result
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' })
+      }
+    }
+  })
+}
+
+function idbGetAll<T>(db: IDBDatabase): Promise<T[]> {
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll()
+    req.onerror = () => reject(req.error)
+    req.onsuccess = () => resolve(req.result)
+  })
+}
+
+function idbPut(db: IDBDatabase, value: StoredImage): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(value)
+    req.onerror = () => reject(req.error)
+    req.onsuccess = () => resolve()
+  })
+}
+
+function idbDelete(db: IDBDatabase, id: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(id)
+    req.onerror = () => reject(req.error)
+    req.onsuccess = () => resolve()
+  })
 }
 
 export function usePomodoroImages() {
   const [images, setImages] = useState<PomodoroImage[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [userId, setUserId] = useState<string | null>(null)
+  const objectUrlsRef = useRef<string[]>([])
 
-  useEffect(() => {
-    if (!auth) return
-    const unsub = onAuthStateChanged(auth, u => setUserId(u?.uid ?? null))
-    return unsub
+  const loadImages = useCallback(async () => {
+    if (typeof window === 'undefined') return
+    try {
+      const db = await openDB()
+      const stored: StoredImage[] = await idbGetAll(db)
+      stored.sort((a, b) => b.created_at.localeCompare(a.created_at))
+
+      objectUrlsRef.current.forEach(u => URL.revokeObjectURL(u))
+      objectUrlsRef.current = []
+
+      const imgs: PomodoroImage[] = stored.map(s => {
+        const url = URL.createObjectURL(s.blob)
+        objectUrlsRef.current.push(url)
+        return { id: s.id, url, name: s.name, created_at: s.created_at }
+      })
+      setImages(imgs)
+    } catch (e) {
+      console.error('Failed to load images from IndexedDB:', e)
+    }
   }, [])
 
   useEffect(() => {
-    if (!userId || !db) return
-    const q = query(
-      collection(db, 'pomodoro_images'),
-      where('user_id', '==', userId),
-      orderBy('created_at', 'desc')
-    )
-    const unsub = onSnapshot(q, snap => {
-      setImages(snap.docs.map(d => ({ id: d.id, ...d.data() } as PomodoroImage)))
-    }, () => {})
-    return unsub
-  }, [userId])
+    loadImages()
+    return () => { objectUrlsRef.current.forEach(u => URL.revokeObjectURL(u)) }
+  }, [loadImages])
 
   const uploadImage = useCallback(async (file: File) => {
-    if (!userId || !app || !db) return
     setUploading(true)
-    setUploadProgress(0)
+    setUploadProgress(30)
     try {
-      const storage = getStorage(app)
-      const path = `pomodoro/${userId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
-      const storageRef = ref(storage, path)
-      const task = uploadBytesResumable(storageRef, file)
-      await new Promise<void>((resolve, reject) => {
-        task.on(
-          'state_changed',
-          snap => setUploadProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
-          reject,
-          async () => {
-            const url = await getDownloadURL(task.snapshot.ref)
-            await addDoc(collection(db, 'pomodoro_images'), {
-              user_id: userId,
-              url,
-              name: file.name,
-              storage_path: path,
-              created_at: new Date().toISOString(),
-            })
-            resolve()
-          }
-        )
+      const db = await openDB()
+      setUploadProgress(70)
+      await idbPut(db, {
+        id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        blob: file,
+        name: file.name,
+        created_at: new Date().toISOString(),
       })
+      setUploadProgress(100)
+      await loadImages()
     } catch (e) {
       console.error('Upload error:', e)
     } finally {
       setUploading(false)
       setUploadProgress(0)
     }
-  }, [userId])
+  }, [loadImages])
 
   const deleteImage = useCallback(async (image: PomodoroImage) => {
-    if (!app || !db) return
     try {
-      if (image.storage_path) {
-        const storage = getStorage(app)
-        await deleteObject(ref(storage, image.storage_path))
-      }
-      await deleteDoc(doc(db, 'pomodoro_images', image.id))
+      const db = await openDB()
+      await idbDelete(db, image.id)
+      URL.revokeObjectURL(image.url)
+      objectUrlsRef.current = objectUrlsRef.current.filter(u => u !== image.url)
+      setImages(prev => prev.filter(i => i.id !== image.id))
     } catch (e) {
       console.error('Delete error:', e)
     }
