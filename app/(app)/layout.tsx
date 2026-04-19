@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/layout/Sidebar'
 import MobileNav from '@/components/layout/MobileNav'
 import { NotificationSystem } from '@/components/dashboard/NotificationSystem'
+import { PomodoroSidebar } from '@/components/dashboard/PomodoroSidebar'
+import { PomodoroFAB } from '@/components/dashboard/PomodoroFAB'
 import { useSettings } from '@/lib/hooks/useSettings'
 import { useProfile } from '@/lib/hooks/useProfile'
 import { CpfOnboarding } from '@/components/auth/CpfOnboarding'
@@ -85,6 +87,8 @@ export default function AppLayout({
         <NotificationSystem />
       </main>
       <MobileNav />
+      <PomodoroSidebar />
+      <PomodoroFAB />
     </div>
   )
 }
