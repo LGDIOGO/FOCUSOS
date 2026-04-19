@@ -1,0 +1,13 @@
+{
+  "name": "focusos-mcp",
+  "version": "1.0.0",
+  "description": "MCP Server para integração com FocusOS — leia e crie hábitos, compromissos, tarefas e metas via Claude",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

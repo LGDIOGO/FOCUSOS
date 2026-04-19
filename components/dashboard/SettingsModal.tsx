@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  X, Settings, Tag, User, Bell, Shield, Moon, Trash2, Plus, 
-  ChevronRight, Sparkles, Check, Info, BookOpen, Play
+import {
+  X, Settings, Tag, User, Bell, Shield, Moon, Trash2, Plus,
+  ChevronRight, Sparkles, Check, Info, BookOpen, Play,
+  Key, Copy, ExternalLink, Zap, RefreshCw, Eye, EyeOff
 } from 'lucide-react'
 import { TutorialModal } from '@/components/dashboard/TutorialModal'
 import { useCategories, useAddCategory, useDeleteCategory } from '@/lib/hooks/useCategories'
@@ -12,13 +13,22 @@ import { useSettings, useUpdateSettings } from '@/lib/hooks/useSettings'
 import { useProfile, useUpdateProfile } from '@/lib/hooks/useProfile'
 import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
 import { cn } from '@/lib/utils/cn'
+import { auth } from '@/lib/firebase/config'
 
 interface SettingsModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
-type TabType = 'categories' | 'notifications' | 'profile' | 'system' | 'tutorials'
+type TabType = 'categories' | 'notifications' | 'profile' | 'system' | 'tutorials' | 'api'
+
+interface ApiKeyRecord {
+  id: string
+  name: string
+  created_at: string
+  last_used_at: string | null
+  key_preview: string
+}
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>('categories')
@@ -34,6 +44,75 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [newCat, setNewCat] = useState({ name: '', icon: '🏷️', color: '#0A84FF', type: 'habits' as any })
   const [showAddForm, setShowAddForm] = useState(false)
   const [isUpgrading, setIsUpgrading] = useState(false)
+
+  // API tab state
+  const [apiKeys, setApiKeys] = useState<ApiKeyRecord[]>([])
+  const [loadingApiKeys, setLoadingApiKeys] = useState(false)
+  const [newKeyName, setNewKeyName] = useState('')
+  const [creatingKey, setCreatingKey] = useState(false)
+  const [generatedKey, setGeneratedKey] = useState<string | null>(null)
+  const [copiedKey, setCopiedKey] = useState(false)
+  const [revokingId, setRevokingId] = useState<string | null>(null)
+  const [showMcpSetup, setShowMcpSetup] = useState(false)
+
+  const getToken = useCallback(async () => {
+    return auth.currentUser?.getIdToken() ?? null
+  }, [])
+
+  const loadApiKeys = useCallback(async () => {
+    const token = await getToken()
+    if (!token) return
+    setLoadingApiKeys(true)
+    try {
+      const res = await fetch('/api/v1/keys', { headers: { Authorization: `Bearer ${token}` } })
+      if (res.ok) {
+        const data = await res.json()
+        setApiKeys(data.keys)
+      }
+    } finally {
+      setLoadingApiKeys(false)
+    }
+  }, [getToken])
+
+  const createApiKey = useCallback(async () => {
+    const token = await getToken()
+    if (!token || !newKeyName.trim()) return
+    setCreatingKey(true)
+    try {
+      const res = await fetch('/api/v1/keys', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newKeyName.trim() }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setGeneratedKey(data.key)
+        setNewKeyName('')
+        await loadApiKeys()
+      }
+    } finally {
+      setCreatingKey(false)
+    }
+  }, [getToken, newKeyName, loadApiKeys])
+
+  const revokeApiKey = useCallback(async (id: string) => {
+    const token = await getToken()
+    if (!token) return
+    setRevokingId(id)
+    try {
+      await fetch(`/api/v1/keys?id=${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setApiKeys(prev => prev.filter(k => k.id !== id))
+    } finally {
+      setRevokingId(null)
+    }
+  }, [getToken])
+
+  useEffect(() => {
+    if (activeTab === 'api') loadApiKeys()
+  }, [activeTab, loadApiKeys])
 
   const handleAddCategory = () => {
     if (!newCat.name) return
@@ -77,6 +156,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               { id: 'profile', label: 'Meu Perfil', icon: User },
               { id: 'system', label: 'Sistema', icon: Shield },
               { id: 'tutorials', label: 'Tutoriais & Guias', icon: BookOpen },
+              { id: 'api', label: 'API & Integrações', icon: Zap },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -119,6 +199,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               {activeTab === 'profile' && 'Perfil do Usuário'}
               {activeTab === 'system' && 'Preferências do Sistema'}
               {activeTab === 'tutorials' && 'Tutoriais & Guias'}
+              {activeTab === 'api' && 'API & Integrações'}
             </h3>
             <button onClick={onClose} className="p-2 hover:bg-[var(--bg-overlay)] rounded-xl transition-all">
               <X className="text-[var(--text-muted)]" size={20} />
@@ -521,10 +602,182 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               </div>
             )}
 
+            {activeTab === 'api' && (
+              <div className="space-y-8">
+                {/* Generated Key Banner */}
+                <AnimatePresence>
+                  {generatedKey && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="p-5 bg-green-500/10 border border-green-500/30 rounded-2xl space-y-3"
+                    >
+                      <p className="text-xs font-black uppercase tracking-widest text-green-400">
+                        ✅ Chave gerada — copie agora, ela não será exibida novamente
+                      </p>
+                      <div className="flex items-center gap-3 bg-black/40 rounded-xl p-3 border border-white/10">
+                        <code className="flex-1 text-sm text-green-300 font-mono break-all select-all">{generatedKey}</code>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(generatedKey)
+                            setCopiedKey(true)
+                            setTimeout(() => setCopiedKey(false), 2000)
+                          }}
+                          className="shrink-0 p-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 transition-all"
+                        >
+                          {copiedKey ? <Check size={16} /> : <Copy size={16} />}
+                        </button>
+                      </div>
+                      <button onClick={() => setGeneratedKey(null)} className="text-[10px] text-white/30 hover:text-white/50 font-bold uppercase tracking-widest">
+                        Já copiei, fechar
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Create Key */}
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-black text-white/80 mb-1">Criar nova chave de API</h4>
+                    <p className="text-xs text-white/40 font-medium">Use para conectar Claude Cowork, Obsidian ou qualquer ferramenta externa.</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <input
+                      value={newKeyName}
+                      onChange={e => setNewKeyName(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && createApiKey()}
+                      placeholder='Ex: "Claude Cowork" ou "Obsidian"'
+                      className="flex-1 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/30"
+                    />
+                    <button
+                      onClick={createApiKey}
+                      disabled={creatingKey || !newKeyName.trim()}
+                      className="px-5 py-3 bg-white text-black font-black text-xs rounded-xl hover:bg-neutral-200 disabled:opacity-30 transition-all flex items-center gap-2 shrink-0"
+                    >
+                      {creatingKey ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
+                      Gerar
+                    </button>
+                  </div>
+                </div>
+
+                {/* Keys List */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-black text-white/80">Suas chaves</h4>
+                    <button onClick={loadApiKeys} className="text-white/30 hover:text-white/60 transition-colors">
+                      <RefreshCw size={14} className={loadingApiKeys ? 'animate-spin' : ''} />
+                    </button>
+                  </div>
+                  {loadingApiKeys ? (
+                    <div className="space-y-2">
+                      {[1,2].map(i => <div key={i} className="h-14 bg-white/5 rounded-xl animate-pulse" />)}
+                    </div>
+                  ) : apiKeys.length === 0 ? (
+                    <div className="py-8 text-center border border-dashed border-white/10 rounded-2xl">
+                      <Key size={24} className="mx-auto text-white/20 mb-2" />
+                      <p className="text-xs text-white/30 font-medium">Nenhuma chave criada ainda</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {apiKeys.map(k => (
+                        <div key={k.id} className="flex items-center gap-4 p-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl">
+                          <Key size={16} className="text-white/30 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-white truncate">{k.name}</p>
+                            <p className="text-[10px] font-mono text-white/30 mt-0.5">{k.key_preview}</p>
+                            <p className="text-[9px] text-white/20 mt-0.5">
+                              Criada {new Date(k.created_at).toLocaleDateString('pt-BR')}
+                              {k.last_used_at && ` · Usada ${new Date(k.last_used_at).toLocaleDateString('pt-BR')}`}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => revokeApiKey(k.id)}
+                            disabled={revokingId === k.id}
+                            className="p-2 text-white/20 hover:text-red-400 transition-colors disabled:opacity-30"
+                          >
+                            {revokingId === k.id ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* MCP Setup */}
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setShowMcpSetup(!showMcpSetup)}
+                    className="flex items-center gap-2 text-sm font-black text-white/60 hover:text-white transition-colors"
+                  >
+                    <Zap size={16} className="text-yellow-400" />
+                    Como conectar ao Claude Cowork (MCP)
+                    <ChevronRight size={14} className={cn('transition-transform', showMcpSetup && 'rotate-90')} />
+                  </button>
+                  <AnimatePresence>
+                    {showMcpSetup && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        <div className="space-y-4 p-5 bg-black/30 border border-white/5 rounded-2xl text-xs font-mono">
+                          <div>
+                            <p className="text-white/40 font-sans font-bold mb-2">1. Instale o servidor MCP (uma vez só)</p>
+                            <code className="block bg-black/50 p-3 rounded-lg text-green-300 whitespace-pre">cd focusos-mcp && npm install</code>
+                          </div>
+                          <div>
+                            <p className="text-white/40 font-sans font-bold mb-2">2. Adicione ao Claude Code</p>
+                            <code className="block bg-black/50 p-3 rounded-lg text-green-300 whitespace-pre">{`FOCUSOS_API_KEY=sua_chave \\\nFOCUSOS_API_URL=https://focusos-rlvs.vercel.app \\\nclaude mcp add focusos -- node ./focusos-mcp/index.js`}</code>
+                          </div>
+                          <div>
+                            <p className="text-white/40 font-sans font-bold mb-2">3. Pronto! No Claude Cowork você pode digitar:</p>
+                            <code className="block bg-black/50 p-3 rounded-lg text-blue-300 whitespace-pre leading-relaxed">{`"Crie um hábito de meditação às 7h"\n"Quais meus compromissos desta semana?"\n"Meu desempenho nos últimos 30 dias"\n"Crie uma tarefa: estudar TypeScript amanhã"`}</code>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Endpoints reference */}
+                <div className="space-y-2 border-t border-white/5 pt-6">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-3">Referência rápida de endpoints</p>
+                  {[
+                    { method: 'GET', path: '/api/v1/summary', desc: 'Resumo completo do dashboard' },
+                    { method: 'GET', path: '/api/v1/performance', desc: 'Desempenho diário (últimos 7d)' },
+                    { method: 'GET', path: '/api/v1/habits', desc: 'Listar hábitos' },
+                    { method: 'POST', path: '/api/v1/habits', desc: 'Criar hábito' },
+                    { method: 'GET', path: '/api/v1/events', desc: 'Listar compromissos' },
+                    { method: 'POST', path: '/api/v1/events', desc: 'Criar compromisso' },
+                    { method: 'GET', path: '/api/v1/tasks', desc: 'Listar tarefas' },
+                    { method: 'POST', path: '/api/v1/tasks', desc: 'Criar tarefa' },
+                    { method: 'GET', path: '/api/v1/goals', desc: 'Listar metas' },
+                    { method: 'POST', path: '/api/v1/goals', desc: 'Criar meta' },
+                  ].map(ep => (
+                    <div key={ep.path + ep.method} className="flex items-center gap-3 py-2 border-b border-white/[0.04] last:border-0">
+                      <span className={cn(
+                        'text-[9px] font-black w-10 text-center py-0.5 rounded',
+                        ep.method === 'GET' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'
+                      )}>
+                        {ep.method}
+                      </span>
+                      <code className="text-[11px] text-white/50 font-mono flex-1">{ep.path}</code>
+                      <span className="text-[10px] text-white/30">{ep.desc}</span>
+                    </div>
+                  ))}
+                  <p className="text-[10px] text-white/20 pt-2 font-medium">
+                    Header: <code className="text-white/40">Authorization: Bearer fos_live_...</code>
+                  </p>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'tutorials' && (
               <div className="space-y-6">
                  <div className="flex flex-col md:flex-row gap-6">
-                    <div 
+                    <div
                       className="group relative flex-1 bg-gradient-to-br from-[#111] to-[#0A0A0A] border border-white/5 hover:border-white/20 rounded-[32px] overflow-hidden cursor-pointer transition-all duration-300 transform hover:scale-[1.02]"
                       onClick={() => setIsTutorialModalOpen(true)}
                     >
