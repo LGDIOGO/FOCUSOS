@@ -13,8 +13,9 @@ import { useSettings, useUpdateSettings } from '@/lib/hooks/useSettings'
 import { useProfile, useUpdateProfile } from '@/lib/hooks/useProfile'
 import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
 import { cn } from '@/lib/utils/cn'
-import { auth } from '@/lib/firebase/config'
+import { auth, db } from '@/lib/firebase/config'
 import { onAuthStateChanged } from 'firebase/auth'
+import { collection, addDoc, getDocs, deleteDoc, doc, query, where } from 'firebase/firestore'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -57,87 +58,82 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [showMcpSetup, setShowMcpSetup] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
 
-  // Aguarda o auth estar pronto e retorna o token — resolve o problema de auth.currentUser ser null no primeiro render
-  const getToken = useCallback((): Promise<string | null> => {
+  // Aguarda o usuário autenticado
+  const getUser = useCallback((): Promise<any> => {
     return new Promise((resolve) => {
-      if (auth.currentUser) {
-        auth.currentUser.getIdToken().then(resolve).catch(() => resolve(null))
-        return
-      }
-      const unsub = onAuthStateChanged(auth, (user) => {
-        unsub()
-        if (user) {
-          user.getIdToken().then(resolve).catch(() => resolve(null))
-        } else {
-          resolve(null)
-        }
-      })
+      if (auth.currentUser) { resolve(auth.currentUser); return }
+      const unsub = onAuthStateChanged(auth, (user) => { unsub(); resolve(user) })
     })
+  }, [])
+
+  // Gera chave aleatória + hash SHA-256 totalmente client-side (Web Crypto API)
+  const generateKey = useCallback(async (): Promise<{ key: string; hash: string }> => {
+    const array = new Uint8Array(24)
+    crypto.getRandomValues(array)
+    const key = 'fos_live_' + Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('')
+    const encoder = new TextEncoder()
+    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(key))
+    const hash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+    return { key, hash }
   }, [])
 
   const loadApiKeys = useCallback(async () => {
     setApiError(null)
-    const token = await getToken()
-    if (!token) { setApiError('Não foi possível obter autenticação. Recarregue a página.'); return }
+    const user = await getUser()
+    if (!user) return
     setLoadingApiKeys(true)
     try {
-      const res = await fetch('/api/v1/keys', { headers: { Authorization: `Bearer ${token}` } })
-      const data = await res.json()
-      if (!res.ok) { setApiError(data.error || `Erro ${res.status}`); return }
-      // sort client-side — evita exigir índice composto no Firestore
-      const sorted = [...(data.keys || [])].sort((a: ApiKeyRecord, b: ApiKeyRecord) =>
-        b.created_at.localeCompare(a.created_at)
-      )
-      setApiKeys(sorted)
-    } catch (e) {
-      setApiError('Falha de rede ao listar chaves.')
+      const q = query(collection(db, 'api_keys'), where('user_id', '==', user.uid))
+      const snap = await getDocs(q)
+      const keys: ApiKeyRecord[] = snap.docs
+        .map(d => ({ id: d.id, ...(d.data() as Omit<ApiKeyRecord, 'id'>) }))
+        .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      setApiKeys(keys)
+    } catch (e: any) {
+      setApiError('Erro ao listar chaves: ' + (e?.message || 'verifique as regras do Firestore'))
     } finally {
       setLoadingApiKeys(false)
     }
-  }, [getToken])
+  }, [getUser])
 
   const createApiKey = useCallback(async () => {
     if (!newKeyName.trim()) return
     setApiError(null)
-    const token = await getToken()
-    if (!token) { setApiError('Não foi possível obter autenticação. Recarregue a página.'); return }
+    const user = await getUser()
+    if (!user) { setApiError('Usuário não autenticado. Recarregue a página.'); return }
     setCreatingKey(true)
     try {
-      const res = await fetch('/api/v1/keys', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newKeyName.trim() }),
+      const { key, hash } = await generateKey()
+      await addDoc(collection(db, 'api_keys'), {
+        user_id: user.uid,
+        name: newKeyName.trim().slice(0, 80),
+        key_hash: hash,
+        key_preview: key.slice(0, 14) + '••••••••••••••••',
+        created_at: new Date().toISOString(),
+        last_used_at: null,
       })
-      const data = await res.json()
-      if (!res.ok) { setApiError(data.error || `Erro ${res.status}`); return }
-      setGeneratedKey(data.key)
+      setGeneratedKey(key)
       setNewKeyName('')
       await loadApiKeys()
-    } catch (e) {
-      setApiError('Falha de rede ao criar chave.')
+    } catch (e: any) {
+      setApiError('Erro ao criar chave: ' + (e?.message || 'verifique as regras do Firestore'))
     } finally {
       setCreatingKey(false)
     }
-  }, [getToken, newKeyName, loadApiKeys])
+  }, [getUser, generateKey, newKeyName, loadApiKeys])
 
   const revokeApiKey = useCallback(async (id: string) => {
     setApiError(null)
-    const token = await getToken()
-    if (!token) return
     setRevokingId(id)
     try {
-      const res = await fetch(`/api/v1/keys?id=${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) { const d = await res.json(); setApiError(d.error || 'Erro ao revogar'); return }
+      await deleteDoc(doc(db, 'api_keys', id))
       setApiKeys(prev => prev.filter(k => k.id !== id))
-    } catch {
-      setApiError('Falha de rede ao revogar chave.')
+    } catch (e: any) {
+      setApiError('Erro ao revogar: ' + (e?.message || ''))
     } finally {
       setRevokingId(null)
     }
-  }, [getToken])
+  }, [])
 
   useEffect(() => {
     if (activeTab === 'api') loadApiKeys()

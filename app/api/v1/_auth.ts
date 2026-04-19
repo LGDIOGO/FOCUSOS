@@ -12,7 +12,10 @@ export function hashKey(key: string): string {
   return createHash('sha256').update(key).digest('hex')
 }
 
-/** Authenticate via FocusOS API key — for data endpoints */
+const FIREBASE_PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'foco-os---produtividade-bfb58'
+const FIREBASE_WEB_API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || ''
+
+/** Authenticate via FocusOS API key — tries Admin SDK first, falls back to Firestore REST API */
 export async function authWithApiKey(req: NextRequest): Promise<{ userId: string; keyId: string } | null> {
   const header = req.headers.get('authorization') || ''
   const xKey = req.headers.get('x-api-key') || ''
@@ -20,15 +23,54 @@ export async function authWithApiKey(req: NextRequest): Promise<{ userId: string
 
   if (!raw.startsWith(API_KEY_PREFIX)) return null
 
-  try {
-    const hash = hashKey(raw)
-    const snap = await adminDb.collection('api_keys').where('key_hash', '==', hash).limit(1).get()
-    if (snap.empty) return null
+  const hash = hashKey(raw)
 
-    const docRef = snap.docs[0].ref
-    const data = snap.docs[0].data()
-    docRef.update({ last_used_at: new Date().toISOString() }).catch(() => {})
-    return { userId: data.user_id, keyId: snap.docs[0].id }
+  // Attempt 1: Firebase Admin SDK (works if service account is configured)
+  try {
+    const snap = await adminDb.collection('api_keys').where('key_hash', '==', hash).limit(1).get()
+    if (!snap.empty) {
+      const data = snap.docs[0].data()
+      snap.docs[0].ref.update({ last_used_at: new Date().toISOString() }).catch(() => {})
+      return { userId: data.user_id, keyId: snap.docs[0].id }
+    }
+  } catch (_adminErr) {
+    // Admin SDK not configured — fall through to REST API
+  }
+
+  // Attempt 2: Firestore REST API (works without service account; requires api_keys to be readable)
+  try {
+    const keyParam = FIREBASE_WEB_API_KEY ? `?key=${FIREBASE_WEB_API_KEY}` : ''
+    const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery${keyParam}`
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: 'api_keys' }],
+          where: { fieldFilter: { field: { fieldPath: 'key_hash' }, op: 'EQUAL', value: { stringValue: hash } } },
+          limit: 1,
+        },
+      }),
+    })
+
+    if (!res.ok) return null
+    const results: any[] = await res.json()
+    const doc = results?.[0]?.document
+    if (!doc) return null
+
+    const userId = doc.fields?.user_id?.stringValue
+    const keyId = doc.name?.split('/').pop()
+    if (!userId || !keyId) return null
+
+    // Update last_used_at via PATCH (best-effort)
+    fetch(`https://firestore.googleapis.com/v1/${doc.name}?updateMask.fieldPaths=last_used_at${keyParam ? '&' + keyParam.slice(1) : ''}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: { last_used_at: { stringValue: new Date().toISOString() } } }),
+    }).catch(() => {})
+
+    return { userId, keyId }
   } catch {
     return null
   }
