@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import NextImage from 'next/image'
 import {
   X, Play, Pause, RotateCcw, SkipForward, Settings2,
   Upload, Trash2, ImageIcon, ChevronUp, ChevronDown, Timer,
@@ -293,16 +294,22 @@ export function PomodoroSidebar() {
               <div className="relative w-full h-44 bg-black overflow-hidden shrink-0">
                 <AnimatePresence mode="sync">
                   {currentImage ? (
-                    <motion.img
+                    <motion.div
                       key={currentImage.id}
-                      src={currentImage.url}
-                      alt=""
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 1.4, ease: 'easeInOut' }}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
+                      className="absolute inset-0"
+                    >
+                      <NextImage
+                        src={currentImage.url}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    </motion.div>
                   ) : (
                     <motion.div
                       key="placeholder"
@@ -400,7 +407,7 @@ export function PomodoroSidebar() {
                       transition={{ duration: 0.5 }}
                       className="text-[11px] font-medium text-[var(--text-muted)] text-center italic leading-relaxed"
                     >
-                      "{MOTIVATIONAL_MESSAGES[motivationIndex % MOTIVATIONAL_MESSAGES.length]}"
+                      &ldquo;{MOTIVATIONAL_MESSAGES[motivationIndex % MOTIVATIONAL_MESSAGES.length]}&rdquo;
                     </motion.p>
                   )}
                 </AnimatePresence>
@@ -511,7 +518,7 @@ export function PomodoroSidebar() {
                                 )}
                                 onClick={() => setCarouselIndex(i)}
                               >
-                                <img src={img.url} alt="" className="w-full h-full object-cover" />
+                                <NextImage src={img.url} alt="" fill className="object-cover" unoptimized />
                                 <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-all flex items-center justify-center">
                                   <button
                                     onClick={e => { e.stopPropagation(); deleteImage(img) }}
