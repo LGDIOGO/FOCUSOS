@@ -13,10 +13,10 @@ export async function GET(req: NextRequest) {
   if (!userId) return unauthorizedResponse()
 
   try {
+    // Sem orderBy para evitar exigir índice composto no Firestore — ordenamos no cliente
     const snap = await adminDb
       .collection('api_keys')
       .where('user_id', '==', userId)
-      .orderBy('created_at', 'desc')
       .get()
 
     const keys = snap.docs.map(d => {
