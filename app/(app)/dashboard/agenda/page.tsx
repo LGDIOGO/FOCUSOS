@@ -78,7 +78,7 @@ function EventItem({
 
   return (
     <motion.div
-      layoutId={`${event.id}_${event.date || ''}`}
+      layout="position"
       {...localLongPress}
       onClick={() => {
         if (isSelectionMode) {
@@ -622,8 +622,8 @@ export default function AgendaPage() {
                         </div>
                         <div className="space-y-3">
                           {eventList.map(event => (
-                            <EventItem 
-                              key={event.id}
+                            <EventItem
+                              key={`hist_${event.id}_${event.date}`}
                               event={event}
                               isSelectionMode={isSelectionMode}
                               isSelected={selectedIds.includes(event.id)}
@@ -673,8 +673,8 @@ export default function AgendaPage() {
 
                 <div className="space-y-3">
                   {eventList.map((event: CalendarEvent) => (
-                    <EventItem 
-                      key={event.id}
+                    <EventItem
+                      key={`${event.id}_${event.date}`}
                       event={event}
                       isSelectionMode={isSelectionMode}
                       isSelected={selectedIds.includes(event.id)}
