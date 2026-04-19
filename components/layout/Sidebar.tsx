@@ -4,9 +4,10 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Calendar, RefreshCcw, Target, Brain, Settings, Wallet } from 'lucide-react'
+import { LayoutDashboard, Calendar, RefreshCcw, Target, Brain, Settings, Wallet, Timer } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { SettingsModal } from '@/components/dashboard/SettingsModal'
+import { usePomodoroStore } from '@/lib/stores/pomodoroStore'
 
 const NAV_ITEMS = [
   { label: 'Resumo',    icon: LayoutDashboard, href: '/dashboard' },
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
 export default function Sidebar() {
   const pathname = usePathname()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const { toggle: togglePomodoro, isRunning, isOpen: pomodoroOpen } = usePomodoroStore()
 
   return (
     <>
@@ -62,7 +64,26 @@ export default function Sidebar() {
 
         {/* Footer */}
         <div className="mt-auto flex flex-col gap-2">
-          <button 
+          {/* Pomodoro Focus trigger */}
+          <button
+            onClick={togglePomodoro}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all relative",
+              pomodoroOpen
+                ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]"
+            )}
+          >
+            <div className="relative">
+              <Timer size={20} />
+              {isRunning && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse" />
+              )}
+            </div>
+            <span className="hidden lg:block text-base font-medium">Modo Foco</span>
+          </button>
+
+          <button
             onClick={() => setIsSettingsOpen(true)}
             className="flex items-center gap-3 px-3 py-2.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)] rounded-xl transition-all"
           >
