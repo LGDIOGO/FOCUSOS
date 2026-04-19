@@ -14,6 +14,7 @@ import { useProfile, useUpdateProfile } from '@/lib/hooks/useProfile'
 import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
 import { cn } from '@/lib/utils/cn'
 import { auth } from '@/lib/firebase/config'
+import { onAuthStateChanged } from 'firebase/auth'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -54,29 +55,52 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [copiedKey, setCopiedKey] = useState(false)
   const [revokingId, setRevokingId] = useState<string | null>(null)
   const [showMcpSetup, setShowMcpSetup] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
 
-  const getToken = useCallback(async () => {
-    return auth.currentUser?.getIdToken() ?? null
+  // Aguarda o auth estar pronto e retorna o token — resolve o problema de auth.currentUser ser null no primeiro render
+  const getToken = useCallback((): Promise<string | null> => {
+    return new Promise((resolve) => {
+      if (auth.currentUser) {
+        auth.currentUser.getIdToken().then(resolve).catch(() => resolve(null))
+        return
+      }
+      const unsub = onAuthStateChanged(auth, (user) => {
+        unsub()
+        if (user) {
+          user.getIdToken().then(resolve).catch(() => resolve(null))
+        } else {
+          resolve(null)
+        }
+      })
+    })
   }, [])
 
   const loadApiKeys = useCallback(async () => {
+    setApiError(null)
     const token = await getToken()
-    if (!token) return
+    if (!token) { setApiError('Não foi possível obter autenticação. Recarregue a página.'); return }
     setLoadingApiKeys(true)
     try {
       const res = await fetch('/api/v1/keys', { headers: { Authorization: `Bearer ${token}` } })
-      if (res.ok) {
-        const data = await res.json()
-        setApiKeys(data.keys)
-      }
+      const data = await res.json()
+      if (!res.ok) { setApiError(data.error || `Erro ${res.status}`); return }
+      // sort client-side — evita exigir índice composto no Firestore
+      const sorted = [...(data.keys || [])].sort((a: ApiKeyRecord, b: ApiKeyRecord) =>
+        b.created_at.localeCompare(a.created_at)
+      )
+      setApiKeys(sorted)
+    } catch (e) {
+      setApiError('Falha de rede ao listar chaves.')
     } finally {
       setLoadingApiKeys(false)
     }
   }, [getToken])
 
   const createApiKey = useCallback(async () => {
+    if (!newKeyName.trim()) return
+    setApiError(null)
     const token = await getToken()
-    if (!token || !newKeyName.trim()) return
+    if (!token) { setApiError('Não foi possível obter autenticação. Recarregue a página.'); return }
     setCreatingKey(true)
     try {
       const res = await fetch('/api/v1/keys', {
@@ -84,27 +108,32 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newKeyName.trim() }),
       })
-      if (res.ok) {
-        const data = await res.json()
-        setGeneratedKey(data.key)
-        setNewKeyName('')
-        await loadApiKeys()
-      }
+      const data = await res.json()
+      if (!res.ok) { setApiError(data.error || `Erro ${res.status}`); return }
+      setGeneratedKey(data.key)
+      setNewKeyName('')
+      await loadApiKeys()
+    } catch (e) {
+      setApiError('Falha de rede ao criar chave.')
     } finally {
       setCreatingKey(false)
     }
   }, [getToken, newKeyName, loadApiKeys])
 
   const revokeApiKey = useCallback(async (id: string) => {
+    setApiError(null)
     const token = await getToken()
     if (!token) return
     setRevokingId(id)
     try {
-      await fetch(`/api/v1/keys?id=${id}`, {
+      const res = await fetch(`/api/v1/keys?id=${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       })
+      if (!res.ok) { const d = await res.json(); setApiError(d.error || 'Erro ao revogar'); return }
       setApiKeys(prev => prev.filter(k => k.id !== id))
+    } catch {
+      setApiError('Falha de rede ao revogar chave.')
     } finally {
       setRevokingId(null)
     }
@@ -604,6 +633,26 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
             {activeTab === 'api' && (
               <div className="space-y-8">
+                {/* Error Banner */}
+                <AnimatePresence>
+                  {apiError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl"
+                    >
+                      <span className="text-red-400 text-sm">⚠️</span>
+                      <div className="flex-1">
+                        <p className="text-xs font-bold text-red-400">{apiError}</p>
+                      </div>
+                      <button onClick={() => setApiError(null)} className="text-white/30 hover:text-white/60">
+                        <X size={14} />
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Generated Key Banner */}
                 <AnimatePresence>
                   {generatedKey && (
