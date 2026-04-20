@@ -18,6 +18,8 @@ import { RealTimeClock } from '@/components/dashboard/RealTimeClock'
 import { useEventsToday, useLogEvent, useUpdateEvent, useDeleteEvent } from '@/lib/hooks/useEvents'
 import { HabitStatus, Habit, Task, CalendarEvent, TaskStatus } from '@/types'
 import { TaskModal } from '@/components/dashboard/TaskModal'
+import { AgendaModal } from '@/components/dashboard/AgendaModal'
+import { HabitModal } from '@/components/dashboard/HabitModal'
 import { generateLocalInsights } from '@/lib/services/aiService'
 import SeedData from '@/components/dashboard/SeedData'
 import {
@@ -141,6 +143,12 @@ export default function DashboardPage() {
   const [isTutorialOpen, setIsTutorialOpen] = useState(false)
   const [showTaskModal, setShowTaskModal] = useState(false)
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null)
+
+  // Modais de edição inline — abrem popup sem sair do resumo
+  const [showEventModal, setShowEventModal] = useState(false)
+  const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null)
+  const [showHabitModal, setShowHabitModal] = useState(false)
+  const [habitToEdit, setHabitToEdit] = useState<Habit | null>(null)
 
   // Dispara tutorial apenas na primeira vez
   useEffect(() => {
@@ -562,7 +570,7 @@ export default function DashboardPage() {
                   isSelectionMode={isSelectionMode}
                   isSelected={selectedItems.some(item => item.id === event.id)}
                   onSelect={() => toggleSelection(event.id, 'event')}
-                  onEdit={() => window.location.href = `/dashboard/agenda?edit=${event.id}`}
+                  onEdit={() => { setEventToEdit(event); setShowEventModal(true) }}
                   onContextMenu={() => {
                     setIsSelectionMode(true)
                     toggleSelection(event.id, 'event')
@@ -612,7 +620,7 @@ export default function DashboardPage() {
                   isSelectionMode={isSelectionMode}
                   isSelected={selectedItems.some(item => item.id === h.id)}
                   onSelect={() => toggleSelection(h.id, 'habit')}
-                  onEdit={() => window.location.href = `/dashboard/habits?edit=${h.id}`}
+                  onEdit={() => { setHabitToEdit(h); setShowHabitModal(true) }}
                   onContextMenu={() => {
                     setIsSelectionMode(true)
                     toggleSelection(h.id, 'habit')
@@ -648,7 +656,7 @@ export default function DashboardPage() {
                   isSelectionMode={isSelectionMode}
                   isSelected={selectedItems.some(item => item.id === h.id)}
                   onSelect={() => toggleSelection(h.id, 'habit')}
-                  onEdit={() => window.location.href = `/dashboard/habits?edit=${h.id}`}
+                  onEdit={() => { setHabitToEdit(h); setShowHabitModal(true) }}
                   onContextMenu={() => {
                     setIsSelectionMode(true)
                     toggleSelection(h.id, 'habit')
@@ -733,13 +741,25 @@ export default function DashboardPage() {
           score={score}
         />
 
-        <TaskModal 
+        <TaskModal
           isOpen={showTaskModal}
           onClose={() => {
             setShowTaskModal(false)
             setTaskToEdit(null)
           }}
           taskToEdit={taskToEdit}
+        />
+
+        <AgendaModal
+          isOpen={showEventModal}
+          onClose={() => { setShowEventModal(false); setEventToEdit(null) }}
+          eventToEdit={eventToEdit}
+        />
+
+        <HabitModal
+          isOpen={showHabitModal}
+          onClose={() => { setShowHabitModal(false); setHabitToEdit(null) }}
+          habitToEdit={habitToEdit}
         />
       </main>
 
