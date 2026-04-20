@@ -150,6 +150,15 @@ export default function DashboardPage() {
   const [showHabitModal, setShowHabitModal] = useState(false)
   const [habitToEdit, setHabitToEdit] = useState<Habit | null>(null)
 
+  // ── Overrides de status local ─────────────────────────────────────────────
+  // Garante feedback visual imediato independente do React Query cache
+  const [habitStatusOverrides, setHabitStatusOverrides] = useState<Record<string, HabitStatus>>({})
+  const [eventStatusOverrides, setEventStatusOverrides] = useState<Record<string, string>>({})
+
+  // Limpa overrides quando os dados do servidor chegam (evita estado stale)
+  useEffect(() => { setHabitStatusOverrides({}) }, [habitsData])
+  useEffect(() => { setEventStatusOverrides({}) }, [eventsToday])
+
   // Dispara tutorial apenas na primeira vez
   useEffect(() => {
     const hasSeenTutorial = localStorage.getItem('focusos_onboarding_completed')
@@ -261,38 +270,45 @@ export default function DashboardPage() {
 
   const habits = useMemo(() => {
     if (!habitsData) return []
-    return [...habitsData].sort((a, b) => (b.streak || 0) - (a.streak || 0))
-  }, [habitsData])
+    return [...habitsData]
+      .map(h => habitStatusOverrides[h.id] !== undefined
+        ? { ...h, status: habitStatusOverrides[h.id] }
+        : h
+      )
+      .sort((a, b) => (b.streak || 0) - (a.streak || 0))
+  }, [habitsData, habitStatusOverrides])
 
   const tasks = useMemo(() => tasksData || [], [tasksData])
 
   const todayEvents = useMemo(() => {
     if (!eventsToday) return []
-    return [...eventsToday].sort((a, b) => {
-      // Done items always last
-      const isDoneA = a.status === 'done'
-      const isDoneB = b.status === 'done'
-      if (isDoneA && !isDoneB) return 1
-      if (!isDoneA && isDoneB) return -1
+    return [...eventsToday]
+      .map(e => {
+        const key = `${e.id}_${e.date}`
+        return eventStatusOverrides[key] !== undefined
+          ? { ...e, status: eventStatusOverrides[key] }
+          : e
+      })
+      .sort((a, b) => {
+        const isDoneA = a.status === 'done'
+        const isDoneB = b.status === 'done'
+        if (isDoneA && !isDoneB) return 1
+        if (!isDoneA && isDoneB) return -1
 
-      // Past items (today) vs upcoming
-      const now = currentTime
-      const timeA = a.time ? parse(a.time, 'HH:mm', now) : null
-      const timeB = b.time ? parse(b.time, 'HH:mm', now) : null
+        const now = currentTime
+        const timeA = a.time ? parse(a.time, 'HH:mm', now) : null
+        const timeB = b.time ? parse(b.time, 'HH:mm', now) : null
 
-      if (timeA && timeB) {
-        const passedA = isToday(selectedDate) && isAfter(now, timeA)
-        const passedB = isToday(selectedDate) && isAfter(now, timeB)
-
-        if (passedA && !passedB) return 1
-        if (!passedA && passedB) return -1
-
-        // Both passed or both upcoming, sort by time
-        return timeA.getTime() - timeB.getTime()
-      }
-      return 0
-    })
-  }, [eventsToday, currentTime, selectedDate])
+        if (timeA && timeB) {
+          const passedA = isToday(selectedDate) && isAfter(now, timeA)
+          const passedB = isToday(selectedDate) && isAfter(now, timeB)
+          if (passedA && !passedB) return 1
+          if (!passedA && passedB) return -1
+          return timeA.getTime() - timeB.getTime()
+        }
+        return 0
+      })
+  }, [eventsToday, eventStatusOverrides, currentTime, selectedDate])
 
   // Sync AI Insights to Persistent Notifications
   const currentInsights = useMemo(() => generateLocalInsights(habits, tasks), [habits, tasks])
@@ -337,7 +353,10 @@ export default function DashboardPage() {
   }, [toast])
 
   function setEventStatus(id: string, status: any, date?: string) {
-    logEvent({ eventId: id, status, logDate: date || todayStr })
+    const targetDate = date || todayStr
+    // Override local imediato — UI atualiza antes de ir ao servidor
+    setEventStatusOverrides(prev => ({ ...prev, [`${id}_${targetDate}`]: status }))
+    logEvent({ eventId: id, status, logDate: targetDate })
 
     if (status === 'partial') {
       const ev = todayEvents.find(e => e.id === id)
@@ -362,7 +381,10 @@ export default function DashboardPage() {
 
   // Set habit status directly: none, done, partial, failed
   function setHabitStatus(id: string, nextStatus: HabitStatus) {
-    const habit = habits.find(h => h.id === id)
+    // Override local imediato — UI atualiza antes de ir ao servidor
+    setHabitStatusOverrides(prev => ({ ...prev, [id]: nextStatus }))
+
+    const habit = habitsData?.find(h => h.id === id)
     logHabit({
       habitId: id,
       status: nextStatus,

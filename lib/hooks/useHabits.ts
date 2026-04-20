@@ -339,11 +339,10 @@ export function useLogHabit() {
           }
         }
     },
-    onSuccess: (_, variables) => {
-      const user = auth.currentUser
-      const targetDate = variables.logDate || format(new Date(), 'yyyy-MM-dd')
-      qc.invalidateQueries({ queryKey: ['habits', 'date', targetDate, user?.uid] })
-      qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
+    onSuccess: () => {
+      // Invalidação ampla — não depende de uid no cache key
+      qc.invalidateQueries({ queryKey: ['habits'] })
+      qc.invalidateQueries({ queryKey: ['performance-metrics'] })
     },
   })
 }
