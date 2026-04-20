@@ -235,26 +235,25 @@ export function useLogHabit() {
     onError: (err, newTodo, context) => {
       if (context?.previousHabits) qc.setQueryData(context.queryKey, context.previousHabits)
     },
-    mutationFn: async ({ habitId, status, logDate, note, linkedGoalId, goalImpact = 1 }: { 
- 
-      habitId: string; 
-      status: string; 
+    mutationFn: async ({ habitId, status, logDate, note, linkedGoalId, goalImpact = 1 }: {
+      habitId: string;
+      status: string;
       logDate?: string;
       note?: string;
       linkedGoalId?: string;
       goalImpact?: number;
     }) => {
+      const user = auth.currentUser
       if (!user) throw new Error('Not authenticated')
-      
+
       const targetDate = logDate || format(new Date(), 'yyyy-MM-dd')
       const logId = `${habitId}_${targetDate}`
       const logRef = doc(db, 'habit_logs', logId)
 
-      
       // 1. Get previous status to calculate progress change
       const prevDoc = await getDoc(logRef)
       const prevStatus = prevDoc.exists() ? prevDoc.data().status : 'none'
-      
+
       // 2. Perform log update
       await setDoc(logRef, {
         user_id: user.uid,
