@@ -15,8 +15,6 @@ import {
 import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, differenceInDays, isToday, subDays } from 'date-fns'
 import { CalendarEvent, HabitStatus } from '@/types'
 
-export type EventLogStatusMap = Record<string, string>
-
 export function useEvents() {
   const user = auth.currentUser
 
@@ -48,43 +46,6 @@ export function useEvents() {
     },
     enabled: !!user,
     staleTime: 5_000,
-  })
-}
-
-export function useEventLogsRange(startDate?: string, endDate?: string) {
-  const user = auth.currentUser
-
-  return useQuery({
-    queryKey: ['event_logs', user?.uid, startDate, endDate],
-    queryFn: async () => {
-      if (!user) {
-        return {} as EventLogStatusMap
-      }
-
-      const baseCollection = collection(db, 'event_logs')
-      const logsQuery = startDate && endDate
-        ? query(
-            baseCollection,
-            where('user_id', '==', user.uid),
-            where('log_date', '>=', startDate),
-            where('log_date', '<=', endDate)
-          )
-        : query(
-            baseCollection,
-            where('user_id', '==', user.uid)
-          )
-
-      const logsSnapshot = await getDocs(logsQuery)
-      return logsSnapshot.docs.reduce<EventLogStatusMap>((acc, logDoc) => {
-        const data = logDoc.data()
-        acc[`${data.event_id}_${data.log_date}`] = data.status
-        return acc
-      }, {})
-    },
-    enabled: !!user,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
   })
 }
 
@@ -160,51 +121,45 @@ export function useDeleteEvent() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['events', user?.uid] })
-      qc.invalidateQueries({ queryKey: ['eventsToday'] })
-      qc.invalidateQueries({ queryKey: ['event_logs', user?.uid] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
 }
 export function useLogEvent() {
   const qc = useQueryClient()
-  const user = auth.currentUser
 
   return useMutation({
+    // ── Atualização otimista ────────────────────────────────────────────────
     onMutate: async (vars: { eventId: string; status: string; logDate?: string }) => {
-      if (!user) return
-      const targetDate = vars.logDate || format(new Date(), 'yyyy-MM-dd')
-      // Update ALL eventsToday caches (the event's date may differ from the viewed date)
+      // Cancela queries em andamento para não sobrescrever o otimismo
       await qc.cancelQueries({ queryKey: ['eventsToday'] })
-      await qc.cancelQueries({ queryKey: ['event_logs', user.uid] })
-      const allKeys = qc.getQueriesData<any[]>({ queryKey: ['eventsToday'] })
-      const logKeys = qc.getQueriesData<EventLogStatusMap>({ queryKey: ['event_logs', user.uid] })
-      allKeys.forEach(([key]) => {
+
+      // Salva snapshot de TODOS os caches de eventsToday para rollback
+      const snapshots: Array<{ queryKey: readonly unknown[]; data: unknown }> = []
+      qc.getQueriesData<any[]>({ queryKey: ['eventsToday'] }).forEach(([key, data]) => {
+        snapshots.push({ queryKey: key, data })
+        // Atualiza imediatamente o evento em qualquer cache que o contenha
         qc.setQueryData(key, (old: any[] | undefined) => {
           if (!old) return old
-          return old.map(e => e.id === vars.eventId
-            ? { ...e, status: vars.status, isOverdue: false }
-            : e
-          )
+          return old.map(e => e.id === vars.eventId ? { ...e, status: vars.status } : e)
         })
       })
-      logKeys.forEach(([key]) => {
-        qc.setQueryData(key, (old: EventLogStatusMap | undefined) => ({
-          ...(old || {}),
-          [`${vars.eventId}_${targetDate}`]: vars.status
-        }))
+
+      return { snapshots }
+    },
+    // ── Rollback em caso de erro ───────────────────────────────────────────
+    onError: (_err, _vars, context: any) => {
+      context?.snapshots?.forEach(({ queryKey, data }: any) => {
+        qc.setQueryData(queryKey, data)
       })
-      return { allKeys, logKeys }
     },
-    onError: (_err: any, _vars: any, context: any) => {
-      context?.allKeys?.forEach(([key, data]: any) => qc.setQueryData(key, data))
-      context?.logKeys?.forEach(([key, data]: any) => qc.setQueryData(key, data))
-    },
+    // ── Mutação real ───────────────────────────────────────────────────────
     mutationFn: async ({ eventId, status, logDate }: {
       eventId: string;
       status: string;
       logDate?: string;
     }) => {
+      const user = auth.currentUser
       if (!user) throw new Error('Not authenticated')
 
       const targetDate = logDate || format(new Date(), 'yyyy-MM-dd')
@@ -218,9 +173,10 @@ export function useLogEvent() {
         logged_at: Timestamp.now()
       }, { merge: true })
     },
+    // ── Sincroniza cache com servidor após confirmação ─────────────────────
     onSuccess: () => {
+      const user = auth.currentUser
       qc.invalidateQueries({ queryKey: ['eventsToday'] })
-      qc.invalidateQueries({ queryKey: ['event_logs', user?.uid] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
@@ -258,9 +214,8 @@ export function useEventsToday(selectedDate: Date = new Date()) {
              return diff % interval === 0
           }
           if (freq === 'weekly') {
-            if (todayDay !== getDay(evDate)) return false
-            const diffDays = Math.abs(differenceInDays(selectedDate, evDate))
-            return diffDays % (7 * interval) === 0
+             const diff = Math.abs(differenceInWeeks(selectedDate, evDate))
+             return diff % interval === 0 && todayDay === getDay(evDate)
           }
           if (freq === 'specific_days') {
              const diff = Math.abs(differenceInWeeks(selectedDate, evDate))
@@ -301,11 +256,14 @@ export function useEventsToday(selectedDate: Date = new Date()) {
         )
         const logsPastSnap = await getDocs(logsPastQ)
         
-        // Map: `${eventId}_${date}` -> status for all logged past events
-        const pastLogStatusMap = new Map<string, string>()
+        // Map: eventId -> Set of COMPLETED/FAILED/PARTIAL dates (any status that isn't 'none' or 'todo')
+        const handledMap = new Map<string, Set<string>>()
         logsPastSnap.docs.forEach(d => {
           const data = d.data()
-          pastLogStatusMap.set(`${data.event_id}_${data.log_date}`, data.status)
+          if (data.status !== 'none' && data.status !== 'todo') {
+            if (!handledMap.has(data.event_id)) handledMap.set(data.event_id, new Set())
+            handledMap.get(data.event_id)!.add(data.log_date)
+          }
         })
 
         // Check each event for past occurrences that aren't handled
@@ -325,31 +283,21 @@ export function useEventsToday(selectedDate: Date = new Date()) {
                    const interval = e.recurrence.interval || 1
                    const freq = e.recurrence.frequency
                    if (freq === 'daily') occursOnPastDate = (Math.abs(differenceInDays(pDateObj, evDate)) % interval === 0)
-                   if (freq === 'weekly') {
-                     if (pDay === getDay(evDate)) {
-                       const diffDays = Math.abs(differenceInDays(pDateObj, evDate))
-                       occursOnPastDate = diffDays % (7 * interval) === 0
-                     }
-                   }
+                   if (freq === 'weekly') occursOnPastDate = (Math.abs(differenceInWeeks(pDateObj, evDate)) % interval === 0 && pDay === getDay(evDate))
                    if (freq === 'specific_days') occursOnPastDate = (Math.abs(differenceInWeeks(pDateObj, evDate)) % interval === 0 && !!e.recurrence.days_of_week?.includes(pDay))
                    if (freq === 'monthly') occursOnPastDate = (getDate(pDateObj) === getDate(evDate))
                    if (freq === 'yearly') occursOnPastDate = (getDate(pDateObj) === getDate(evDate) && getMonth(pDateObj) === getMonth(evDate))
                 }
              }
 
-             if (occursOnPastDate) {
-                const logStatus = pastLogStatusMap.get(`${e.id}_${pDate}`)
-                const isHandled = !!logStatus && logStatus !== 'none' && logStatus !== 'todo'
-                // Só exibe eventos NÃO tratados como atrasados.
-                // Eventos já concluídos/parciais/falhos ficam apenas no histórico do seu dia.
-                if (!isHandled) {
-                  overdueResults.push({
-                    ...e,
-                    date: pDate,
-                    status: 'none' as const,
-                    isOverdue: true
-                  })
-                }
+             if (occursOnPastDate && !handledMap.get(e.id)?.has(pDate)) {
+                // Not handled on this past date -> OVERDUE
+                overdueResults.push({
+                  ...e,
+                  date: pDate, 
+                  status: 'none',
+                  isOverdue: true
+                })
              }
           })
         })

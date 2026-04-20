@@ -214,21 +214,22 @@ export function useDeleteHabit() {
 
 export function useLogHabit() {
   const qc = useQueryClient()
-  const user = auth.currentUser
 
   return useMutation({
     onMutate: async (vars: any) => {
+      // Lê auth fresco — evita closure com user null da hidratação inicial
+      const user = auth.currentUser
       if (!user) return
       const targetDate = vars.logDate || format(new Date(), 'yyyy-MM-dd')
       const queryKey = ['habits', 'date', targetDate, user.uid]
       await qc.cancelQueries({ queryKey })
       const previousHabits = qc.getQueryData(queryKey)
-      
+
       qc.setQueryData(queryKey, (old: Habit[] | undefined) => {
         if (!old) return old
         return old.map(h => h.id === vars.habitId ? { ...h, status: vars.status } : h)
       })
-      
+
       return { previousHabits, queryKey }
     },
     onError: (err, newTodo, context) => {
@@ -341,6 +342,7 @@ export function useLogHabit() {
         }
     },
     onSuccess: (_, variables) => {
+      const user = auth.currentUser
       const targetDate = variables.logDate || format(new Date(), 'yyyy-MM-dd')
       qc.invalidateQueries({ queryKey: ['habits', 'date', targetDate, user?.uid] })
       qc.invalidateQueries({ queryKey: ['habits'] })
