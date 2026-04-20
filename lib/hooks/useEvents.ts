@@ -127,19 +127,44 @@ export function useDeleteEvent() {
 }
 export function useLogEvent() {
   const qc = useQueryClient()
-  const user = auth.currentUser
 
   return useMutation({
-    mutationFn: async ({ eventId, status, logDate }: { 
-      eventId: string; 
-      status: string; 
+    // ── Atualização otimista ────────────────────────────────────────────────
+    onMutate: async (vars: { eventId: string; status: string; logDate?: string }) => {
+      // Cancela queries em andamento para não sobrescrever o otimismo
+      await qc.cancelQueries({ queryKey: ['eventsToday'] })
+
+      // Salva snapshot de TODOS os caches de eventsToday para rollback
+      const snapshots: Array<{ queryKey: readonly unknown[]; data: unknown }> = []
+      qc.getQueriesData<any[]>({ queryKey: ['eventsToday'] }).forEach(([key, data]) => {
+        snapshots.push({ queryKey: key, data })
+        // Atualiza imediatamente o evento em qualquer cache que o contenha
+        qc.setQueryData(key, (old: any[] | undefined) => {
+          if (!old) return old
+          return old.map(e => e.id === vars.eventId ? { ...e, status: vars.status } : e)
+        })
+      })
+
+      return { snapshots }
+    },
+    // ── Rollback em caso de erro ───────────────────────────────────────────
+    onError: (_err, _vars, context: any) => {
+      context?.snapshots?.forEach(({ queryKey, data }: any) => {
+        qc.setQueryData(queryKey, data)
+      })
+    },
+    // ── Mutação real ───────────────────────────────────────────────────────
+    mutationFn: async ({ eventId, status, logDate }: {
+      eventId: string;
+      status: string;
       logDate?: string;
     }) => {
+      const user = auth.currentUser
       if (!user) throw new Error('Not authenticated')
-      
+
       const targetDate = logDate || format(new Date(), 'yyyy-MM-dd')
       const logId = `${eventId}_${targetDate}`
-      
+
       await setDoc(doc(db, 'event_logs', logId), {
         user_id: user.uid,
         event_id: eventId,
@@ -148,10 +173,10 @@ export function useLogEvent() {
         logged_at: Timestamp.now()
       }, { merge: true })
     },
-    onSuccess: (_, variables) => {
-      const targetDate = variables.logDate || format(new Date(), 'yyyy-MM-dd')
-      qc.invalidateQueries({ queryKey: ['events'] })
-      qc.invalidateQueries({ queryKey: ['eventsToday', targetDate] })
+    // ── Sincroniza cache com servidor após confirmação ─────────────────────
+    onSuccess: () => {
+      const user = auth.currentUser
+      qc.invalidateQueries({ queryKey: ['eventsToday'] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
