@@ -25,7 +25,7 @@ import SeedData from '@/components/dashboard/SeedData'
 import {
   Zap, TrendingUp, Target, Clock, Calendar, Trash2, Plus,
   ChevronRight, ArrowLeft, ArrowRight, RefreshCcw,
-  Check, Minus, X, Circle, Bell, FileText
+  Check, Minus, X, Circle, Search, Bell, Award, MoreHorizontal
 } from 'lucide-react'
 import { PerformanceHeader } from '@/components/dashboard/PerformanceHeader'
 import { cn } from '@/lib/utils/cn'
@@ -150,6 +150,15 @@ export default function DashboardPage() {
   const [showHabitModal, setShowHabitModal] = useState(false)
   const [habitToEdit, setHabitToEdit] = useState<Habit | null>(null)
 
+  // ── Overrides de status local ─────────────────────────────────────────────
+  // Garante feedback visual imediato independente do React Query cache
+  const [habitStatusOverrides, setHabitStatusOverrides] = useState<Record<string, HabitStatus>>({})
+  const [eventStatusOverrides, setEventStatusOverrides] = useState<Record<string, string>>({})
+
+  // Limpa overrides quando os dados do servidor chegam (evita estado stale)
+  useEffect(() => { setHabitStatusOverrides({}) }, [habitsData])
+  useEffect(() => { setEventStatusOverrides({}) }, [eventsToday])
+
   // Dispara tutorial apenas na primeira vez
   useEffect(() => {
     const hasSeenTutorial = localStorage.getItem('focusos_onboarding_completed')
@@ -259,51 +268,47 @@ export default function DashboardPage() {
   const todayDay = getDay(selectedDate)
   const isViewingToday = isToday(selectedDate)
 
-  // done/partial/failed → neutral means no status yet
-  const isStatusNeutral = (s: string | undefined) => !s || s === 'none' || s === 'todo'
-
   const habits = useMemo(() => {
     if (!habitsData) return []
-    return [...habitsData].sort((a, b) => {
-      const aNeutral = isStatusNeutral(a.status)
-      const bNeutral = isStatusNeutral(b.status)
-      if (aNeutral && !bNeutral) return -1  // pending stays above completed
-      if (!aNeutral && bNeutral) return 1
-      // Same tier — sort by time asc, then streak
-      if (a.time && b.time) return a.time.localeCompare(b.time)
-      if (a.time && !b.time) return -1
-      if (!a.time && b.time) return 1
-      return (b.streak || 0) - (a.streak || 0)
-    })
-  }, [habitsData])
+    return [...habitsData]
+      .map(h => habitStatusOverrides[h.id] !== undefined
+        ? { ...h, status: habitStatusOverrides[h.id] }
+        : h
+      )
+      .sort((a, b) => (b.streak || 0) - (a.streak || 0))
+  }, [habitsData, habitStatusOverrides])
 
-  const tasks = useMemo(() => {
-    if (!tasksData) return []
-    return [...tasksData].sort((a, b) => {
-      const aNeutral = isStatusNeutral(a.status)
-      const bNeutral = isStatusNeutral(b.status)
-      if (aNeutral && !bNeutral) return -1
-      if (!aNeutral && bNeutral) return 1
-      if (a.due_time && b.due_time) return a.due_time.localeCompare(b.due_time)
-      if (a.due_time && !b.due_time) return -1
-      if (!a.due_time && b.due_time) return 1
-      return 0
-    })
-  }, [tasksData])
+  const tasks = useMemo(() => tasksData || [], [tasksData])
 
   const todayEvents = useMemo(() => {
     if (!eventsToday) return []
-    return [...eventsToday].sort((a, b) => {
-      const aNeutral = isStatusNeutral(a.status)
-      const bNeutral = isStatusNeutral(b.status)
-      if (aNeutral && !bNeutral) return -1
-      if (!aNeutral && bNeutral) return 1
-      if (a.time && b.time) return a.time.localeCompare(b.time)
-      if (a.time && !b.time) return -1
-      if (!a.time && b.time) return 1
-      return 0
-    })
-  }, [eventsToday])
+    return [...eventsToday]
+      .map(e => {
+        const key = `${e.id}_${e.date}`
+        return eventStatusOverrides[key] !== undefined
+          ? { ...e, status: eventStatusOverrides[key] }
+          : e
+      })
+      .sort((a, b) => {
+        const isDoneA = a.status === 'done'
+        const isDoneB = b.status === 'done'
+        if (isDoneA && !isDoneB) return 1
+        if (!isDoneA && isDoneB) return -1
+
+        const now = currentTime
+        const timeA = a.time ? parse(a.time, 'HH:mm', now) : null
+        const timeB = b.time ? parse(b.time, 'HH:mm', now) : null
+
+        if (timeA && timeB) {
+          const passedA = isToday(selectedDate) && isAfter(now, timeA)
+          const passedB = isToday(selectedDate) && isAfter(now, timeB)
+          if (passedA && !passedB) return 1
+          if (!passedA && passedB) return -1
+          return timeA.getTime() - timeB.getTime()
+        }
+        return 0
+      })
+  }, [eventsToday, eventStatusOverrides, currentTime, selectedDate])
 
   // Sync AI Insights to Persistent Notifications
   const currentInsights = useMemo(() => generateLocalInsights(habits, tasks), [habits, tasks])
@@ -347,15 +352,21 @@ export default function DashboardPage() {
     return () => clearTimeout(t)
   }, [toast])
 
-  function setEventStatus(id: string, status: 'todo' | 'done' | 'partial' | 'failed', date?: string) {
-    logEvent({ eventId: id, status, logDate: date || todayStr })
+  function setEventStatus(id: string, status: any, date?: string) {
+    const targetDate = date || todayStr
+    // Override local imediato — UI atualiza antes de ir ao servidor
+    setEventStatusOverrides(prev => ({ ...prev, [`${id}_${targetDate}`]: status }))
+    logEvent({ eventId: id, status, logDate: targetDate })
 
-    const labels: Record<'todo' | 'done' | 'partial' | 'failed', string> = {
-      done: '✓ Concluído!',
-      partial: '½ Parcial registrado.',
-      failed: '✗ Falhou.',
-      todo: 'Compromisso limpo.'
+    if (status === 'partial') {
+      const ev = todayEvents.find(e => e.id === id)
+      if (ev) {
+        setEventToReschedule(ev)
+        setIsRescheduleOpen(true)
+      }
     }
+
+    const labels: any = { done: '✓ Concluído!', partial: '½ Parcial - Reagendar?', failed: '✗ Falhou.' }
     if (labels[status]) setToast(labels[status])
   }
 
@@ -370,7 +381,10 @@ export default function DashboardPage() {
 
   // Set habit status directly: none, done, partial, failed
   function setHabitStatus(id: string, nextStatus: HabitStatus) {
-    const habit = habits.find(h => h.id === id)
+    // Override local imediato — UI atualiza antes de ir ao servidor
+    setHabitStatusOverrides(prev => ({ ...prev, [id]: nextStatus }))
+
+    const habit = habitsData?.find(h => h.id === id)
     logHabit({
       habitId: id,
       status: nextStatus,
@@ -402,11 +416,18 @@ export default function DashboardPage() {
     setToast('Tarefa adicionada!')
   }
 
-  function setTaskStatus(id: string, nextStatus: TaskStatus) {
+  // Toggle task done/undone
+  function toggleTask(id: string, isDone: boolean) {
+    const nextStatus = isDone ? 'todo' : 'done'
+    updateTask({ id, status: nextStatus, completed_at: nextStatus === 'done' ? new Date().toISOString() : undefined })
+    setToast(isDone ? 'Marcado como pendente.' : '✓ Tarefa concluída!')
+  }
+  // Update task status: done, todo, partial, failed
+  function updateTaskStatus(id: string, nextStatus: TaskStatus) {
     updateTask({
       id,
       status: nextStatus,
-      completed_at: nextStatus === 'done' ? new Date().toISOString() : null,
+      completed_at: nextStatus === 'done' ? new Date().toISOString() : undefined,
       done: nextStatus === 'done'
     })
 
@@ -584,7 +605,7 @@ export default function DashboardPage() {
                         setEventToReschedule(event)
                         setIsRescheduleOpen(true)
                       } else {
-                        setEventStatus(event.id, status as 'todo' | 'done' | 'partial' | 'failed', event.date)
+                        setEventStatus(event.id, status)
                       }
                       setActiveBubble(null)
                     }
@@ -702,8 +723,12 @@ export default function DashboardPage() {
                 <TaskItem
                   key={t.id}
                   task={t}
-                  onToggle={() => setTaskStatus(t.id, t.done ? 'todo' : 'done')}
-                  onStatusChange={(status) => setTaskStatus(t.id, status)}
+                  onToggle={() => toggleTask(t.id, t.done)}
+                  onStatusChange={(status) => {
+                    if (status === 'done') toggleTask(t.id, false)
+                    else if (status === 'todo') toggleTask(t.id, true)
+                    else updateTaskStatus(t.id, status)
+                  }}
                   isSelectionMode={isSelectionMode}
                   isSelected={selectedItems.some(item => item.id === t.id)}
                   onSelect={() => toggleSelection(t.id, 'task')}
@@ -711,7 +736,9 @@ export default function DashboardPage() {
                     setIsSelectionMode(true)
                     toggleSelection(t.id, 'task')
                   }}
-
+                  onEdit={() => {
+                    // This is now handled internally by TaskItem for inline editing
+                  }}
                   onUpdate={(id, updates) => updateTask({ id, ...updates })}
                   onDelete={() => deleteTask(t.id)}
                   onOpenBubble={(position) => setActiveBubble({
@@ -719,7 +746,9 @@ export default function DashboardPage() {
                     position,
                     options: TASK_OPTIONS,
                     onSelect: (status) => {
-                      setTaskStatus(t.id, status as TaskStatus)
+                      if (status === 'done') toggleTask(t.id, false)
+                      else if (status === 'todo') toggleTask(t.id, true)
+                      else updateTaskStatus(t.id, status)
                       setActiveBubble(null)
                     }
                   })}
@@ -765,77 +794,65 @@ export default function DashboardPage() {
 
       <AnimatePresence>
         {isSelectionMode && (
-          /* Wrapper ocupa exatamente a área de conteúdo (sem sidebar) */
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-6 md:bottom-10 left-0 lg:left-64 right-0 z-[10000] flex justify-center px-3 pointer-events-none"
+            className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[10000] w-[95%] md:w-auto max-w-4xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-4 md:gap-10 shadow-2xl ring-1 ring-white/5"
           >
-            {/* Pill centralizado */}
-            <div className="pointer-events-auto bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[28px] md:rounded-[36px] px-3 md:px-6 lg:px-8 py-3 md:py-4 flex items-center gap-2 md:gap-5 shadow-2xl ring-1 ring-white/5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] max-w-full">
+            <div className="flex flex-col items-center justify-center min-w-[60px] md:min-w-[80px]">
+              <span className="text-2xl md:text-3xl font-black text-white leading-none">{selectedItems.length}</span>
+              <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">
+                {selectedItems.length === 1 ? 'Item' : 'Itens'}
+              </span>
+            </div>
 
-              {/* Count */}
-              <div className="flex flex-col items-center justify-center min-w-[48px] md:min-w-[60px] shrink-0">
-                <span className="text-xl md:text-2xl font-black text-white leading-none">{selectedItems.length}</span>
-                <span className="text-[7px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mt-0.5">
-                  {selectedItems.length === 1 ? 'Item' : 'Itens'}
-                </span>
-              </div>
+            <div className="h-10 md:h-12 w-px bg-white/10" />
 
-              <div className="h-8 md:h-10 w-px bg-white/10 shrink-0" />
-
-              {/* Group select buttons */}
-              <div className="flex items-center gap-2 md:gap-3 shrink-0">
-                {[
-                  { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
-                  { label: 'Compromissos', icon: Calendar, onClick: () => handleSelectGroup('events') },
-                  { label: 'Hábitos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
-                  { label: 'A Evitar', icon: Target, onClick: () => handleSelectGroup('negative') },
-                  { label: 'Rascunhos', icon: FileText, onClick: () => handleSelectGroup('tasks') },
-                ].map(btn => (
-                  <button
-                    key={btn.label}
-                    onClick={btn.onClick}
-                    title={btn.label}
-                    className="relative flex flex-col items-center group/sel"
-                  >
-                    <div className="w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all duration-300">
-                      <btn.icon size={16} />
-                    </div>
-                    <span className="mt-1 text-[7px] font-black uppercase tracking-widest text-white/40 opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap hidden md:block">
-                      {btn.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="h-8 md:h-10 w-px bg-white/10 shrink-0" />
-
-              {/* Actions */}
-              <div className="flex items-center gap-2 md:gap-3 shrink-0">
+            <div className="flex items-center gap-3 md:gap-6">
+              {[
+                { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
+                { label: 'Compromissos', icon: Calendar, onClick: () => handleSelectGroup('events') },
+                { label: 'Hábitos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
+                { label: 'A Evitar', icon: Target, onClick: () => handleSelectGroup('negative') },
+              ].map(btn => (
                 <button
-                  onClick={handleBulkDelete}
-                  disabled={selectedItems.length === 0 || loading}
-                  title="Excluir selecionados"
-                  className="relative flex flex-col items-center group/del disabled:opacity-20"
+                  key={btn.label}
+                  onClick={btn.onClick}
+                  className="relative flex flex-col items-center group/sel pt-1"
                 >
-                  <div className="w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all duration-300 text-red-500">
-                    {loading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Trash2 size={16} />}
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all duration-300">
+                    <btn.icon size={18} />
                   </div>
+                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap hidden md:block">
+                    {btn.label}
+                  </span>
                 </button>
+              ))}
+            </div>
 
-                <button
-                  onClick={() => {
-                    setIsSelectionMode(false)
-                    setSelectedItems([])
-                  }}
-                  className="h-9 md:h-11 px-4 md:px-7 bg-white/10 hover:bg-white text-white hover:text-black rounded-xl md:rounded-2xl font-black uppercase tracking-[0.12em] text-[9px] md:text-[10px] transition-all duration-300 whitespace-nowrap"
-                >
-                  Cancelar
-                </button>
-              </div>
+            <div className="h-10 md:h-12 w-px bg-white/10" />
 
+            <div className="flex items-center gap-3 md:gap-6">
+              <button
+                onClick={handleBulkDelete}
+                disabled={selectedItems.length === 0 || loading}
+                className="relative flex flex-col items-center group/del disabled:opacity-20"
+              >
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all duration-300 text-red-500">
+                  {loading ? <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Trash2 size={18} />}
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsSelectionMode(false)
+                  setSelectedItems([])
+                }}
+                className="h-10 md:h-12 px-5 md:px-10 bg-white/10 hover:bg-white text-white hover:text-black rounded-xl md:rounded-2xl font-black uppercase tracking-[0.15em] text-[10px] md:text-[11px] transition-all duration-300 whitespace-nowrap"
+              >
+                Cancelar
+              </button>
             </div>
           </motion.div>
         )}
@@ -867,16 +884,9 @@ export default function DashboardPage() {
         )}
       </AnimatePresence>
       
-      <RescheduleModal
-        isOpen={isRescheduleOpen}
-        onClose={() => { setIsRescheduleOpen(false); setEventToReschedule(null) }}
-        onConfirm={handleRescheduleConfirm}
-        event={eventToReschedule}
-      />
-
-      <NotificationsCenter
-        isOpen={isNotificationsOpen}
-        onClose={() => setIsNotificationsOpen(false)}
+      <NotificationsCenter 
+        isOpen={isNotificationsOpen} 
+        onClose={() => setIsNotificationsOpen(false)} 
       />
       <AnimatePresence>
         {isBulkDeleteModalOpen && (
