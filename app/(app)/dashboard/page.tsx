@@ -151,13 +151,11 @@ export default function DashboardPage() {
   const [habitToEdit, setHabitToEdit] = useState<Habit | null>(null)
 
   // ── Overrides de status local ─────────────────────────────────────────────
-  // Garante feedback visual imediato independente do React Query cache
+  // Garante feedback visual imediato independente do React Query cache.
+  // Não limpamos explicitamente: o override "se dissolve" sozinho quando
+  // o servidor retorna o dado correto (override !== h.status deixa de ser true).
   const [habitStatusOverrides, setHabitStatusOverrides] = useState<Record<string, HabitStatus>>({})
   const [eventStatusOverrides, setEventStatusOverrides] = useState<Record<string, string>>({})
-
-  // Limpa overrides quando os dados do servidor chegam (evita estado stale)
-  useEffect(() => { setHabitStatusOverrides({}) }, [habitsData])
-  useEffect(() => { setEventStatusOverrides({}) }, [eventsToday])
 
   // Dispara tutorial apenas na primeira vez
   useEffect(() => {
@@ -271,11 +269,20 @@ export default function DashboardPage() {
   const habits = useMemo(() => {
     if (!habitsData) return []
     return [...habitsData]
-      .map(h => habitStatusOverrides[h.id] !== undefined
-        ? { ...h, status: habitStatusOverrides[h.id] }
-        : h
-      )
-      .sort((a, b) => (b.streak || 0) - (a.streak || 0))
+      .map(h => {
+        const ov = habitStatusOverrides[h.id]
+        // Aplica override só se o servidor ainda não retornou o status novo
+        return (ov !== undefined && ov !== h.status) ? { ...h, status: ov } : h
+      })
+      .sort((a, b) => {
+        // Pendentes (none) primeiro; done/partial/failed vão para o fundo
+        const aPending = a.status === 'none' || !a.status
+        const bPending = b.status === 'none' || !b.status
+        if (aPending && !bPending) return -1
+        if (!aPending && bPending) return 1
+        // Dentro do mesmo grupo: maior streak primeiro
+        return (b.streak || 0) - (a.streak || 0)
+      })
   }, [habitsData, habitStatusOverrides])
 
   const tasks = useMemo(() => tasksData || [], [tasksData])
@@ -285,16 +292,19 @@ export default function DashboardPage() {
     return [...eventsToday]
       .map(e => {
         const key = `${e.id}_${e.date}`
-        return eventStatusOverrides[key] !== undefined
-          ? { ...e, status: eventStatusOverrides[key] }
-          : e
+        const ov = eventStatusOverrides[key]
+        // Aplica override só se o servidor ainda não retornou o status novo
+        return (ov !== undefined && ov !== e.status) ? { ...e, status: ov } : e
       })
       .sort((a, b) => {
-        const isDoneA = a.status === 'done'
-        const isDoneB = b.status === 'done'
-        if (isDoneA && !isDoneB) return 1
-        if (!isDoneA && isDoneB) return -1
+        // Concluído/parcial/falhou sempre vão para o fundo
+        const aResolved = a.status === 'done' || a.status === 'partial' || a.status === 'failed'
+        const bResolved = b.status === 'done' || b.status === 'partial' || b.status === 'failed'
+        if (aResolved && !bResolved) return 1
+        if (!aResolved && bResolved) return -1
 
+        // Entre pendentes: atrasados depois dos futuros, dentro do mesmo
+        // grupo ordena por horário
         const now = currentTime
         const timeA = a.time ? parse(a.time, 'HH:mm', now) : null
         const timeB = b.time ? parse(b.time, 'HH:mm', now) : null
