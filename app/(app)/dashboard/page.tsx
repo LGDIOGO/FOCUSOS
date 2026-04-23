@@ -591,7 +591,7 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-2">
               {todayEvents.map(event => (
                 <AgendaItem
-                  key={event.id}
+                  key={`${event.id}_${event.date}`}
                   event={event}
                   onStatusChange={status => setEventStatus(event.id, status, event.date)}
                   onReschedule={() => {
@@ -615,7 +615,8 @@ export default function DashboardPage() {
                         setEventToReschedule(event)
                         setIsRescheduleOpen(true)
                       } else {
-                        setEventStatus(event.id, status)
+                        // Passa event.date para garantir chave correta em atrasados
+                        setEventStatus(event.id, status, event.date)
                       }
                       setActiveBubble(null)
                     }
@@ -799,6 +800,13 @@ export default function DashboardPage() {
           isOpen={showHabitModal}
           onClose={() => { setShowHabitModal(false); setHabitToEdit(null) }}
           habitToEdit={habitToEdit}
+        />
+
+        <RescheduleModal
+          isOpen={isRescheduleOpen}
+          onClose={() => { setIsRescheduleOpen(false); setEventToReschedule(null) }}
+          onConfirm={handleRescheduleConfirm}
+          event={eventToReschedule}
         />
       </main>
 

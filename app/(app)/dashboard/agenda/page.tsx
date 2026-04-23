@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -174,7 +174,16 @@ function EventItem({
   )
 }
 
-export default function AgendaPage() {
+// Suspense wrapper obrigatório no Next.js 14 para useSearchParams
+export default function AgendaPageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-workspace)]" />}>
+      <AgendaPage />
+    </Suspense>
+  )
+}
+
+function AgendaPage() {
   const { data: events, isLoading } = useEvents()
   const deleteEvent = useDeleteEvent()
   const [currentMonth, setCurrentMonth] = useState(new Date())
