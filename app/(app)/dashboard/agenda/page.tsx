@@ -230,26 +230,42 @@ function AgendaPage() {
     return () => clearInterval(timer)
   }, [])
 
-  // ── Logs via React Query so they invalidate automatically when useLogEvent fires ──
-  // Range: past 60 days (covers 30-day overdue window + buffer) → end of viewed month
-  const logsStart = format(subDays(new Date(), 60), 'yyyy-MM-dd')
-  const logsEnd   = format(endOfMonth(currentMonth), 'yyyy-MM-dd')
+  // ── Logs via React Query — invalidated automatically by useLogEvent.onSuccess ──
+  // Uses batched 'in' queries (10 dates each, run in PARALLEL) so no composite
+  // Firestore index is needed and the fetch is as fast as a single round-trip.
+  // Covers: today + past 30 days (overdue window) = 31 dates = 4 parallel queries.
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+  const logDates = [todayStr, ...Array.from({ length: 30 }, (_, i) =>
+    format(subDays(new Date(), i + 1), 'yyyy-MM-dd')
+  )]
 
   const { data: logsData, isLoading: loadingLogs } = useQuery({
-    queryKey: ['event-logs-agenda', user?.uid, logsStart, logsEnd],
+    queryKey: ['event-logs-agenda', user?.uid, todayStr],
     queryFn: async () => {
       if (!user) return new Map<string, string>()
-      const q = query(
-        collection(db, 'event_logs'),
-        where('user_id', '==', user.uid),
-        where('log_date', '>=', logsStart),
-        where('log_date', '<=', logsEnd)
+
+      // Chunk into 10-date batches, run ALL batches in parallel
+      const chunks: string[][] = []
+      for (let i = 0; i < logDates.length; i += 10) {
+        chunks.push(logDates.slice(i, i + 10))
+      }
+
+      const snapshots = await Promise.all(
+        chunks.map(chunk =>
+          getDocs(query(
+            collection(db, 'event_logs'),
+            where('user_id', '==', user.uid),
+            where('log_date', 'in', chunk)
+          ))
+        )
       )
-      const snap = await getDocs(q)
+
       const m = new Map<string, string>()
-      snap.docs.forEach(d => {
-        const data = d.data()
-        m.set(`${data.event_id}_${data.log_date}`, data.status)
+      snapshots.forEach(snap => {
+        snap.docs.forEach(d => {
+          const data = d.data()
+          m.set(`${data.event_id}_${data.log_date}`, data.status)
+        })
       })
       return m
     },
@@ -320,7 +336,7 @@ function AgendaPage() {
     const start = startOfMonth(currentMonth)
     const end = endOfMonth(currentMonth)
     const days = eachDayOfInterval({ start, end })
-    const todayStr = format(new Date(), 'yyyy-MM-dd')
+    // todayStr is available from outer scope
 
     const grouped: Record<string, (CalendarEvent & { isOverdue?: boolean })[]> = {}
 
@@ -431,7 +447,7 @@ function AgendaPage() {
 
   const pastEventsGrouped = useMemo(() => {
     if (!events || !logs.size) return {}
-    const todayStr = format(new Date(), 'yyyy-MM-dd')
+    // todayStr is available from outer scope (query key computation above)
 
     // Build a fast lookup map: eventId → event object
     const eventMap = new Map(events.map(e => [e.id, e]))
