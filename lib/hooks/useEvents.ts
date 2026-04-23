@@ -266,14 +266,23 @@ export function useEventsToday(selectedDate: Date = new Date()) {
           }
         })
 
+        // IDs de eventos já presentes como ocorrência de hoje (para não duplicar)
+        const todayEventIds = new Set(todayResults.map(e => e.id))
+        // Chave única por evento+data para não duplicar o mesmo atraso
+        const addedOverdueKeys = new Set<string>()
+
         // Check each event for past occurrences that aren't handled
         allEvents.forEach(e => {
+          // Eventos não-recorrentes: só aparecem como atrasados se a data original é passada
+          // e o evento ainda não está em todayResults como ocorrência de hoje
+          if (!e.recurrence && todayEventIds.has(e.id)) return
+
           pastDates.forEach(pDate => {
              const pDateObj = parseISO(pDate)
              const pDay = getDay(pDateObj)
              let occursOnPastDate = false
 
-             // Skip if event was created after the past date
+             // Skip se o evento foi criado depois da data passada
              if (e.created_at && pDate < format(parseISO(e.created_at), 'yyyy-MM-dd')) return
 
              if (e.date === pDate) occursOnPastDate = true
@@ -290,11 +299,12 @@ export function useEventsToday(selectedDate: Date = new Date()) {
                 }
              }
 
-             if (occursOnPastDate && !handledMap.get(e.id)?.has(pDate)) {
-                // Not handled on this past date -> OVERDUE
+             const overdueKey = `${e.id}_${pDate}`
+             if (occursOnPastDate && !handledMap.get(e.id)?.has(pDate) && !addedOverdueKeys.has(overdueKey)) {
+                addedOverdueKeys.add(overdueKey)
                 overdueResults.push({
                   ...e,
-                  date: pDate, 
+                  date: pDate,
                   status: 'none',
                   isOverdue: true
                 })
