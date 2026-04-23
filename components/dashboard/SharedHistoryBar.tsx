@@ -75,14 +75,15 @@ export function SharedHistoryBar({
       </button>
 
       {/* Expanded Content Wrapper */}
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
+            key="shared-history-content"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-            className="overflow-hidden"
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            style={{ overflow: 'hidden' }}
           >
             <div className="pt-6 pb-2">
               {/* Toolbar -> Date Filters */}

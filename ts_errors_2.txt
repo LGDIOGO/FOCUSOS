@@ -1,1 +1,0 @@
-﻿components/dashboard/HabitModal.tsx(143,30): error TS2339: Property 'status' does not exist on type 'never'.

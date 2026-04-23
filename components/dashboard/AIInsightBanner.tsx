@@ -56,11 +56,11 @@ export default function AIInsightBanner({ habits, tasks, goals = [], events = []
     } finally {
       setLoading(false)
     }
-  }, [habits, tasks])
+  }, [events, goals, habits, score, tasks])
 
   useEffect(() => {
     fetchInsight()
-  }, []) // Apenas no primeiro mount
+  }, [fetchInsight])
 
   if (!mounted || (!insight && !loading)) return null
 

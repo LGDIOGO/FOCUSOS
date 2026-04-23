@@ -1,15 +1,18 @@
-import { useCallback, useRef, useState } from 'react'
+import type { MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from 'react'
+import { useCallback, useRef } from 'react'
+
+type LongPressEvent = ReactMouseEvent<HTMLElement> | ReactTouchEvent<HTMLElement>
 
 export function useLongPress(
   onLongPress: () => void,
-  onClick: () => void,
+  onClick: (event: LongPressEvent) => void,
   { delay = 500 } = {}
 ) {
   const timerRef = useRef<NodeJS.Timeout>()
   const isLongPressActive = useRef(false)
 
   const start = useCallback(
-    (event: any) => {
+    (_event: LongPressEvent) => {
       isLongPressActive.current = false
       timerRef.current = setTimeout(() => {
         onLongPress()
@@ -20,15 +23,17 @@ export function useLongPress(
   )
 
   const clear = useCallback(
-    (event: any, shouldTriggerClick = true) => {
+    (event: LongPressEvent, shouldTriggerClick = true) => {
       if (timerRef.current) {
         clearTimeout(timerRef.current)
       }
-      
-      if (shouldTriggerClick && !isLongPressActive.current) {
-        onClick()
+
+      const isPrimaryMouseButton = !('button' in event) || event.button === 0
+
+      if (shouldTriggerClick && !isLongPressActive.current && isPrimaryMouseButton) {
+        onClick(event)
       }
-      
+
       isLongPressActive.current = false
     },
     [onClick]
@@ -37,7 +42,7 @@ export function useLongPress(
   return {
     onMouseDown: start,
     onMouseUp: clear,
-    onMouseLeave: (e: any) => clear(e, false),
+    onMouseLeave: (event: ReactMouseEvent<HTMLElement>) => clear(event, false),
     onTouchStart: start,
     onTouchEnd: clear,
   }

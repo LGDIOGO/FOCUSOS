@@ -1,11 +1,13 @@
-import { memo, useState, useMemo } from 'react'
+'use client'
+
+import { memo, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Minus, X, Calendar, Clock, RefreshCcw, Circle, Pencil, AlertCircle } from 'lucide-react'
-import { format, parse, isAfter, subMinutes, isToday } from 'date-fns'
+import { AlertCircle, Check, Clock, Minus, Pencil, X } from 'lucide-react'
+import { isAfter, isToday, parse, subMinutes } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
-import { CalendarEvent } from '@/types'
 import { useLongPress } from '@/lib/hooks/useLongPress'
-import { StatusChoiceBubble } from './StatusChoiceBubble'
+import { resolveBubblePosition } from '@/lib/utils/statusBubble'
+import { CalendarEvent } from '@/types'
 
 interface AgendaItemProps {
   event: CalendarEvent
@@ -20,39 +22,24 @@ interface AgendaItemProps {
   currentTime?: Date
 }
 
-const DEFAULT_STATUS_CONFIG = {
-  icon: 'bg-[var(--bg-overlay)] text-[var(--text-muted)]',
-  border: 'border-[var(--border-subtle)]',
-  text: 'text-[var(--text-primary)]'
-}
-
 const STATUS_CONFIG = {
-  todo: {
-    icon: 'bg-[var(--bg-overlay)] text-[var(--text-muted)]',
-    border: 'border-[var(--border-subtle)]',
-    text: 'text-[var(--text-primary)]'
-  },
-  done: {
-    icon: 'bg-green-500 text-white',
-    border: 'border-green-500/30 bg-green-500/[0.03]',
-    text: 'text-[var(--text-muted)] line-through'
-  },
-  partial: {
-    icon: 'bg-amber-400 text-black',
-    border: 'border-amber-400/30 bg-amber-400/[0.03]',
-    text: 'text-[var(--text-primary)]/70'
-  },
-  failed: {
-    icon: 'bg-red-500 text-white',
-    border: 'border-red-500/30 bg-red-500/[0.03]',
-    text: 'text-[var(--text-muted)]'
-  },
-  none: DEFAULT_STATUS_CONFIG
+  todo: { icon: '', card: 'border-white/[0.06]', text: 'text-[var(--text-primary)]' },
+  none: { icon: '', card: 'border-white/[0.06]', text: 'text-[var(--text-primary)]' },
+  done: { icon: 'bg-green-500', card: 'border-green-500/25 bg-green-500/[0.04]', text: 'text-white/50 line-through' },
+  partial: { icon: 'bg-amber-400', card: 'border-amber-400/25 bg-amber-400/[0.04]', text: 'text-white/70' },
+  failed: { icon: 'bg-red-500', card: 'border-red-500/25 bg-red-500/[0.04]', text: 'text-white/50' }
+} as const
+
+function StatusIcon({ status }: { status: string | undefined }) {
+  if (status === 'done') return <Check size={16} strokeWidth={3} className="text-white" />
+  if (status === 'partial') return <Minus size={16} strokeWidth={3} className="text-white" />
+  if (status === 'failed') return <X size={16} strokeWidth={3} className="text-white" />
+  return null
 }
 
-function AgendaItem({ 
-  event, 
-  onStatusChange, 
+function AgendaItem({
+  event,
+  onStatusChange,
   onReschedule,
   isSelectionMode,
   isSelected,
@@ -62,174 +49,164 @@ function AgendaItem({
   onEdit,
   currentTime = new Date()
 }: AgendaItemProps) {
-  const currentStatus = event.status || 'none'
-  const cfg = (STATUS_CONFIG as any)[currentStatus] || STATUS_CONFIG.none || DEFAULT_STATUS_CONFIG
+  const status = event.status || 'none'
+  const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.none
 
-  // Status de tempo real
-  const timeStatus = useMemo(() => {
-    if (!event.time || event.status === 'done' || !isToday(parse(event.date || '', 'yyyy-MM-dd', new Date()))) {
-      return { approaching: false, passed: event.isOverdue }
+  const handleShortPress = (eventData: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
+    if (isSelectionMode) {
+      onSelect?.()
+      return
     }
-    
-    try {
-      const eventTime = parse(event.time, 'HH:mm', currentTime)
-      const now = currentTime
-      
-      const isPassed = isAfter(now, eventTime)
-      // Flash red if it's within 15 mins of starting
-      const isApproaching = !isPassed && isAfter(now, subMinutes(eventTime, 15))
-      
-      return { approaching: isApproaching, passed: isPassed }
-    } catch (e) {
-      return { approaching: false, passed: false }
-    }
-  }, [event.time, event.status, event.isOverdue, event.date, currentTime])
+    onOpenBubble?.(resolveBubblePosition(eventData, eventData.currentTarget))
+  }
 
   const longPress = useLongPress(
-    () => {
-      onContextMenu?.()
-    },
-    () => {}, // Remove o click do longPress para evitar double-toggling
+    () => onContextMenu?.(),
+    handleShortPress,
     { delay: 500 }
   )
 
-  const handleStatusClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (isSelectionMode) return
-    onOpenBubble?.({ x: e.clientX, y: e.clientY })
-  }
+  const timeStatus = useMemo(() => {
+    if (!event.time || event.status === 'done' || !isToday(parse(event.date || '', 'yyyy-MM-dd', new Date()))) {
+      return { approaching: false, passed: !!event.isOverdue }
+    }
 
-  const STATUS_OPTIONS = [
-    { id: 'done', label: 'Concluído', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
-    { id: 'partial', label: 'Parcial', icon: Minus, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
-    { id: 'failed', label: 'Falhou', icon: X, color: 'text-red-500', bg: 'hover:bg-red-500/10' },
-    { id: 'todo', label: 'Limpar', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' },
-    { id: 'reschedule', label: 'Remarcar', icon: RefreshCcw, color: 'text-red-400', bg: 'hover:bg-red-500/10' }
-  ]
+    try {
+      const eventTime = parse(event.time, 'HH:mm', currentTime)
+      const passed = isAfter(currentTime, eventTime)
+      const approaching = !passed && isAfter(currentTime, subMinutes(eventTime, 15))
+      return { approaching, passed }
+    } catch {
+      return { approaching: false, passed: false }
+    }
+  }, [currentTime, event.date, event.isOverdue, event.status, event.time])
+
+  const isNeutral = status === 'none' || status === 'todo'
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
+      whileTap={{ scale: 0.98 }}
       {...longPress}
-      onClick={(e) => {
-        if (isSelectionMode) {
-          e.preventDefault()
-          e.stopPropagation()
-          onSelect?.()
-        } else {
-          handleStatusClick(e)
-        }
-      }}
-      onContextMenu={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
+      onContextMenu={(eventData) => {
+        eventData.preventDefault()
+        eventData.stopPropagation()
         onContextMenu?.()
       }}
+      data-status-card="dashboard-agenda"
       className={cn(
-        "bg-[var(--bg-overlay)] border rounded-[28px] p-4 flex items-center justify-between gap-4 transition-all group relative overflow-hidden cursor-pointer",
-        cfg.border,
-        isSelected && "border-red-600/50 bg-red-600/[0.08] ring-1 ring-red-600/20 shadow-[0_0_20px_rgba(224,32,32,0.1)]"
+        'flex items-center gap-3 rounded-[28px] border p-4 cursor-pointer select-none transition-all duration-300 relative group',
+        cfg.card,
+        isSelected && 'border-red-600/50 bg-red-600/[0.08] ring-1 ring-red-600/20'
       )}
     >
-      
-      <div className="flex items-center gap-4 flex-1 min-w-0">
-        {/* Status Trigger */}
-        {!isSelectionMode && !isSelected && (
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={handleStatusClick}
-            className={cn(
-              "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
-              (event.status === 'todo' || !event.status) ? "border-[var(--border-subtle)] bg-[var(--bg-overlay)]" : cfg.icon
-            )}
-          >
-            <StatusIcon status={event.status} />
-          </motion.div>
-        )}
+      {!isSelectionMode && (
+        <div
+          data-status-trigger="true"
+          className={cn(
+            'w-11 h-11 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200',
+            isNeutral ? 'border-white/10 bg-white/5' : cn('border-0', cfg.icon)
+          )}
+        >
+          <StatusIcon status={event.status} />
+        </div>
+      )}
 
-        {isSelectionMode && (
-           <div className={cn(
-              "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
-              isSelected ? "border-red-600 bg-red-600" : "border-white/10 bg-white/5"
-           )}>
-             {isSelected && <Check size={20} className="text-white" strokeWidth={3} />}
-           </div>
-        )}
+      {isSelectionMode && (
+        <div
+          className={cn(
+            'w-11 h-11 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all',
+            isSelected ? 'border-red-600 bg-red-600' : 'border-white/10 bg-white/5'
+          )}
+        >
+          {isSelected && <Check size={18} strokeWidth={3} className="text-white" />}
+        </div>
+      )}
 
-        <div className="flex-1 min-w-0">
-          <h4 className={cn("text-lg font-bold truncate transition-all tracking-tight", cfg.text)}>
-            {event.title}
-          </h4>
-          <div className="flex items-center gap-3 text-xs font-medium text-white/30 uppercase tracking-widest">
-            <span className={cn(
-              "flex items-center gap-1.5 transition-all duration-700",
-              timeStatus.passed ? "text-[#FF453A] font-black scale-105" : 
-              timeStatus.approaching ? "animate-flash-red font-bold" : ""
-            )}>
-              <Clock size={12} className={cn(timeStatus.passed || timeStatus.approaching ? "text-[#FF453A]" : "")} /> 
+      {!isSelectionMode && event.emoji && (
+        <div
+          className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl flex-shrink-0"
+          style={{ backgroundColor: event.color ? `${event.color}20` : 'rgba(255,255,255,0.05)' }}
+        >
+          {event.emoji}
+        </div>
+      )}
+
+      <div className="flex-1 min-w-0">
+        <p className={cn('text-base font-bold truncate tracking-tight', cfg.text)}>
+          {event.title}
+        </p>
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          {event.time && (
+            <span
+              className={cn(
+                'flex items-center gap-1 text-[11px] font-semibold uppercase tracking-widest',
+                timeStatus.passed && status !== 'done'
+                  ? 'text-red-400 font-black'
+                  : timeStatus.approaching
+                    ? 'text-amber-400 font-bold'
+                    : 'text-white/35'
+              )}
+            >
+              <Clock size={10} />
               {event.time}
             </span>
-
-            {event.isOverdue && (
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-lg text-[#FF453A] text-[9px] font-black animate-in fade-in zoom-in duration-500">
-                <AlertCircle size={10} /> NÃO REALIZADO
-              </span>
-            )}
-
-            {event.description && !event.isOverdue && (
-              <span className="flex items-center gap-1.5 text-[var(--text-muted)] lowercase italic tracking-normal font-normal truncate">
-                 · {event.description}
-              </span>
-            )}
-            {event.status === 'partial' && (
-              <span className="text-amber-400 font-black ml-2">REAGENDAR</span>
-            )}
-          </div>
+          )}
+          {event.isOverdue && status !== 'done' && (
+            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-red-500/10 border border-red-500/20 rounded-md text-red-400 text-[9px] font-black uppercase tracking-widest">
+              <AlertCircle size={9} />
+              NÃO REALIZADO
+            </span>
+          )}
+          {event.description && !event.isOverdue && (
+            <span className="text-[11px] text-white/25 truncate font-normal italic lowercase">
+              {event.description}
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-shrink-0">
         {!isSelectionMode && !isSelected && (
-          <button 
-            onClick={(e) => {
-              e.stopPropagation()
+          <button
+            type="button"
+            data-bubble-ignore="true"
+            data-ignore-action="edit"
+            onClick={(eventData) => {
+              eventData.stopPropagation()
               onEdit?.()
             }}
-            className="p-2.5 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/80 transition-all active:scale-90"
-            title="Editar Compromisso"
+            onMouseDown={(eventData) => eventData.stopPropagation()}
+            onMouseUp={(eventData) => eventData.stopPropagation()}
+            onPointerDown={(eventData) => eventData.stopPropagation()}
+            onPointerUp={(eventData) => eventData.stopPropagation()}
+            onTouchStart={(eventData) => eventData.stopPropagation()}
+            onTouchEnd={(eventData) => eventData.stopPropagation()}
+            className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white/30 hover:text-white hover:bg-white/10 transition-all active:scale-90 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+            title="Editar"
           >
-            <Pencil size={14} />
+            <Pencil size={13} />
           </button>
         )}
-        {!isSelectionMode && !isSelected && (event.status === 'done' || event.status === 'partial' || event.status === 'failed') && (
-           <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className={cn(
-                "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                event.status === 'done' && "text-green-400 border-green-400/20 bg-green-400/5",
-                event.status === 'partial' && "text-amber-400 border-amber-400/20 bg-amber-400/5",
-                event.status === 'failed' && "text-red-400 border-red-400/20 bg-red-400/5"
-              )}
-           >
-              {event.status === 'done' ? 'CONCLUÍDO' : 
-               event.status === 'partial' ? 'PARCIAL' : 'FALHOU'}
-           </motion.div>
+
+        {!isSelectionMode && !isSelected && (status === 'done' || status === 'partial' || status === 'failed') && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border flex-shrink-0',
+              status === 'done' && 'text-green-400 border-green-400/20 bg-green-400/5',
+              status === 'partial' && 'text-amber-400 border-amber-400/20 bg-amber-400/5',
+              status === 'failed' && 'text-red-400 border-red-400/20 bg-red-400/5'
+            )}
+          >
+            {status === 'done' ? 'CONCLUIDO' : status === 'partial' ? 'PARCIAL' : 'FALHOU'}
+          </motion.div>
         )}
       </div>
-
-      {/* Choice Bubble removed (now managed at root) */}
     </motion.div>
   )
-}
-
-function StatusIcon({ status }: { status: any }) {
-  if (status === 'done')    return <Check size={18} strokeWidth={3} className="text-white" />
-  if (status === 'partial') return <Minus size={18} strokeWidth={3} className="text-white" />
-  if (status === 'failed')  return <X     size={18} strokeWidth={3} className="text-white" />
-  return null
 }
 
 export default memo(AgendaItem)

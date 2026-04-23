@@ -336,7 +336,7 @@ export default function GoalsPage() {
 
     activeGoals.forEach(g => {
       const cid = g.category_id || 'UNCATEGORIZED'
-      const year = g.end_date ? new Date(g.end_date).getFullYear() : 9999
+      const year = g.end_date ? parseISO(g.end_date).getFullYear() : 9999
 
       if (!categoryMap.has(cid)) {
         categoryMap.set(cid, new Map<number, Goal[]>())

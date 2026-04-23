@@ -83,7 +83,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
         setFormData(prev => ({ ...prev, progress_pct: pct }))
       }
     }
-  }, [formData.current_value, formData.target_value, formData.initial_value])
+  }, [formData.current_value, formData.initial_value, formData.progress_pct, formData.target_value])
 
   const handleMagicParse = async () => {
     if (!formData.title || isParsing) return

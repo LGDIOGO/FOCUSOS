@@ -42,7 +42,7 @@ export default function InsightsPage() {
     if (habits.length > 0 || tasks.length > 0 || goals.length > 0) {
       fetchDeepInsights()
     }
-  }, [habits.length, tasks.length, goals.length])
+  }, [fetchDeepInsights, habits.length, tasks.length, goals.length])
 
   const handleDiscuss = (insight: any) => {
     setInitialChatMsg(`Gostaria de falar sobre o insight: "${insight.title}". ${insight.body}`)

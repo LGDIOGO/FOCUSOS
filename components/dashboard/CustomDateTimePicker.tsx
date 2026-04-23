@@ -2,7 +2,7 @@
 
 import { useState, useRef, useLayoutEffect } from 'react'
 import { Calendar, Clock } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AppleDatePicker } from './AppleDatePicker'
@@ -16,27 +16,31 @@ interface CustomDateTimePickerProps {
   onChange: (val: string) => void
   align?: 'left' | 'right'
   direction?: 'up' | 'down'
-  isOpen: boolean
-  onToggle: () => void
+  isOpen?: boolean
+  onToggle?: () => void
 }
 
-export function CustomDateTimePicker({ 
-  label, 
-  type, 
-  value, 
-  onChange, 
+export function CustomDateTimePicker({
+  label,
+  type,
+  value,
+  onChange,
   align = 'left',
   direction = 'down',
-  isOpen,
-  onToggle
+  isOpen: isOpenProp,
+  onToggle: onToggleProp
 }: CustomDateTimePickerProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = isOpenProp !== undefined
+  const isOpen = isControlled ? isOpenProp : internalOpen
+  const onToggle = isControlled ? onToggleProp! : () => setInternalOpen(v => !v)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const getDisplayValue = () => {
     if (!value) return type === 'date' ? '00/00/0000' : '00:00'
     try {
       if (type === 'date') {
-        return format(new Date(value), "dd/MM/yyyy")
+        return format(parseISO(value), "dd/MM/yyyy")
       }
       return value
     } catch (e) {
@@ -156,11 +160,11 @@ function PickerPortal({
 
   return createPortal(
     <>
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[99998] bg-black/60 backdrop-blur-md" 
+        exit={{ opacity: 0, transition: { duration: 0 } }}
+        className="fixed inset-0 z-[99998] bg-black/60 backdrop-blur-md"
         onPointerDown={(e) => {
           e.stopPropagation()
           onClose()

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, getYear, getMonth } from 'date-fns'
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, getYear, getMonth, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -13,8 +13,9 @@ interface AppleDatePickerProps {
 }
 
 export function AppleDatePicker({ value, onChange, onClose, direction = 'down' }: AppleDatePickerProps) {
-  const [currentMonth, setCurrentMonth] = useState(value ? new Date(value) : new Date())
-  const selectedDate = value ? new Date(value) : null
+  // parseISO interprets yyyy-MM-dd in local time (not UTC), avoiding off-by-one in timezones behind UTC
+  const [currentMonth, setCurrentMonth] = useState(value ? parseISO(value) : new Date())
+  const selectedDate = value ? parseISO(value) : null
 
   const renderDays = () => {
     const monthStart = startOfMonth(currentMonth)

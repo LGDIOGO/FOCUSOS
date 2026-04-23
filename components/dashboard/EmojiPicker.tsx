@@ -109,18 +109,21 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
       <AnimatePresence>
         {isOpen && createPortal(
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[19999] bg-black/40 backdrop-blur-sm" 
-              onClick={() => setIsOpen(false)} 
+              exit={{ opacity: 0, transition: { duration: 0 } }}
+              className="fixed inset-0 z-[19999] bg-black/40 backdrop-blur-sm"
+              onClick={() => setIsOpen(false)}
             />
+            {/* Wrapper div para posicionamento — sem transforms CSS no motion.div,
+                evita composição de transforms do Framer Motion v12 */}
+            <div className="fixed inset-0 z-[20000] flex items-center justify-center pointer-events-none">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 10, x: '-50%' }}
-              animate={{ opacity: 1, scale: 1, y: '-50%', x: '-50%' }}
-              exit={{ opacity: 0, scale: 0.9, y: 10, x: '-50%' }}
-              className="fixed top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 z-[20000] bg-[#1A1A1A] border border-white/10 rounded-[32px] overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] w-[320px] max-w-[90vw]"
+              initial={{ opacity: 0, scale: 0.92, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 16 }}
+              className="pointer-events-auto bg-[#1A1A1A] border border-white/10 rounded-[32px] overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] w-[320px] max-w-[90vw]"
             >
               {/* Tabs Header */}
               <div className="flex bg-white/2 p-2 gap-1 overflow-x-auto scrollbar-none border-b border-white/5 no-scrollbar">
@@ -221,6 +224,7 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
                 ))}
               </div>
             </motion.div>
+            </div>
           </>,
           document.body
         )}

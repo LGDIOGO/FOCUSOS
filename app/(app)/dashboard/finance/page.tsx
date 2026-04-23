@@ -3,24 +3,193 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Wallet, TrendingUp, Target, Shield, BookOpen, Plane, Crown, Play, CheckCircle2, ChevronRight, Plus, Rocket, X, Zap, ArrowRight, Check, History, Trash2, Sparkles
+  Wallet, TrendingUp, Target, Shield, BookOpen, Plane, Crown, Play, CheckCircle2, ChevronRight, Plus, Rocket, X, Zap, ArrowRight, Check, History, Trash2, Sparkles, Pencil
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { 
   useFinanceTransactions, useFinanceRecurringCosts, useFinancePotes, useFinanceRoadmap,
   useAddFinanceTransaction, useAddFinanceRecurringCost, useAddFinancePote, useUpdateFinanceRoadmap,
-  useDeleteFinanceTransaction, useDeleteFinanceRecurringCost, useDeleteFinancePote, useUpdateFinancePote
+  useDeleteFinanceTransaction, useDeleteFinanceRecurringCost, useDeleteFinancePote, useUpdateFinancePote,
+  useUpdateFinanceRecurringCost
 } from '@/lib/hooks/useFinance'
 import { useAddEvent } from '@/lib/hooks/useEvents'
+import type { FinanceRecurringCost, FinanceTransaction } from '@/types'
 
 import { 
-  format, isSameMonth, isSameWeek, isSameYear, parseISO, subDays, startOfWeek, endOfWeek, 
-  differenceInDays, isWithinInterval, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, addMonths
+  addDays, addMonths, addYears, endOfMonth, format, isAfter, isBefore, isSameMonth, isSameWeek,
+  isSameYear, parseISO, startOfDay, subDays, startOfWeek, endOfWeek, differenceInDays, isWithinInterval,
+  startOfMonth, subMonths, startOfYear, endOfYear
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { SharedHistoryBar, PeriodFilter, DateRange } from '@/components/dashboard/SharedHistoryBar'
 import { getDateRangeFromPeriod } from '@/lib/utils/dateFilters'
 import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicker'
+
+type FinanceRecurringOccurrence = {
+  id: string
+  sourceId: string
+  sourceType: 'recurring'
+  type: 'income' | 'expense'
+  title: string
+  amount: number
+  category: string
+  date: string
+  billing_cycle: FinanceRecurringCost['billing_cycle']
+  template: FinanceRecurringCost
+}
+
+type FinanceLedgerEntry =
+  | (FinanceTransaction & { sourceId: string; sourceType: 'transaction' })
+  | FinanceRecurringOccurrence
+
+const FINANCE_CATEGORY_LABELS: Record<string, string> = {
+  variable: 'Variável',
+  extra: 'Extra',
+  investment: 'Investimento',
+  alimentacao: 'Alimentação',
+  transporte: 'Transporte',
+  saude: 'Saúde',
+  moradia: 'Moradia',
+  lazer: 'Lazer',
+  educacao: 'Educação',
+  assinatura: 'Assinatura',
+  vestuario: 'Vestuário',
+  presente: 'Presente',
+  imposto: 'Imposto/Taxa',
+  outros_gasto: 'Outros',
+  fixed: 'Fixo',
+  basico: 'Básico',
+  salario: 'Salário',
+  freelance: 'Freelance',
+  renda_extra: 'Renda Extra',
+  dividendo: 'Dividendo',
+  reembolso: 'Reembolso',
+  outros_renda: 'Outros',
+  pessoal: 'Pessoal',
+  divida: 'Dívida',
+  seguro: 'Seguro',
+  outro: 'Outros',
+  renda_fixa: 'Renda Fixa'
+}
+
+const BILLING_CYCLE_LABELS: Record<FinanceRecurringCost['billing_cycle'], string> = {
+  weekly: 'semana',
+  biweekly: '15 dias',
+  monthly: 'mês',
+  yearly: 'ano',
+  custom: 'ciclo'
+}
+
+function normalizeFinanceDate(value?: string) {
+  return (value || '').split('T')[0]
+}
+
+function normalizeFinanceTitle(value: string) {
+  return value.trim().toLocaleLowerCase('pt-BR')
+}
+
+function getCategoryLabel(category?: string) {
+  if (!category) return 'Geral'
+  return FINANCE_CATEGORY_LABELS[category] || category
+}
+
+function clampDayToMonth(baseDate: Date, targetDay: number) {
+  return Math.min(targetDay, endOfMonth(baseDate).getDate())
+}
+
+function getFirstRecurringOccurrence(cost: FinanceRecurringCost) {
+  const seed = parseISO(normalizeFinanceDate(cost.due_date || cost.created_at || new Date().toISOString()))
+  const dueDay = Math.max(1, Math.min(cost.due_day ?? seed.getDate(), 31))
+
+  if (cost.due_date) {
+    return startOfDay(seed)
+  }
+
+  if (cost.billing_cycle === 'monthly' || cost.billing_cycle === 'custom') {
+    return new Date(seed.getFullYear(), seed.getMonth(), clampDayToMonth(seed, dueDay))
+  }
+
+  if (cost.billing_cycle === 'yearly') {
+    return new Date(seed.getFullYear(), seed.getMonth(), clampDayToMonth(seed, dueDay))
+  }
+
+  return startOfDay(seed)
+}
+
+function getNextRecurringOccurrenceDate(current: Date, cost: FinanceRecurringCost) {
+  const dueDay = Math.max(1, Math.min(cost.due_day ?? current.getDate(), 31))
+
+  if (cost.billing_cycle === 'weekly') {
+    return addDays(current, 7)
+  }
+
+  if (cost.billing_cycle === 'biweekly') {
+    return addDays(current, 14)
+  }
+
+  if (cost.billing_cycle === 'yearly') {
+    const nextYearBase = new Date(current.getFullYear() + 1, current.getMonth(), 1)
+    return new Date(nextYearBase.getFullYear(), nextYearBase.getMonth(), clampDayToMonth(nextYearBase, dueDay))
+  }
+
+  const nextMonthBase = addMonths(new Date(current.getFullYear(), current.getMonth(), 1), 1)
+  return new Date(nextMonthBase.getFullYear(), nextMonthBase.getMonth(), clampDayToMonth(nextMonthBase, dueDay))
+}
+
+function buildRecurringOccurrences(costs: FinanceRecurringCost[], start: string, end: string) {
+  const rangeStart = startOfDay(parseISO(start))
+  const rangeEnd = startOfDay(parseISO(end))
+  const occurrences: FinanceRecurringOccurrence[] = []
+
+  for (const cost of costs) {
+    let current = getFirstRecurringOccurrence(cost)
+    let guard = 0
+
+    while (isBefore(current, rangeStart) && guard < 2000) {
+      current = getNextRecurringOccurrenceDate(current, cost)
+      guard += 1
+    }
+
+    while (!isAfter(current, rangeEnd) && guard < 4000) {
+      occurrences.push({
+        id: `${cost.id}:${format(current, 'yyyy-MM-dd')}`,
+        sourceId: cost.id,
+        sourceType: 'recurring',
+        type: cost.entry_type === 'income' ? 'income' : 'expense',
+        title: cost.title,
+        amount: cost.amount,
+        category: cost.category,
+        date: format(current, 'yyyy-MM-dd'),
+        billing_cycle: cost.billing_cycle,
+        template: cost
+      })
+
+      current = getNextRecurringOccurrenceDate(current, cost)
+      guard += 1
+    }
+  }
+
+  return occurrences
+}
+
+function matchesRecurringWindow(recurring: FinanceRecurringOccurrence, transaction: FinanceTransaction) {
+  const recurringDate = parseISO(recurring.date)
+  const transactionDate = parseISO(normalizeFinanceDate(transaction.date))
+
+  if (recurring.billing_cycle === 'weekly') {
+    return isSameWeek(recurringDate, transactionDate, { weekStartsOn: 1 })
+  }
+
+  if (recurring.billing_cycle === 'biweekly') {
+    return Math.abs(differenceInDays(recurringDate, transactionDate)) <= 13
+  }
+
+  if (recurring.billing_cycle === 'yearly') {
+    return isSameYear(recurringDate, transactionDate) && recurringDate.getMonth() === transactionDate.getMonth()
+  }
+
+  return isSameMonth(recurringDate, transactionDate)
+}
 
 export default function FinancePage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'expenses' | 'potes' | 'roadmap'>('overview')
@@ -52,6 +221,7 @@ export default function FinancePage() {
   const deleteCost = useDeleteFinanceRecurringCost()
   const deletePote = useDeleteFinancePote()
   const updatePote = useUpdateFinancePote()
+  const updateCost = useUpdateFinanceRecurringCost()
   const addEvent = useAddEvent()
 
   // MODAL STATES
@@ -61,9 +231,12 @@ export default function FinancePage() {
   const [isAporteModalOpen, setIsAporteModalOpen] = useState(false)
   const [aportePoteId, setAportePoteId] = useState<string | null>(null)
   
+  const [txErrorMsg, setTxErrorMsg] = useState<string | null>(null)
   const [isGeneratingAI, setIsGeneratingAI] = useState(false)
   const [isParsing, setIsParsing] = useState(false)
   const [isInstallment, setIsInstallment] = useState(false)
+  const [isFixedIncome, setIsFixedIncome] = useState(false)
+  const [fixedIncomeCycle, setFixedIncomeCycle] = useState<'monthly' | 'biweekly' | 'weekly' | 'yearly'>('monthly')
   const [txType, setTxType] = useState<'expense' | 'income'>('expense')
   const [txCategory, setTxCategory] = useState<string>('')
   const [txDate, setTxDate] = useState(() => new Date().toISOString().split('T')[0])
@@ -72,6 +245,72 @@ export default function FinancePage() {
   const [txTitle, setTxTitle] = useState('')
   const [txAmount, setTxAmount] = useState<string>('')
   const [isTransactionTypeLocked, setIsTransactionTypeLocked] = useState(false)
+  const [editingCostId, setEditingCostId] = useState<string | null>(null)
+
+  const resetTransactionModalState = (nextType: 'expense' | 'income' = 'expense', locked = false) => {
+    setTransactionModalOpen(false)
+    setIsInstallment(false)
+    setIsFixedIncome(false)
+    setFixedIncomeCycle('monthly')
+    setTxCategory('')
+    setTxType(nextType)
+    setShowNature(false)
+    setSelectedNature(null)
+    setTxDate(new Date().toISOString().split('T')[0])
+    setTxTitle('')
+    setTxAmount('')
+    setIsTransactionTypeLocked(locked)
+    setTxErrorMsg(null)
+  }
+
+  const openTransactionModal = (type: 'expense' | 'income', locked = true) => {
+    resetTransactionModalState(type, locked)
+    setTransactionModalOpen(true)
+  }
+
+  // CUSTO FIXO MODAL — custom dropdown states (replace native select)
+  const [costBillingCycle, setCostBillingCycle] = useState<'monthly' | 'biweekly' | 'weekly' | 'yearly' | 'custom'>('monthly')
+  const [costCategory, setCostCategory] = useState<string>('assinatura')
+  const [costTitle, setCostTitle] = useState('')
+  const [costAmount, setCostAmount] = useState('')
+  const [costDueDay, setCostDueDay] = useState('10')
+  const [costAutoAppointment, setCostAutoAppointment] = useState(false)
+
+  const resetCostModalState = () => {
+    setCostModalOpen(false)
+    setEditingCostId(null)
+    setCostBillingCycle('monthly')
+    setCostCategory('assinatura')
+    setCostTitle('')
+    setCostAmount('')
+    setCostDueDay('10')
+    setCostAutoAppointment(false)
+  }
+
+  const openCostModal = (cost?: FinanceRecurringCost) => {
+    if (cost) {
+      setEditingCostId(cost.id)
+      setCostBillingCycle(cost.billing_cycle)
+      setCostCategory(cost.category)
+      setCostTitle(cost.title)
+      setCostAmount(cost.amount.toString())
+      setCostDueDay((cost.due_day ?? 10).toString())
+      setCostAutoAppointment(Boolean(cost.auto_appointment))
+    } else {
+      setEditingCostId(null)
+      setCostBillingCycle('monthly')
+      setCostCategory('assinatura')
+      setCostTitle('')
+      setCostAmount('')
+      setCostDueDay('10')
+      setCostAutoAppointment(false)
+    }
+
+    setCostModalOpen(true)
+  }
+
+  // POTE MODAL — custom dropdown states
+  const [poteAllocationType, setPoteAllocationType] = useState<'percentage' | 'fixed_value'>('percentage')
 
   // ONBOARDING WIZARD STATE
   const [showWizard, setShowWizard] = useState(false)
@@ -89,14 +328,12 @@ export default function FinancePage() {
   // FILTER TRANSACTIONS GLOBALLY BY SELECTED DATE RANGE
   const filteredGlobalTransactions = useMemo(() => {
     return transactions.filter(t => {
-      // Ignore filter parsing if 'all_time' or if t.date doesn't strictly exist
-      if (periodFilter === 'all_time') return true
       if (!t.date) return false
       
-      const txDate = t.date.split('T')[0] // yyyy-MM-dd
+      const txDate = normalizeFinanceDate(t.date)
       return txDate >= resolvedDateRange.start && txDate <= resolvedDateRange.end
     })
-  }, [transactions, periodFilter, resolvedDateRange])
+  }, [transactions, resolvedDateRange.end, resolvedDateRange.start])
 
   // DERIVED DATA (BASED ON FILTERED PERIOD)
   const totalIncome = filteredGlobalTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0)
@@ -106,6 +343,59 @@ export default function FinancePage() {
   // Comprometimento do Período
   const safeCashFlow = totalIncome > 0 ? (totalFixedCosts + totalExpense) / totalIncome * 100 : 0
   const periodRemnant = totalIncome - (totalFixedCosts + totalExpense)
+
+  const costTemplates = useMemo(
+    () => costs.filter(cost => cost.entry_type !== 'income'),
+    [costs]
+  )
+
+  const recurringOccurrences = useMemo(
+    () => buildRecurringOccurrences(costs, resolvedDateRange.start, resolvedDateRange.end),
+    [costs, resolvedDateRange.end, resolvedDateRange.start]
+  )
+
+  const recurringOccurrencesWithoutDuplicates = useMemo(() => {
+    return recurringOccurrences.filter(recurring => {
+      return !filteredGlobalTransactions.some(transaction => {
+        const sameType = transaction.type === recurring.type
+        const sameTitle = normalizeFinanceTitle(transaction.title) === normalizeFinanceTitle(recurring.title)
+        const sameCategory = (transaction.category || '') === recurring.category
+
+        return sameType && sameTitle && sameCategory && matchesRecurringWindow(recurring, transaction)
+      })
+    })
+  }, [filteredGlobalTransactions, recurringOccurrences])
+
+  const recurringExpenseOccurrences = useMemo(
+    () => recurringOccurrencesWithoutDuplicates.filter(entry => entry.type === 'expense'),
+    [recurringOccurrencesWithoutDuplicates]
+  )
+
+  const financeLedger = useMemo<FinanceLedgerEntry[]>(() => {
+    const explicitTransactions: FinanceLedgerEntry[] = filteredGlobalTransactions.map(transaction => ({
+      ...transaction,
+      sourceId: transaction.id,
+      sourceType: 'transaction'
+    }))
+
+    return [...explicitTransactions, ...recurringOccurrencesWithoutDuplicates].sort((a, b) => {
+      const dateCompare = b.date.localeCompare(a.date)
+      if (dateCompare !== 0) return dateCompare
+      return b.amount - a.amount
+    })
+  }, [filteredGlobalTransactions, recurringOccurrencesWithoutDuplicates])
+
+  const expenseHistory = useMemo(
+    () => financeLedger.filter(entry => entry.type === 'expense'),
+    [financeLedger]
+  )
+
+  const financeTotalIncome = financeLedger.filter(entry => entry.type === 'income').reduce((acc, entry) => acc + entry.amount, 0)
+  const financeVariableExpenseTotal = filteredGlobalTransactions.filter(entry => entry.type === 'expense').reduce((acc, entry) => acc + entry.amount, 0)
+  const financeFixedExpenseTotal = recurringExpenseOccurrences.reduce((acc, entry) => acc + entry.amount, 0)
+  const financeOutgoingTotal = financeVariableExpenseTotal + financeFixedExpenseTotal
+  const financeSafeCashFlow = financeTotalIncome > 0 ? (financeOutgoingTotal / financeTotalIncome) * 100 : 0
+  const remainingBalance = financeTotalIncome - financeOutgoingTotal
 
   // AI GENERATION FUNCTION CONNECTED TO BACKEND
   const handleMagicParse = async () => {
@@ -160,9 +450,9 @@ export default function FinancePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          income: totalIncome,
-          fixedCosts: totalFixedCosts,
-          variableExpenses: totalExpense,
+          income: financeTotalIncome,
+          fixedCosts: financeFixedExpenseTotal,
+          variableExpenses: financeVariableExpenseTotal,
           potes: potes.map(p => ({ title: p.title, percent: p.allocation_type === 'percentage' ? p.allocation_value : 0 })),
           // Enviar projeções futuras conhecidas
           futureTransactions: transactions.filter(t => t.date > new Date().toISOString().split('T')[0]).map(t => ({
@@ -199,9 +489,9 @@ export default function FinancePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          income: totalIncome,
-          fixedCosts: totalFixedCosts,
-          variableExpenses: totalExpense,
+          income: financeTotalIncome,
+          fixedCosts: financeFixedExpenseTotal,
+          variableExpenses: financeVariableExpenseTotal,
           potes: potes.map(p => ({ title: p.title, percent: p.allocation_type === 'percentage' ? p.allocation_value : 0 })),
           // Enviar projeções futuras conhecidas
           futureTransactions: transactions.filter(t => t.date > new Date().toISOString().split('T')[0]).map(t => ({
@@ -234,13 +524,13 @@ export default function FinancePage() {
 
   // FILTERING LOGIC
   // Sort transactions by date descending
-  const sortedFilteredTransactions = [...filteredGlobalTransactions].sort((a, b) => b.date.localeCompare(a.date))
+  const sortedFilteredTransactions = [...financeLedger].sort((a, b) => b.date.localeCompare(a.date))
   
   // Recent transactions for the main "Diário de Caixa" (limit to top 10 most recent)
-  const recentTransactions = sortedFilteredTransactions.slice(0, 10)
+  const recentTransactions = sortedFilteredTransactions.slice(0, 10) as any[]
 
   // Filtered transactions for the History view (same as global, but we use them all un-sliced)
-  const filteredHistory = sortedFilteredTransactions
+  const filteredHistory = sortedFilteredTransactions as any[]
 
   const historyIncomeTotal = filteredHistory.filter((t: any) => t.type === 'income').reduce((acc: number, t: any) => acc + t.amount, 0)
   const historyExpenseTotal = filteredHistory.filter((t: any) => t.type === 'expense').reduce((acc: number, t: any) => acc + t.amount, 0)
@@ -402,10 +692,7 @@ export default function FinancePage() {
         
         {/* Quick Add Buttons */}
         <div className="flex items-center gap-3">
-          <button onClick={() => {
-            setIsTransactionTypeLocked(false)
-            setTransactionModalOpen(true)
-          }} className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-overlay)] hover:bg-white/5 border border-[var(--border-subtle)] hover:border-white/10 rounded-xl text-sm font-bold transition-all shadow-sm">
+          <button onClick={() => openTransactionModal('expense', false)} className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-overlay)] hover:bg-white/5 border border-[var(--border-subtle)] hover:border-white/10 rounded-xl text-sm font-bold transition-all shadow-sm">
              <Plus size={16} /> Movimentação Rápida
           </button>
         </div>
@@ -433,7 +720,7 @@ export default function FinancePage() {
           {/* TAB: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-12">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 
                 {/* Renda Registrada */}
                 <div className="p-8 rounded-[40px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)] shadow-xl relative overflow-hidden group">
@@ -444,8 +731,11 @@ export default function FinancePage() {
                     <h3 className="text-sm font-black uppercase tracking-widest text-[var(--text-muted)]">Renda do Período</h3>
                   </div>
                   <div className="text-5xl font-black tracking-tighter text-[var(--text-primary)]">
-                    {formatBRL(totalIncome)}
+                    {formatBRL(financeTotalIncome)}
                   </div>
+                  <button onClick={() => openTransactionModal('income')} className="mt-4 text-xs font-black uppercase tracking-widest text-green-400/70 hover:text-green-400 transition-colors">
+                    adicionar entrada
+                  </button>
                 </div>
                 
                 {/* Custo / Comprometimento */}
@@ -457,13 +747,30 @@ export default function FinancePage() {
                     <h3 className="text-sm font-black uppercase tracking-widest text-red-400">Saídas do Período</h3>
                   </div>
                   <div className="text-5xl font-black tracking-tighter text-red-500">
-                    {formatBRL(totalFixedCosts + totalExpense)}
+                    {formatBRL(financeOutgoingTotal)}
                   </div>
                   <div className="mt-4 w-full h-2 bg-red-500/20 rounded-full overflow-hidden">
-                    <div className="h-full bg-red-500 transition-all duration-1000" style={{ width: `${Math.min(safeCashFlow, 100)}%` }} />
+                    <div className="h-full bg-red-500 transition-all duration-1000" style={{ width: `${Math.min(financeSafeCashFlow, 100)}%` }} />
                   </div>
                   <p className="mt-2 text-xs font-black uppercase tracking-widest text-red-400/60">
-                    {safeCashFlow.toFixed(1)}% do orçamento utilizado
+                    {financeSafeCashFlow.toFixed(1)}% do orçamento utilizado
+                  </p>
+                </div>
+                <div className="p-8 rounded-[40px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)] shadow-xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-8 text-green-500 opacity-5 group-hover:opacity-10 transition-opacity">
+                     <Target size={120} />
+                  </div>
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-green-400">Saldo Restante</h3>
+                  </div>
+                  <div className={cn(
+                    "text-5xl font-black tracking-tighter",
+                    remainingBalance >= 0 ? "text-green-400" : "text-red-500"
+                  )}>
+                    {formatBRL(remainingBalance)}
+                  </div>
+                  <p className="mt-4 text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
+                    ja considerando potes, gastos e custos fixos do periodo
                   </p>
                 </div>
               </div>
@@ -477,11 +784,7 @@ export default function FinancePage() {
                      <h3 className="text-xl font-black tracking-tight flex items-center gap-3">
                        <Wallet className="text-[var(--text-muted)]" /> Diário de Caixa
                      </h3>
-                     <button onClick={() => {
-                        setTxType('income')
-                        setIsTransactionTypeLocked(true)
-                        setTransactionModalOpen(true)
-                      }} className="text-xs font-bold bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors text-[var(--text-secondary)]">Adicionar Novo</button>
+                     <button onClick={() => openTransactionModal('income')} className="text-xs font-bold bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors text-[var(--text-secondary)]">Adicionar Novo</button>
                    </div>
                    
                    {recentTransactions.length === 0 ? (
@@ -490,11 +793,16 @@ export default function FinancePage() {
                       </div>
                    ) : (
                      <div className="space-y-3">
-                       {recentTransactions.map(t => (
+                       {recentTransactions.map((t: any) => (
                          <div key={t.id} className="p-4 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] flex items-center justify-between group">
                             <div>
                               <div className="flex items-center gap-2">
                                 <p className="font-bold text-[var(--text-primary)] text-sm">{t.title}</p>
+                                {t.sourceType === 'recurring' && (
+                                  <span className="text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">
+                                    recorrente
+                                  </span>
+                                )}
                                 {t.nature && (
                                   <span className={cn(
                                     "text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded",
@@ -521,7 +829,7 @@ export default function FinancePage() {
                               <span className={cn("font-black tracking-tight", t.type === 'income' ? "text-green-500" : "text-[var(--text-primary)]")}>
                                 {t.type === 'income' ? '+ ' : '- '}{formatBRL(t.amount)}
                               </span>
-                              <button onClick={() => deleteTransaction.mutate(t.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500/50 hover:text-red-500 transition-all"><X size={14}/></button>
+                              <button onClick={() => t.sourceType === 'recurring' ? deleteCost.mutate(t.sourceId) : deleteTransaction.mutate(t.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500/50 hover:text-red-500 transition-all"><X size={14}/></button>
                             </div>
                          </div>
                        ))}
@@ -535,25 +843,26 @@ export default function FinancePage() {
                      <h3 className="text-xl font-black tracking-tight flex items-center gap-3">
                        <Shield className="text-[var(--text-muted)]" /> Custos Fixos & Assinaturas
                      </h3>
-                     <button onClick={() => setCostModalOpen(true)} className="text-xs font-bold bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors text-[var(--text-secondary)]">Add Custo Fixo</button>
+                     <button onClick={() => openCostModal()} className="text-xs font-bold bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors text-[var(--text-secondary)]">Add Custo Fixo</button>
                    </div>
 
-                   {costs.length === 0 ? (
+                   {costTemplates.length === 0 ? (
                       <div className="p-8 text-center border border-dashed border-[var(--border-subtle)] rounded-2xl">
                           <p className="text-[var(--text-muted)] font-medium text-sm">Nenhum custo fixo ou assinatura cadastrado.</p>
                       </div>
                    ) : (
                      <div className="space-y-3">
-                       {costs.map(c => (
+                       {costTemplates.map(c => (
                          <div key={c.id} className="p-4 rounded-xl bg-red-400/5 border border-red-500/10 flex items-center justify-between group">
                             <div>
                               <p className="font-bold text-red-400 text-sm">{c.title}</p>
-                              <p className="text-[10px] uppercase tracking-widest text-red-500/50 mt-1">{c.category}</p>
+                              <p className="text-[10px] uppercase tracking-widest text-red-500/50 mt-1">{getCategoryLabel(c.category)}</p>
                             </div>
                             <div className="flex items-center gap-4">
                               <span className="font-black tracking-tight text-red-400">
-                                {formatBRL(c.amount)}<span className="text-xs text-red-500/40 font-medium">/{c.billing_cycle === 'yearly' ? 'ano' : 'mês'}</span>
+                                {formatBRL(c.amount)}<span className="text-xs text-red-500/40 font-medium">/{BILLING_CYCLE_LABELS[c.billing_cycle]}</span>
                               </span>
+                              <button onClick={() => openCostModal(c)} className="opacity-0 group-hover:opacity-100 p-1 text-[var(--text-muted)] hover:text-white transition-all"><Pencil size={14}/></button>
                               <button onClick={() => deleteCost.mutate(c.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500/50 hover:text-red-500 transition-all"><X size={14}/></button>
                             </div>
                          </div>
@@ -624,7 +933,7 @@ export default function FinancePage() {
                                     <div>
                                       <p className="font-bold text-[var(--text-primary)] text-sm">{t.title}</p>
                                       <p className="text-[10px] uppercase font-black tracking-widest text-[var(--text-muted)] opacity-60">
-                                        {t.category || 'Geral'}
+                                        {getCategoryLabel(t.category)}
                                       </p>
                                     </div>
                                   </div>
@@ -637,7 +946,7 @@ export default function FinancePage() {
                                       {isIncome ? '+' : '-'}{formatBRL(t.amount)}
                                     </span>
                                     <button 
-                                      onClick={() => deleteTransaction.mutate(t.id)} 
+                                      onClick={() => t.sourceType === 'recurring' ? deleteCost.mutate(t.sourceId) : deleteTransaction.mutate(t.id)} 
                                       className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
                                       title="Excluir Transação do Histórico"
                                     >
@@ -669,23 +978,71 @@ export default function FinancePage() {
                     <div>
                       <h3 className="text-sm font-black uppercase tracking-widest text-red-500/70 mb-2">Total de Gastos (Filtro Ativo)</h3>
                       <div className="text-6xl font-black tracking-tighter text-[var(--text-primary)]">
-                        {formatBRL(filteredHistory.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0))}
+                        {formatBRL(expenseHistory.reduce((acc, t) => acc + t.amount, 0))}
                       </div>
                       <p className="text-[var(--text-secondary)] mt-1 font-medium italic">Baseado nos filtros de período selecionados abaixo.</p>
                     </div>
                     <div className="flex gap-4">
-                       <button onClick={() => {
-                          setTxType('expense')
-                          setIsTransactionTypeLocked(true)
-                          setTransactionModalOpen(true)
-                        }} className="px-6 py-4 bg-white text-black font-black text-sm uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl">
-                         Lançar Novo Gasto
-                       </button>
+                      <button onClick={() => openTransactionModal('expense')} className="px-6 py-4 bg-white text-black font-black text-sm uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl">
+                        Lançar Novo Gasto
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Filtros Integrados Removidos (Usando filtro global do Dashboard) */}
+                {/* Filtro de Período */}
+                <div className="flex flex-col gap-4 p-5 rounded-[28px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[
+                      { id: 'current_month' as PeriodFilter, label: 'Este Mês' },
+                      { id: 'last_month'    as PeriodFilter, label: 'Mês Passado' },
+                      { id: 'this_year'     as PeriodFilter, label: 'Este Ano' },
+                      { id: 'all_time'      as PeriodFilter, label: 'Todo o Histórico' },
+                      { id: 'custom'        as PeriodFilter, label: 'Personalizado' },
+                    ].map(btn => (
+                      <button
+                        key={btn.id}
+                        onClick={() => {
+                          setPeriodFilter(btn.id)
+                          if (btn.id !== 'custom') setCustomRange({ start: '', end: '' })
+                        }}
+                        className={cn(
+                          "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all",
+                          periodFilter === btn.id
+                            ? "bg-white text-black"
+                            : "bg-white/5 text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-primary)]"
+                        )}
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <AnimatePresence>
+                    {periodFilter === 'custom' && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="grid grid-cols-2 gap-3 pt-1"
+                      >
+                        <CustomDateTimePicker
+                          label="Início"
+                          type="date"
+                          value={customRange.start}
+                          onChange={(val) => setCustomRange({ ...customRange, start: val })}
+                        />
+                        <CustomDateTimePicker
+                          label="Fim"
+                          type="date"
+                          value={customRange.end}
+                          onChange={(val) => setCustomRange({ ...customRange, end: val })}
+                          align="right"
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 {/* Listagem de Despesas */}
                 <div className="space-y-4">
@@ -693,13 +1050,13 @@ export default function FinancePage() {
                     <History size={14} /> Detalhamento de Saídas
                   </h4>
                   
-                  {filteredHistory.filter(t => t.type === 'expense').length === 0 ? (
+                  {expenseHistory.length === 0 ? (
                     <div className="p-20 text-center border-2 border-dashed border-white/5 rounded-[40px] text-[var(--text-muted)]">
                        Nenhum gasto encontrado para este período.
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-3">
-                       {filteredHistory.filter(t => t.type === 'expense').map(t => (
+                       {expenseHistory.map((t: any) => (
                          <div key={t.id} className="group p-6 rounded-[32px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)] hover:border-red-500/20 transition-all flex items-center justify-between">
                             <div className="flex items-center gap-6">
                                <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
@@ -742,9 +1099,20 @@ export default function FinancePage() {
                                <span className="text-2xl font-black text-[var(--text-primary)]">
                                  - {formatBRL(t.amount)}
                                </span>
-                               <button onClick={() => deleteTransaction.mutate(t.id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all">
-                                 <Trash2 size={18} />
-                               </button>
+                               {t.sourceType === 'recurring' ? (
+                                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                   <button onClick={() => openCostModal(t.template)} className="p-2 text-[var(--text-muted)] hover:bg-white/5 hover:text-white rounded-xl transition-all">
+                                     <Pencil size={18} />
+                                   </button>
+                                   <button onClick={() => deleteCost.mutate(t.sourceId)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all">
+                                     <Trash2 size={18} />
+                                   </button>
+                                 </div>
+                               ) : (
+                                 <button onClick={() => deleteTransaction.mutate(t.id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all">
+                                   <Trash2 size={18} />
+                                 </button>
+                               )}
                             </div>
                          </div>
                        ))}
@@ -762,7 +1130,7 @@ export default function FinancePage() {
                    Sobra Líquida Atual Estimada
                  </div>
                  <h2 className="text-6xl md:text-7xl font-black tracking-tighter text-[var(--text-primary)]">
-                   {formatBRL(periodRemnant > 0 ? periodRemnant : 0)}
+                  {formatBRL(remainingBalance > 0 ? remainingBalance : 0)}
                  </h2>
                  <p className="text-[var(--text-secondary)] font-medium text-lg">Distribua inteligentemente sua sobra de caixa criando seus próprios potes e garantindo o fluxo do capital.</p>
                </div>
@@ -783,7 +1151,7 @@ export default function FinancePage() {
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    {potes.map((pote, i) => {
                      const poteAllocationValue = pote.allocation_type === 'percentage' 
-                       ? (periodRemnant > 0 ? periodRemnant : 0) * (pote.allocation_value / 100)
+                      ? (remainingBalance > 0 ? remainingBalance : 0) * (pote.allocation_value / 100)
                        : pote.allocation_value
 
                      return (
@@ -815,10 +1183,31 @@ export default function FinancePage() {
                             
                             <div>
                               <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-2">{pote.title}</h3>
-                              <div className="flex items-center justify-between mt-6">
-                                <span className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)]">Depósito Projetado</span>
+                              {pote.monthly_yield_rate && pote.monthly_yield_rate > 0 && (
+                                <div className="flex items-center justify-between mt-3 p-3 bg-green-500/5 border border-green-500/10 rounded-2xl">
+                                  <span className="text-[11px] font-black uppercase tracking-widest text-green-500/70 flex items-center gap-1.5">
+                                    📈 Rendimento Estimado
+                                  </span>
+                                  <div className="text-right">
+                                    <span className="text-sm font-black text-green-400">+{formatBRL(pote.saved_amount * (pote.monthly_yield_rate / 100))}</span>
+                                    <span className="text-[9px] text-green-500/50 font-black uppercase ml-1">/mês ({pote.monthly_yield_rate}%)</span>
+                                  </div>
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between mt-4">
+                                <span className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                                  {pote.monthly_yield_rate && pote.monthly_yield_rate > 0 ? 'Aporte Projetado' : 'Depósito Projetado'}
+                                </span>
                                 <span className="text-2xl font-black text-[var(--text-primary)]">{formatBRL(poteAllocationValue)}</span>
                               </div>
+                              {pote.monthly_yield_rate && pote.monthly_yield_rate > 0 && (
+                                <div className="flex items-center justify-between mt-1">
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-green-500/60">Total com Rendimento</span>
+                                  <span className="text-base font-black text-green-400">
+                                    {formatBRL(poteAllocationValue + pote.saved_amount * (pote.monthly_yield_rate / 100))}
+                                  </span>
+                                </div>
+                              )}
                               {/* Barra de Progresso Real (Saldo Salvo no Pote vs Meta) */}
                               {pote.target_amount > 0 && (
                                 <div className="mt-4">
@@ -955,16 +1344,7 @@ export default function FinancePage() {
           <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
               <button 
-                onClick={() => {
-                  setTransactionModalOpen(false)
-                  setIsInstallment(false)
-                  setTxCategory('')
-                  setTxType('expense')
-                  setShowNature(false)
-                  setTxDate(new Date().toISOString().split('T')[0])
-                  setTxTitle('')
-                  setTxAmount('')
-                }} 
+                onClick={() => resetTransactionModalState()} 
                 className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"
               >
                 <X size={20}/>
@@ -976,46 +1356,62 @@ export default function FinancePage() {
               
               <form onSubmit={async (e) => {
                 e.preventDefault()
+                setTxErrorMsg(null)
                 const fd = new FormData(e.currentTarget)
-                const baseDateStr = (fd.get('date') as string) || new Date().toISOString().split('T')[0]
+                const baseDateStr = txDate || new Date().toISOString().split('T')[0]
                 const installments = isInstallment ? parseInt(fd.get('installments') as string) : 1
-                const amount = parseFloat(fd.get('amount') as string)
-                
-                const title = fd.get('title') as string
-                const type = fd.get('type') as any
-                const category = fd.get('category') as any
+                const amount = parseFloat(txAmount.replace(',', '.'))
+                const title = txTitle.trim()
+                const type = txType
+                const category = txCategory || (txType === 'expense' ? 'outros_gasto' : 'outros_renda')
 
-                if (isInstallment && installments > 1) {
-                  const installmentAmount = amount / installments
-                  const baseDate = parseISO(baseDateStr)
-                  
-                  for (let i = 0; i < installments; i++) {
-                    const currentDate = addMonths(baseDate, i)
+                if (!title) { setTxErrorMsg('Preencha a descrição.'); return }
+                if (Number.isNaN(amount) || amount <= 0) { setTxErrorMsg('Informe um valor válido.'); return }
+
+                try {
+                  if (isInstallment && installments > 1) {
+                    const installmentAmount = amount / installments
+                    const baseDate = parseISO(baseDateStr)
+
+                    for (let i = 0; i < installments; i++) {
+                      const currentDate = addMonths(baseDate, i)
+                      await addTransaction.mutateAsync({
+                        title: `${title} (${i + 1}/${installments})`,
+                        amount: installmentAmount,
+                        type,
+                        category,
+                        nature: type === 'expense' ? selectedNature || undefined : undefined,
+                        date: format(currentDate, 'yyyy-MM-dd')
+                      })
+                    }
+                  } else {
                     await addTransaction.mutateAsync({
-                      title: `${title} (${i + 1}/${installments})`,
-                      amount: installmentAmount,
+                      title,
+                      amount,
                       type,
                       category,
-                      nature: selectedNature || undefined,
-                      date: format(currentDate, 'yyyy-MM-dd')
+                      nature: type === 'expense' ? selectedNature || undefined : undefined,
+                      date: baseDateStr
                     })
                   }
-                } else {
-                  await addTransaction.mutateAsync({
-                    title,
-                    amount,
-                    type,
-                    category,
-                    nature: selectedNature || undefined,
-                    date: baseDateStr
-                  })
+
+                  // If user wants to save this income as recurring
+                  if (txType === 'income' && isFixedIncome) {
+                    await addCost.mutateAsync({
+                      title,
+                      amount,
+                      category,
+                      billing_cycle: fixedIncomeCycle,
+                      due_day: parseISO(baseDateStr).getDate(),
+                      auto_appointment: false,
+                      entry_type: 'income'
+                    })
+                  }
+
+                  resetTransactionModalState()
+                } catch (err: any) {
+                  setTxErrorMsg(err?.message || 'Erro ao salvar. Tente novamente.')
                 }
-                
-                setTransactionModalOpen(false)
-                setIsInstallment(false)
-                setSelectedNature(null)
-                setTxTitle('')
-                setTxAmount('')
               }} className="space-y-4">
                 <div className="relative">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Descrição</label>
@@ -1080,6 +1476,7 @@ export default function FinancePage() {
                 )}
                 {/* Hidden input to carry the value always */}
                 <input type="hidden" name="type" value={txType} />
+                <input type="hidden" name="date" value={txDate} />
 
                 {/* CLASSIFICAÇÃO */}
                 <div className="space-y-2">
@@ -1159,37 +1556,95 @@ export default function FinancePage() {
                   </div>
                 )}
 
-                {/* PARCELAR — OPCIONAL */}
-                <div className="border border-dashed border-white/10 rounded-2xl overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setIsInstallment(!isInstallment)}
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-8 h-5 rounded-full border transition-all relative",
-                        isInstallment ? "bg-red-500/20 border-red-500/50" : "bg-white/5 border-white/10"
-                      )}>
+                {/* Only show parcelar for expenses */}
+                {txType === 'expense' && (
+                  <div className="border border-dashed border-white/10 rounded-2xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setIsInstallment(!isInstallment)}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
                         <div className={cn(
-                          "absolute top-0.5 w-4 h-4 rounded-full transition-all",
-                          isInstallment ? "left-3 bg-red-400" : "left-0.5 bg-white/20"
-                        )} />
+                          "w-8 h-5 rounded-full border transition-all relative",
+                          isInstallment ? "bg-red-500/20 border-red-500/50" : "bg-white/5 border-white/10"
+                        )}>
+                          <div className={cn(
+                            "absolute top-0.5 w-4 h-4 rounded-full transition-all",
+                            isInstallment ? "left-3 bg-red-400" : "left-0.5 bg-white/20"
+                          )} />
+                        </div>
+                        <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Parcelar este lançamento</span>
                       </div>
-                      <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Parcelar este lançamento</span>
-                    </div>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Opcional</span>
-                  </button>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Opcional</span>
+                    </button>
 
-                  {isInstallment && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="px-4 pb-4 border-t border-white/5">
-                       <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block mt-3">Número de Parcelas</label>
-                       <input name="installments" type="number" min="2" max="60" defaultValue="2" className="w-full bg-[var(--bg-overlay)] border border-red-500/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
-                    </motion.div>
-                  )}
-                </div>
+                    {isInstallment && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="px-4 pb-4 border-t border-white/5">
+                         <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block mt-3">Número de Parcelas</label>
+                         <input name="installments" type="number" min="2" max="60" defaultValue="2" className="w-full bg-[var(--bg-overlay)] border border-red-500/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                      </motion.div>
+                    )}
+                  </div>
+                )}
 
-                <button type="submit" disabled={addTransaction.isPending} className="w-full py-4 mt-2 bg-white hover:bg-white/90 text-black font-black rounded-xl transition-all shadow-xl">Confirmar Lançamento</button>
+                {/* Only show fixed income toggle for income type */}
+                {txType === 'income' && (
+                  <div className="border border-dashed border-green-500/20 rounded-2xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setIsFixedIncome(!isFixedIncome)}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-8 h-5 rounded-full border transition-all relative",
+                          isFixedIncome ? "bg-green-500/20 border-green-500/50" : "bg-white/5 border-white/10"
+                        )}>
+                          <div className={cn(
+                            "absolute top-0.5 w-4 h-4 rounded-full transition-all",
+                            isFixedIncome ? "left-3 bg-green-400" : "left-0.5 bg-white/20"
+                          )} />
+                        </div>
+                        <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Salvar como Renda Recorrente</span>
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Opcional</span>
+                    </button>
+                    {isFixedIncome && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="px-4 pb-4 border-t border-white/5 space-y-3">
+                        <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block mt-3">Periodicidade</label>
+                        <div className="flex flex-wrap gap-2">
+                          {([
+                            { id: 'monthly', label: 'Mensal' },
+                            { id: 'biweekly', label: 'Quinzenal' },
+                            { id: 'weekly', label: 'Semanal' },
+                            { id: 'yearly', label: 'Anual' },
+                          ] as const).map(opt => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => setFixedIncomeCycle(opt.id)}
+                              className={cn(
+                                "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                fixedIncomeCycle === opt.id
+                                  ? "bg-green-500/20 border border-green-500/40 text-green-400"
+                                  : "bg-white/5 border border-white/10 text-[var(--text-muted)] hover:bg-white/10"
+                              )}
+                            >{opt.label}</button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
+
+                {txErrorMsg && (
+                  <p className="text-red-400 text-xs font-bold text-center px-2">{txErrorMsg}</p>
+                )}
+                <button type="submit" disabled={addTransaction.isPending || addCost.isPending} className="w-full py-4 mt-2 bg-white hover:bg-white/90 text-black font-black rounded-xl transition-all shadow-xl disabled:opacity-60 flex items-center justify-center gap-2">
+                  {(addTransaction.isPending || addCost.isPending) && <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />}
+                  Confirmar Lançamento
+                </button>
               </form>
             </motion.div>
           </div>
@@ -1199,31 +1654,44 @@ export default function FinancePage() {
         {isCostModalOpen && (
           <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md bg-[var(--bg-primary)] border border-red-500/20 rounded-3xl p-6 shadow-[0_0_50px_rgba(239,68,68,0.1)] relative">
-              <button onClick={() => setCostModalOpen(false)} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"><X size={20}/></button>
-              <h2 className="text-2xl font-black text-red-500 mb-6 flex items-center gap-2"><Shield size={24}/> Cadastrar Custo Fixo</h2>
+              <button onClick={resetCostModalState} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"><X size={20}/></button>
+              <h2 className="text-2xl font-black text-red-500 mb-6 flex items-center gap-2"><Shield size={24}/> {editingCostId ? 'Editar Custo Fixo' : 'Cadastrar Custo Fixo'}</h2>
               <form onSubmit={async (e) => {
                 e.preventDefault()
-                const fd = new FormData(e.currentTarget)
-                
-                const title = fd.get('title') as string
-                const amount = parseFloat(fd.get('amount') as string)
-                const category = fd.get('category') as string
-                const billing_cycle = fd.get('billing_cycle') as any
-                const due_day = parseInt(fd.get('due_day') as string) || 1
-                const auto_appointment = fd.get('auto_appointment') === 'on'
+                const title = costTitle.trim()
+                const amount = parseFloat(costAmount)
+                const category = costCategory
+                const billing_cycle = costBillingCycle
+                const due_day = parseInt(costDueDay, 10) || 1
+                const auto_appointment = costAutoAppointment
 
-                // 1. Add Recurring Cost
-                await addCost.mutateAsync({
-                  title,
-                  amount,
-                  category,
-                  billing_cycle,
-                  due_day,
-                  auto_appointment
-                })
+                if (!title || Number.isNaN(amount) || amount <= 0) {
+                  return
+                }
+
+                if (editingCostId) {
+                  await updateCost.mutateAsync({
+                    id: editingCostId,
+                    title,
+                    amount,
+                    category,
+                    billing_cycle,
+                    due_day,
+                    auto_appointment
+                  })
+                } else {
+                  await addCost.mutateAsync({
+                    title,
+                    amount,
+                    category,
+                    billing_cycle,
+                    due_day,
+                    auto_appointment
+                  })
+                }
 
                 // 2. Add Agenda Commitment if checked
-                if (auto_appointment) {
+                if (auto_appointment && !editingCostId) {
                   let freq: any = 'monthly'
                   let interval = 1
                   
@@ -1245,61 +1713,90 @@ export default function FinancePage() {
                   })
                 }
 
-                setCostModalOpen(false)
+                resetCostModalState()
               }} className="space-y-4">
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Nome do Custo</label>
-                  <input name="title" required placeholder="Ex: Streaming, Aluguel, Provedor..." className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                  <input name="title" value={costTitle} onChange={e => setCostTitle(e.target.value)} required placeholder="Ex: Streaming, Aluguel, Provedor..." className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Valor (R$)</label>
-                    <input name="amount" type="number" step="0.01" required placeholder="0.00" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                    <input name="amount" value={costAmount} onChange={e => setCostAmount(e.target.value)} type="number" step="0.01" required placeholder="0.00" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                   </div>
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Cobrança</label>
-                    <select name="billing_cycle" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500">
-                      <option value="monthly">Mensal</option>
-                      <option value="biweekly">Quinzenal</option>
-                      <option value="weekly">Semanal</option>
-                      <option value="yearly">Anual</option>
-                      <option value="custom">Personalizado</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Dia de Vencimento</label>
-                    <input name="due_day" type="number" min="1" max="31" defaultValue="10" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                    <input name="due_day" value={costDueDay} onChange={e => setCostDueDay(e.target.value)} type="number" min="1" max="31" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                   </div>
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Grupo de Custos</label>
-                    <select name="category" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500">
-                      <option value="assinatura">Software / Assinatura</option>
-                      <option value="moradia">Moradia e Aluguel</option>
-                      <option value="alimentacao">Alimentação / Mercado</option>
-                      <option value="transporte">Transporte / Carro</option>
-                      <option value="saude">Saúde / Farmácia</option>
-                      <option value="educacao">Educação / Cursos</option>
-                      <option value="lazer">Lazer / Estilo de Vida</option>
-                      <option value="imposto">Impostos / Taxas</option>
-                      <option value="pessoal">Gastos Pessoais</option>
-                      <option value="divida">Dívida / Empréstimo</option>
-                      <option value="seguro">Seguros / Proteção</option>
-                      <option value="outro">Outros Custos</option>
-                    </select>
+                </div>
+
+                {/* Cobrança — custom pill selector */}
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block">Cobrança</label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { id: 'monthly',  label: 'Mensal' },
+                      { id: 'biweekly', label: 'Quinzenal' },
+                      { id: 'weekly',   label: 'Semanal' },
+                      { id: 'yearly',   label: 'Anual' },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setCostBillingCycle(opt.id)}
+                        className={cn(
+                          "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
+                          costBillingCycle === opt.id
+                            ? "bg-red-500/20 border-red-500/50 text-red-400"
+                            : "bg-white/5 border-white/10 text-[var(--text-muted)] hover:bg-white/10"
+                        )}
+                      >{opt.label}</button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Grupo de Custos — custom pill selector */}
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block">Grupo de Custos</label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { id: 'assinatura',   label: '💻 Software / Assinatura' },
+                      { id: 'moradia',      label: '🏠 Moradia / Aluguel' },
+                      { id: 'alimentacao',  label: '🛒 Alimentação' },
+                      { id: 'transporte',   label: '🚗 Transporte' },
+                      { id: 'saude',        label: '💊 Saúde' },
+                      { id: 'educacao',     label: '📚 Educação' },
+                      { id: 'lazer',        label: '🎮 Lazer' },
+                      { id: 'imposto',      label: '📋 Impostos' },
+                      { id: 'pessoal',      label: '👤 Pessoal' },
+                      { id: 'divida',       label: '💳 Dívida' },
+                      { id: 'seguro',       label: '🛡️ Seguros' },
+                      { id: 'outro',        label: '📦 Outros' },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setCostCategory(opt.id)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border",
+                          costCategory === opt.id
+                            ? "bg-red-500/20 border-red-500/50 text-red-300"
+                            : "bg-white/5 border-white/10 text-[var(--text-muted)] hover:bg-white/10"
+                        )}
+                      >{opt.label}</button>
+                    ))}
                   </div>
                 </div>
                 
                 <label className="flex items-center gap-3 p-4 bg-red-500/5 border border-red-500/10 rounded-2xl cursor-pointer hover:bg-red-500/10 transition-colors">
-                  <input type="checkbox" name="auto_appointment" className="w-5 h-5 accent-red-500 rounded-md" />
+                  <input type="checkbox" name="auto_appointment" checked={costAutoAppointment} onChange={e => setCostAutoAppointment(e.target.checked)} className="w-5 h-5 accent-red-500 rounded-md" />
                   <div className="flex flex-col">
                     <span className="text-sm font-bold text-[var(--text-primary)]">Criar compromisso na Agenda</span>
                     <span className="text-[10px] text-[var(--text-muted)]">Cria lembrete recorrente automaticamente</span>
                   </div>
                 </label>
 
-                <button type="submit" disabled={addCost.isPending} className="w-full py-4 mt-2 bg-red-500 hover:bg-red-400 text-white font-black rounded-xl transition-all shadow-xl">Implantar Custo Fixo</button>
+                <button type="submit" disabled={addCost.isPending || updateCost.isPending} className="w-full py-4 mt-2 bg-red-500 hover:bg-red-400 text-white font-black rounded-xl transition-all shadow-xl">{editingCostId ? 'Salvar Alterações' : 'Implantar Custo Fixo'}</button>
               </form>
             </motion.div>
           </div>
@@ -1310,7 +1807,7 @@ export default function FinancePage() {
         {isPoteModalOpen && (
           <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md bg-[var(--bg-primary)] border border-red-500/20 rounded-3xl p-6 shadow-[0_0_50px_rgba(239,68,68,0.1)] relative">
-              <button onClick={() => setPoteModalOpen(false)} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"><X size={20}/></button>
+              <button onClick={() => { setPoteModalOpen(false); setPoteAllocationType('percentage') }} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white"><X size={20}/></button>
               <h2 className="text-2xl font-black text-red-500 mb-6 flex items-center gap-2"><Target size={24}/> Criar Novo Pote</h2>
               <form onSubmit={async (e) => {
                 e.preventDefault()
@@ -1319,12 +1816,14 @@ export default function FinancePage() {
                   title: fd.get('title') as string,
                   target_amount: parseFloat(fd.get('target_amount') as string) || 0,
                   saved_amount: 0,
-                  allocation_type: fd.get('allocation_type') as any,
+                  allocation_type: poteAllocationType,
                   allocation_value: parseFloat(fd.get('allocation_value') as string),
                   color: 'text-red-500',
                   emoji: (fd.get('emoji') as string) || '🎯',
+                  monthly_yield_rate: parseFloat(fd.get('monthly_yield_rate') as string) || 0,
                 })
                 setPoteModalOpen(false)
+                setPoteAllocationType('percentage')
               }} className="space-y-4">
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Objetivo do Pote (Emoji & Nome)</label>
@@ -1337,18 +1836,53 @@ export default function FinancePage() {
                   <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Custo Total / Meta (Opcional)</label>
                   <input name="target_amount" type="number" step="0.01" placeholder="Ex: 5000.00" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Tipo de Depósito</label>
-                    <select name="allocation_type" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500">
-                      <option value="percentage">% da Sobra do Mês</option>
-                      <option value="fixed_value">Valor Fixo (R$)</option>
-                    </select>
+
+                {/* Tipo de Depósito — custom pill selector */}
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block">Tipo de Depósito</label>
+                  <div className="flex gap-2">
+                    {([
+                      { id: 'percentage',  label: '% da Sobra do Mês' },
+                      { id: 'fixed_value', label: 'Valor Fixo (R$)' },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setPoteAllocationType(opt.id)}
+                        className={cn(
+                          "flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest border transition-all",
+                          poteAllocationType === opt.id
+                            ? "bg-red-500/15 border-red-500/50 text-red-400"
+                            : "bg-white/5 border-white/10 text-[var(--text-muted)] hover:bg-white/10"
+                        )}
+                      >{opt.label}</button>
+                    ))}
                   </div>
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Fatia / Valor</label>
-                    <input name="allocation_value" type="number" step="0.01" required placeholder="Ex: 25" className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">
+                    {poteAllocationType === 'percentage' ? 'Percentual da Sobra (%)' : 'Valor Fixo (R$)'}
+                  </label>
+                  <input name="allocation_value" type="number" step="0.01" required placeholder={poteAllocationType === 'percentage' ? 'Ex: 25' : 'Ex: 500'} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500" />
+                </div>
+                <div className="border border-dashed border-white/10 rounded-2xl p-4 space-y-3">
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
+                    <span>📈</span> Rendimento Mensal (Opcional)
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      name="monthly_yield_rate"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      placeholder="Ex: 0.8"
+                      className="flex-1 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500"
+                    />
+                    <span className="text-[var(--text-muted)] font-black text-sm">% ao mês</span>
                   </div>
+                  <p className="text-[10px] text-[var(--text-muted)] italic">Se configurado, o saldo do pote será multiplicado por este percentual mensalmente como estimativa de rendimento.</p>
                 </div>
                 <button type="submit" disabled={addPote.isPending} className="w-full py-4 mt-2 bg-red-500 hover:bg-red-400 text-white font-black rounded-xl transition-all shadow-xl">Gênesis do Pote</button>
               </form>
