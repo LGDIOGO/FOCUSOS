@@ -174,7 +174,7 @@ function AgendaItem({
 
             {event.isOverdue && (
               <span className="flex items-center gap-1 px-2 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-lg text-[#FF453A] text-[9px] font-black animate-in fade-in zoom-in duration-500">
-                <AlertCircle size={10} /> ATRASADO
+                <AlertCircle size={10} /> NÃO REALIZADO
               </span>
             )}
 

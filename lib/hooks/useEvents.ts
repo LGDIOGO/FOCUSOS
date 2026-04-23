@@ -191,7 +191,6 @@ export function useEventsToday(selectedDate: Date = new Date()) {
     queryFn: async () => {
       if (!user) return []
 
-      const todayDay = getDay(selectedDate)
       const isViewingToday = isToday(selectedDate)
 
       // Get all events for user
@@ -199,33 +198,28 @@ export function useEventsToday(selectedDate: Date = new Date()) {
       const snap = await getDocs(q)
       const allEvents = snap.docs.map(d => ({ id: d.id, ...d.data() })) as CalendarEvent[]
 
-      // Filter events that occur ON the selected date
-      const occurringToday = allEvents.filter(e => {
-        if (e.date === dateStr) return true
-        if (e.recurrence) {
+      // Helper: check if an event occurs on a given date
+      function occursOnDate(e: CalendarEvent, targetStr: string, targetDate: Date): boolean {
+        if (!e.date || typeof e.date !== 'string') return false
+        if (e.date === targetStr) return true
+        if (!e.recurrence) return false
+        if (targetStr < e.date) return false
+        try {
           const evDate = parseISO(e.date)
-          if (dateStr < e.date) return false
-          
+          const targetDay = getDay(targetDate)
           const interval = e.recurrence.interval || 1
           const freq = e.recurrence.frequency
-
-          if (freq === 'daily') {
-             const diff = Math.abs(differenceInDays(selectedDate, evDate))
-             return diff % interval === 0
-          }
-          if (freq === 'weekly') {
-             const diff = Math.abs(differenceInWeeks(selectedDate, evDate))
-             return diff % interval === 0 && todayDay === getDay(evDate)
-          }
-          if (freq === 'specific_days') {
-             const diff = Math.abs(differenceInWeeks(selectedDate, evDate))
-             return diff % interval === 0 && e.recurrence.days_of_week?.includes(todayDay)
-          }
-          if (freq === 'monthly') return getDate(selectedDate) === getDate(evDate)
-          if (freq === 'yearly') return getDate(selectedDate) === getDate(evDate) && getMonth(selectedDate) === getMonth(evDate)
-        }
+          if (freq === 'daily') return Math.abs(differenceInDays(targetDate, evDate)) % interval === 0
+          if (freq === 'weekly') return Math.abs(differenceInWeeks(targetDate, evDate)) % interval === 0 && targetDay === getDay(evDate)
+          if (freq === 'specific_days') return Math.abs(differenceInWeeks(targetDate, evDate)) % interval === 0 && !!e.recurrence.days_of_week?.includes(targetDay)
+          if (freq === 'monthly') return getDate(targetDate) === getDate(evDate)
+          if (freq === 'yearly') return getDate(targetDate) === getDate(evDate) && getMonth(targetDate) === getMonth(evDate)
+        } catch { /* invalid date — skip */ }
         return false
-      })
+      }
+
+      // Filter events that occur ON the selected date
+      const occurringToday = allEvents.filter(e => occursOnDate(e, dateStr, selectedDate))
 
       // Get logs for the selected date
       const logsTodayQ = query(
@@ -236,29 +230,38 @@ export function useEventsToday(selectedDate: Date = new Date()) {
       const logsTodaySnap = await getDocs(logsTodayQ)
       const logsTodayMap = new Map(logsTodaySnap.docs.map(d => [d.data().event_id, d.data().status]))
 
-      const todayResults = occurringToday.map(e => ({
+      let todayResults: (CalendarEvent & { isOverdue: boolean })[] = occurringToday.map(e => ({
         ...e,
         status: logsTodayMap.get(e.id) || 'none',
         isOverdue: false
       }))
 
       // --- OVERDUE LOGIC (Only if viewing today) ---
+      // Looks back 30 days — same window as the agenda page — so nothing shown
+      // there is "missing" from today's Resumo tab.
       let overdueResults: (CalendarEvent & { isOverdue: boolean })[] = []
+
       if (isViewingToday) {
-        // Look back up to 7 days for uncompleted items
-        const pastDates = Array.from({ length: 7 }, (_, i) => format(subDays(selectedDate, i + 1), 'yyyy-MM-dd'))
-        
-        // Optimize: Fetch logs for all past dates in one go if possible, or filter in-app
-        const logsPastQ = query(
-          collection(db, 'event_logs'),
-          where('user_id', '==', user.uid),
-          where('log_date', 'in', pastDates)
+        // pastDates[0] = yesterday (most recent), pastDates[29] = 30 days ago
+        const pastDates = Array.from({ length: 30 }, (_, i) =>
+          format(subDays(selectedDate, i + 1), 'yyyy-MM-dd')
         )
-        const logsPastSnap = await getDocs(logsPastQ)
-        
-        // Map: eventId -> Set of COMPLETED/FAILED/PARTIAL dates (any status that isn't 'none' or 'todo')
+
+        // Fetch logs for past dates in batches of 10 (safe Firestore 'in' limit)
+        const allPastLogDocs: any[] = []
+        for (let i = 0; i < pastDates.length; i += 10) {
+          const chunk = pastDates.slice(i, i + 10)
+          const chunkSnap = await getDocs(query(
+            collection(db, 'event_logs'),
+            where('user_id', '==', user.uid),
+            where('log_date', 'in', chunk)
+          ))
+          allPastLogDocs.push(...chunkSnap.docs)
+        }
+
+        // handledMap: eventId → Set of past dates that already have a real status
         const handledMap = new Map<string, Set<string>>()
-        logsPastSnap.docs.forEach(d => {
+        allPastLogDocs.forEach(d => {
           const data = d.data()
           if (data.status !== 'none' && data.status !== 'todo') {
             if (!handledMap.has(data.event_id)) handledMap.set(data.event_id, new Set())
@@ -266,49 +269,53 @@ export function useEventsToday(selectedDate: Date = new Date()) {
           }
         })
 
-        // IDs de eventos já presentes como ocorrência de hoje (para não duplicar)
-        const todayEventIds = new Set(todayResults.map(e => e.id))
-        // Chave única por evento+data para não duplicar o mesmo atraso
-        const addedOverdueKeys = new Set<string>()
+        // overdueMap: eventId → most recent unhandled past date
+        // We iterate pastDates from most-recent to oldest; first match wins.
+        const overdueMap = new Map<string, string>()
 
-        // Check each event for past occurrences that aren't handled
         allEvents.forEach(e => {
-          // Eventos não-recorrentes: só aparecem como atrasados se a data original é passada
-          // e o evento ainda não está em todayResults como ocorrência de hoje
-          if (!e.recurrence && todayEventIds.has(e.id)) return
+          if (!e.date || typeof e.date !== 'string') return
+          for (const pDate of pastDates) {
+            // Skip if event was created after this past date
+            try {
+              if (e.created_at && pDate < format(parseISO(e.created_at as string), 'yyyy-MM-dd')) continue
+            } catch { continue }
 
-          pastDates.forEach(pDate => {
-             const pDateObj = parseISO(pDate)
-             const pDay = getDay(pDateObj)
-             let occursOnPastDate = false
+            const pDateObj = parseISO(pDate)
+            if (occursOnDate(e, pDate, pDateObj) && !handledMap.get(e.id)?.has(pDate)) {
+              if (!overdueMap.has(e.id)) {
+                overdueMap.set(e.id, pDate) // store only the most-recent overdue date per event
+              }
+            }
+          }
+        })
 
-             // Skip se o evento foi criado depois da data passada
-             if (e.created_at && pDate < format(parseISO(e.created_at), 'yyyy-MM-dd')) return
+        // IDs of events that already have a today occurrence
+        const todayEventIds = new Set(todayResults.map(e => e.id))
 
-             if (e.date === pDate) occursOnPastDate = true
-             else if (e.recurrence) {
-                const evDate = parseISO(e.date)
-                if (pDate >= e.date) {
-                   const interval = e.recurrence.interval || 1
-                   const freq = e.recurrence.frequency
-                   if (freq === 'daily') occursOnPastDate = (Math.abs(differenceInDays(pDateObj, evDate)) % interval === 0)
-                   if (freq === 'weekly') occursOnPastDate = (Math.abs(differenceInWeeks(pDateObj, evDate)) % interval === 0 && pDay === getDay(evDate))
-                   if (freq === 'specific_days') occursOnPastDate = (Math.abs(differenceInWeeks(pDateObj, evDate)) % interval === 0 && !!e.recurrence.days_of_week?.includes(pDay))
-                   if (freq === 'monthly') occursOnPastDate = (getDate(pDateObj) === getDate(evDate))
-                   if (freq === 'yearly') occursOnPastDate = (getDate(pDateObj) === getDate(evDate) && getMonth(pDateObj) === getMonth(evDate))
-                }
-             }
+        // ── Case 1: event occurs today AND has overdue past occurrences
+        //   → unify: mark today's entry with isOverdue (no separate duplicate entry)
+        //   → only flag as overdue if today hasn't been handled yet
+        todayResults = todayResults.map(e => {
+          if (overdueMap.has(e.id) && (e.status === 'none' || !e.status)) {
+            return { ...e, isOverdue: true }
+          }
+          return e
+        })
 
-             const overdueKey = `${e.id}_${pDate}`
-             if (occursOnPastDate && !handledMap.get(e.id)?.has(pDate) && !addedOverdueKeys.has(overdueKey)) {
-                addedOverdueKeys.add(overdueKey)
-                overdueResults.push({
-                  ...e,
-                  date: pDate,
-                  status: 'none',
-                  isOverdue: true
-                })
-             }
+        // ── Case 2: event has overdue past occurrences but does NOT occur today
+        //   → add ONE entry (most recent past date) to show in today's Resumo
+        overdueMap.forEach((overdueDate, eventId) => {
+          if (todayEventIds.has(eventId)) return // already handled in Case 1
+
+          const event = allEvents.find(e => e.id === eventId)
+          if (!event) return
+
+          overdueResults.push({
+            ...event,
+            date: overdueDate, // keep past date so marking done logs to the correct day
+            status: 'none',
+            isOverdue: true
           })
         })
       }
@@ -316,8 +323,6 @@ export function useEventsToday(selectedDate: Date = new Date()) {
       const finalResults = [...todayResults, ...overdueResults]
 
       return finalResults.sort((a, b) => {
-        // Overdue items first? Or just by time?
-        // Let's sort by time, but keep overdue indicators
         if (a.time && b.time) return a.time.localeCompare(b.time)
         if (a.time) return -1
         if (b.time) return 1
