@@ -3,24 +3,22 @@
 import { useState, useMemo, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle, History, Pencil, Copy
+import { 
+  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle, History
 } from 'lucide-react'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
-import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
-import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicker'
-import { useEvents, useDeleteEvent, useEventLogsRange, useLogEvent, useAddEvent } from '@/lib/hooks/useEvents'
-import { Check, Minus, X, Circle } from 'lucide-react'
+import { useEvents, useDeleteEvent } from '@/lib/hooks/useEvents'
+import { db, auth } from '@/lib/firebase/config'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 import { CalendarEvent, EventType } from '@/types'
 import { cn } from '@/lib/utils/cn'
-import {
-  format, isToday, isTomorrow, parseISO, addMonths, subMonths, startOfMonth, endOfMonth,
-  eachDayOfInterval, getDay, differenceInWeeks, differenceInDays, parse, startOfYear, endOfYear, getDate, getMonth
+import { 
+  format, isToday, isTomorrow, parseISO, addMonths, subMonths, startOfMonth, endOfMonth, 
+  eachDayOfInterval, getDay, differenceInWeeks, differenceInDays, parse, startOfYear, endOfYear 
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { isAfter, subMinutes } from 'date-fns'
-import { isBubbleIgnoredTarget, resolveBubblePosition } from '@/lib/utils/statusBubble'
 
 const EVENT_TYPES: { type: EventType; label: string; icon: any; color: string }[] = [
   { type: 'meeting', label: 'Reunião', icon: Users, color: 'text-red-400 bg-red-400/10' },
@@ -30,50 +28,43 @@ const EVENT_TYPES: { type: EventType; label: string; icon: any; color: string }[
   { type: 'other', label: 'Outros', icon: CalendarIcon, color: 'text-white/60 bg-white/5' },
 ]
 
-const STATUS_CONFIG_AGENDA: Record<string, { icon: string; border: string }> = {
-  todo: { icon: 'bg-[var(--bg-overlay)] text-[var(--text-muted)]', border: 'border-[var(--border-subtle)]' },
-  done: { icon: 'bg-green-500 text-white', border: 'border-green-500/30' },
-  partial: { icon: 'bg-amber-400 text-black', border: 'border-amber-400/30' },
-  failed: { icon: 'bg-red-500 text-white', border: 'border-red-500/30' },
-  none: { icon: 'bg-[var(--bg-overlay)] text-[var(--text-muted)]', border: 'border-[var(--border-subtle)]' },
-}
+const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 
-const AGENDA_STATUS_OPTIONS = [
-  { id: 'done',    label: 'Concluído', icon: Check,  color: 'text-green-400', bg: 'hover:bg-green-500/10' },
-  { id: 'partial', label: 'Parcial',   icon: Minus,  color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
-  { id: 'reschedule', label: 'Remarcar', icon: RefreshCcw, color: 'text-red-400', bg: 'hover:bg-red-500/10' },
-  { id: 'failed',  label: 'Falhou',    icon: X,      color: 'text-red-500',   bg: 'hover:bg-red-500/10' },
-  { id: 'todo',    label: 'Limpar',    icon: Circle, color: 'text-white/20',  bg: 'hover:bg-white/5' },
-]
-
-function EventItem({
-  event,
-  isSelectionMode,
-  isSelected,
-  toggleSelection,
+function EventItem({ 
+  event, 
+  isSelectionMode, 
+  isSelected, 
+  toggleSelection, 
+  openEditModal, 
   setIsSelectionMode,
   onDelete,
-  onEdit,
-  onDuplicate,
-  onOpenBubble,
   currentTime = new Date()
-}: {
+}: { 
   event: CalendarEvent
   isSelectionMode: boolean
   isSelected: boolean
   toggleSelection: (id: string) => void
+  openEditModal: (event: CalendarEvent) => void
   setIsSelectionMode: (val: boolean) => void
   onDelete: (id: string) => void
-  onEdit?: () => void
-  onDuplicate?: () => void
-  onOpenBubble?: (pos: { x: number; y: number }) => void
   currentTime?: Date
 }) {
+  const localLongPress = useLongPress(
+    () => {
+      setIsSelectionMode(true)
+      toggleSelection(event.id)
+    },
+    () => {},
+    { delay: 500 }
+  )
+
   const timeStatus = useMemo(() => {
     if (!event.time || event.isOverdue || event.status === 'done') return { approaching: false, passed: !!event.isOverdue }
-    
+    if (!event.date || typeof event.date !== 'string') return { approaching: false, passed: false }
+
     // Check if event is for today
-    const eventDate = parseISO(event.date)
+    let eventDate: Date
+    try { eventDate = parseISO(event.date) } catch { return { approaching: false, passed: false } }
     if (!isToday(eventDate)) return { approaching: false, passed: false }
 
     const now = currentTime || new Date()
@@ -87,86 +78,36 @@ function EventItem({
     }
   }, [event.time, event.isOverdue, event.status, event.date, currentTime])
 
-  const currentStatus = event.status || 'none'
-  const cfg = STATUS_CONFIG_AGENDA[currentStatus] || STATUS_CONFIG_AGENDA.none
-
-  const handleShortPress = (eventData: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
-    if (isBubbleIgnoredTarget(eventData.target)) {
-      return
-    }
-
-    eventData.preventDefault()
-    eventData.stopPropagation()
-
-    if (isSelectionMode) {
-      toggleSelection(event.id)
-      return
-    }
-
-    onOpenBubble?.(resolveBubblePosition(eventData, eventData.currentTarget))
-  }
-
-  const longPress = useLongPress(
-    () => {
-      setIsSelectionMode(true)
-      toggleSelection(event.id)
-    },
-    handleShortPress,
-    { delay: 500 }
-  )
-
   return (
     <motion.div
       layout="position"
-      whileTap={{ scale: 0.985 }}
-      {...longPress}
+      {...localLongPress}
+      onClick={() => {
+        if (isSelectionMode) {
+          toggleSelection(event.id)
+        } else {
+          openEditModal(event)
+        }
+      }}
       onContextMenu={(e) => {
         e.preventDefault()
         e.stopPropagation()
         setIsSelectionMode(true)
         toggleSelection(event.id)
       }}
-      data-status-card="agenda-page-event"
       className={cn(
         "group flex items-center gap-6 p-6 bg-[var(--bg-overlay)] border rounded-[32px] hover:bg-[var(--bg-overlay)]/80 transition-all cursor-pointer relative transition-colors duration-300",
-        isSelected ? "border-red-500 bg-red-500/5" : cfg.border
+        isSelected ? "border-red-500 bg-red-500/5" : "border-[var(--border-subtle)]"
       )}
     >
-      {/* Status Circle */}
-      {!isSelectionMode && (
-        <motion.div
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className={cn(
-            "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-20",
-            currentStatus === 'none' || currentStatus === 'todo'
-              ? 'border-white/10 bg-white/5'
-              : cfg.icon
-          )}
-          data-status-trigger="true"
-        >
-          {currentStatus === 'done'    && <Check size={18} strokeWidth={3} className="text-white" />}
-          {currentStatus === 'partial' && <Minus size={18} strokeWidth={3} className="text-white" />}
-          {currentStatus === 'failed'  && <X     size={18} strokeWidth={3} className="text-white" />}
-        </motion.div>
-      )}
-      {isSelectionMode && (
-        <div className={cn(
-          "w-12 h-12 rounded-full border-2 flex items-center justify-center flex-shrink-0 z-20",
-          isSelected ? "border-red-500 bg-red-500" : "border-white/10 bg-white/5"
-        )}>
-          {isSelected && <Check size={20} className="text-white" strokeWidth={3} />}
-        </div>
-      )}
-
-      <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+      <div 
+        className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-110"
         style={{ backgroundColor: event.color ? `${event.color}20` : 'rgba(255,255,255,0.05)', color: event.color || '#FFFFFF' }}
       >
         {event.emoji || (
-          event.type === 'meeting' ? <Users size={18} /> :
-          event.type === 'birthday' ? <Cake size={18} /> :
-          event.type === 'event' ? <Star size={18} /> : <CalendarIcon size={18} />
+          event.type === 'meeting' ? <Users size={24} /> :
+          event.type === 'birthday' ? <Cake size={24} /> :
+          event.type === 'event' ? <Star size={24} /> : <CalendarIcon size={24} />
         )}
       </div>
 
@@ -196,9 +137,9 @@ function EventItem({
               {event.time}
             </div>
             {event.isOverdue && (() => {
-              const daysLate = differenceInDays(new Date(), parseISO(event.date))
+              const daysLate = event.date ? differenceInDays(new Date(), parseISO(event.date)) : 0
               return (
-                <span className="flex items-center gap-1.5 px-2 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-lg text-[#FF453A] text-[10px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-500">
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-lg text-[#FF453A] text-[10px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-500">
                   <AlertCircle size={10} />
                   {daysLate > 0 ? `${daysLate}d atraso` : 'ATRASADO'}
                 </span>
@@ -214,57 +155,6 @@ function EventItem({
       </div>
 
       <button 
-        type="button"
-        data-bubble-ignore="true"
-        data-ignore-action="edit"
-        onClick={(e) => {
-          e.stopPropagation()
-          if (isSelectionMode) return
-          onEdit?.()
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
-        onMouseUp={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
-        onPointerUp={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-        onTouchEnd={(e) => e.stopPropagation()}
-        title="Editar Compromisso"
-        className={cn(
-          "p-3 hover:text-white transition-colors opacity-0 group-hover:opacity-100",
-          isSelectionMode ? "hidden" : "text-white/10"
-        )}
-      >
-        <Pencil size={18} />
-      </button>
-
-      <button
-        type="button"
-        data-bubble-ignore="true"
-        data-ignore-action="duplicate"
-        onClick={(e) => {
-          e.stopPropagation()
-          if (isSelectionMode) return
-          onDuplicate?.()
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
-        onMouseUp={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
-        onPointerUp={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-        onTouchEnd={(e) => e.stopPropagation()}
-        title="Duplicar Compromisso"
-        className={cn(
-          "p-3 hover:text-white transition-colors opacity-0 group-hover:opacity-100",
-          isSelectionMode ? "hidden" : "text-white/10"
-        )}
-      >
-        <Copy size={18} />
-      </button>
-
-      <button
-        type="button"
-        data-bubble-ignore="true"
-        data-ignore-action="delete"
         onClick={(e) => {
           e.stopPropagation()
           if (isSelectionMode) return
@@ -273,10 +163,8 @@ function EventItem({
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
-        onPointerUp={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
-        title="Excluir Compromisso"
         className={cn(
           "p-3 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100",
           isSelectionMode ? "hidden" : "text-white/5"
@@ -300,11 +188,10 @@ export default function AgendaPageWrapper() {
 function AgendaPage() {
   const { data: events, isLoading } = useEvents()
   const deleteEvent = useDeleteEvent()
-  const addEvent = useAddEvent()
-  const logEvent = useLogEvent()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const searchParams = useSearchParams()
-  const { data: logs = {} } = useEventLogsRange()
+  const [logs, setLogs] = useState<Map<string, string>>(new Map())
+  const [loadingLogs, setLoadingLogs] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showAddModal, setShowAddModal] = useState(false)
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null)
@@ -314,18 +201,45 @@ function AgendaPage() {
   const [historyStartDate, setHistoryStartDate] = useState<string>('')
   const [historyEndDate, setHistoryEndDate] = useState<string>('')
   const [historyPeriod, setHistoryPeriod] = useState<'all' | 'custom'>('all')
-  const [activeBubble, setActiveBubble] = useState<{
-    id: string
-    position: { x: number; y: number }
-    options: any[]
-    onSelect: (status: string) => void
-  } | null>(null)
 
   // Update logic for real-time visual alerts
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000)
     return () => clearInterval(timer)
   }, [])
+
+  // Fetch logs for the current month view
+  useEffect(() => {
+    const fetchLogs = async () => {
+      const user = auth.currentUser
+      if (!user || !events) return
+      
+      setLoadingLogs(true)
+      try {
+        const start = format(startOfMonth(currentMonth), 'yyyy-MM-dd')
+        const end = format(endOfMonth(currentMonth), 'yyyy-MM-dd')
+        
+        const q = query(
+          collection(db, 'event_logs'),
+          where('user_id', '==', user.uid),
+          where('log_date', '>=', start),
+          where('log_date', '<=', end)
+        )
+        const snap = await getDocs(q)
+        const newLogs = new Map()
+        snap.docs.forEach(d => {
+          const data = d.data()
+          newLogs.set(`${data.event_id}_${data.log_date}`, data.status)
+        })
+        setLogs(newLogs)
+      } catch (e) {
+        console.error('Error fetching logs:', e)
+      } finally {
+        setLoadingLogs(false)
+      }
+    }
+    fetchLogs()
+  }, [events, currentMonth])
 
   useEffect(() => {
     if (searchParams.get('add') === 'true') {
@@ -336,19 +250,6 @@ function AgendaPage() {
   const openEditModal = (event: CalendarEvent) => {
     setEventToEdit(event)
     setShowAddModal(true)
-  }
-
-  const handleEventStatusChange = (event: CalendarEvent, status: string) => {
-    if (status === 'reschedule') {
-      openEditModal(event)
-      return
-    }
-
-    logEvent.mutate({
-      eventId: event.id,
-      status,
-      logDate: event.date
-    })
   }
 
   const toggleSelection = (id: string) => {
@@ -374,9 +275,9 @@ function AgendaPage() {
     } else if (type === 'tomorrow') {
       ids = events.filter(e => e.date === tomorrowStr).map(e => e.id)
     } else if (type === 'current_year') {
-      ids = events.filter(e => e.date.startsWith(currentYear)).map(e => e.id)
+      ids = events.filter(e => e.date?.startsWith(currentYear)).map(e => e.id)
     } else if (type === 'next_year') {
-      ids = events.filter(e => e.date.startsWith(nextYear)).map(e => e.id)
+      ids = events.filter(e => e.date?.startsWith(nextYear)).map(e => e.id)
     }
     
     setSelectedIds(ids)
@@ -391,57 +292,67 @@ function AgendaPage() {
     }
   }
 
-  // Helper: verifica se um evento ocorre em uma data específica
-  const eventOccursOnDate = (e: CalendarEvent, dateStr: string, day: Date): boolean => {
-    if (!e.date) return false
-    if (e.date === dateStr) return true
-    if (!e.recurrence) return false
-    const evDate = parseISO(e.date)
-    if (dateStr < e.date) return false
-    const interval = e.recurrence.interval || 1
-    const freq = e.recurrence.frequency
-    const dow = getDay(day)
-    if (freq === 'daily') return Math.abs(differenceInDays(day, evDate)) % interval === 0
-    if (freq === 'weekly') {
-      if (dow !== getDay(evDate)) return false
-      return Math.abs(differenceInDays(day, evDate)) % (7 * interval) === 0
-    }
-    if (freq === 'specific_days') {
-      const diff = Math.abs(differenceInWeeks(day, evDate))
-      return diff % interval === 0 && !!e.recurrence.days_of_week?.includes(dow)
-    }
-    if (freq === 'monthly') return format(day, 'dd') === format(evDate, 'dd')
-    if (freq === 'yearly') return format(day, 'MM-dd') === format(evDate, 'MM-dd')
-    return false
-  }
-
   const groupedEvents = useMemo(() => {
     if (!events) return {}
 
-    const todayStr = format(currentTime, 'yyyy-MM-dd')
+    // Filtra eventos com data inválida para evitar crash em parseISO/format
+    const validEvents = events.filter(e =>
+      typeof e.date === 'string' && e.date.length >= 8
+    )
+
     const start = startOfMonth(currentMonth)
     const end = endOfMonth(currentMonth)
     const days = eachDayOfInterval({ start, end })
+    const todayStr = format(new Date(), 'yyyy-MM-dd')
 
-    const grouped: Record<string, CalendarEvent[]> = {}
+    const grouped: Record<string, (CalendarEvent & { isOverdue?: boolean })[]> = {}
 
-    // Só processa HOJE e dias FUTUROS — dias passados vão para o colapsável
     days.forEach((day: Date) => {
       const dateStr = format(day, 'yyyy-MM-dd')
-      if (dateStr < todayStr) return // ignora dias passados
+      // Skip past days — they belong to pastEventsGrouped
+      if (dateStr < todayStr) return
 
-      const dayEvents = events
-        .filter(e => eventOccursOnDate(e, dateStr, day))
-        .map(e => {
-          const status = logs[`${e.id}_${dateStr}`] || 'none'
-          return { ...e, status, isOverdue: false }
-        })
+      const dayOfWeek = getDay(day)
 
-      if (dayEvents.length > 0) {
-        const sortedEvents = (dayEvents as CalendarEvent[]).sort((a, b) => {
-          // Concluídos vão pro final
-          const isDoneA = a.status === 'done' || a.status === 'partial' || a.status === 'failed'
-          const isDoneB = b.status === 'done' || b.status === 'partial' || b.status === 'failed'
+      const dayEvents = validEvents.filter(e => {
+        if (e.date === dateStr) return true
+        if (e.recurrence) {
+          try {
+            const evDate = parseISO(e.date)
+            if (dateStr < e.date) return false
+
+            const interval = e.recurrence.interval || 1
+            const freq = e.recurrence.frequency
+
+            if (freq === 'daily') return Math.abs(differenceInDays(day, evDate)) % interval === 0
+            if (freq === 'weekly') {
+              if (dayOfWeek !== getDay(evDate)) return false
+              return Math.abs(differenceInDays(day, evDate)) % (7 * interval) === 0
+            }
+            if (freq === 'specific_days') {
+               const diff = Math.abs(differenceInWeeks(day, evDate))
+               return diff % interval === 0 && !!e.recurrence.days_of_week?.includes(dayOfWeek)
+            }
+            if (freq === 'monthly') return format(day, 'dd') === format(evDate, 'dd')
+            if (freq === 'yearly') return format(day, 'MM-dd') === format(evDate, 'MM-dd')
+          } catch { return false }
+        }
+        return false
+      }).map(e => ({
+        ...e,
+        status: (logs.get(`${e.id}_${dateStr}`) || 'none') as CalendarEvent['status'],
+        isOverdue: false
+      }))
+
+      // For today: hide completed events (they go to history)
+      const visibleEvents = dateStr === todayStr
+        ? dayEvents.filter(e => e.status !== 'done' && e.status !== 'partial' && e.status !== 'failed')
+        : dayEvents
+
+      if (visibleEvents.length > 0) {
+        const sorted = (visibleEvents as CalendarEvent[]).sort((a, b) => {
+          const isDoneA = a.status === 'done'
+          const isDoneB = b.status === 'done'
           if (isDoneA && !isDoneB) return 1
           if (!isDoneA && isDoneB) return -1
           if (isToday(day)) {
@@ -457,36 +368,70 @@ function AgendaPage() {
           }
           return (a.time || '00:00').localeCompare(b.time || '00:00')
         })
-        // Para hoje: remove concluídos (vão pro colapsável). Futuros: mostra tudo.
-        const visibleEvents = isToday(day)
-          ? sortedEvents.filter(e => e.status !== 'done' && e.status !== 'partial' && e.status !== 'failed')
-          : sortedEvents as CalendarEvent[]
-        if (visibleEvents.length > 0) grouped[dateStr] = visibleEvents
+        grouped[dateStr] = sorted
       }
     })
 
-    // Injeta atrasados (passados não concluídos) no grupo de HOJE
-    // Eles aparecem no topo de hoje como lembrete, com isOverdue: true
-    const overdueForToday: CalendarEvent[] = []
+    // Inject overdue items (past 30 days, uncompleted) into today's group at the top
+    const overdueItems: (CalendarEvent & { isOverdue: boolean })[] = []
+    const today = new Date()
+
     for (let i = 1; i <= 30; i++) {
-      const pastDay = new Date(currentTime)
-      pastDay.setDate(pastDay.getDate() - i)
-      const pastDateStr = format(pastDay, 'yyyy-MM-dd')
-      events.forEach(e => {
-        if (!eventOccursOnDate(e, pastDateStr, pastDay)) return
-        const status = logs[`${e.id}_${pastDateStr}`]
-        const isHandled = status === 'done' || status === 'partial' || status === 'failed'
-        if (!isHandled) {
-          // Evita duplicatas (mesmo evento em datas diferentes)
-          if (!overdueForToday.find(o => o.id === e.id && o.date === pastDateStr)) {
-            overdueForToday.push({ ...e, date: pastDateStr, status: 'none' as const, isOverdue: true })
+      const pastDate = new Date(today)
+      pastDate.setDate(today.getDate() - i)
+      const pastDateStr = format(pastDate, 'yyyy-MM-dd')
+      const pastDayOfWeek = getDay(pastDate)
+
+      validEvents.forEach(e => {
+        if (e.created_at) {
+          try {
+            if (pastDateStr < format(new Date(e.created_at), 'yyyy-MM-dd')) return
+          } catch {}
+        }
+
+        let occursOnPastDate = false
+        if (e.date === pastDateStr) {
+          occursOnPastDate = true
+        } else if (e.recurrence) {
+          let evDate: Date
+          try { evDate = parseISO(e.date) } catch { return }
+          if (pastDateStr >= e.date) {
+            const interval = e.recurrence.interval || 1
+            const freq = e.recurrence.frequency
+            if (freq === 'daily') occursOnPastDate = Math.abs(differenceInDays(pastDate, evDate)) % interval === 0
+            if (freq === 'weekly') {
+              if (pastDayOfWeek === getDay(evDate)) {
+                occursOnPastDate = Math.abs(differenceInDays(pastDate, evDate)) % (7 * interval) === 0
+              }
+            }
+            if (freq === 'specific_days') occursOnPastDate = Math.abs(differenceInWeeks(pastDate, evDate)) % interval === 0 && !!e.recurrence.days_of_week?.includes(pastDayOfWeek)
+            if (freq === 'monthly') occursOnPastDate = format(pastDate, 'dd') === format(evDate, 'dd')
+            if (freq === 'yearly') occursOnPastDate = format(pastDate, 'MM-dd') === format(evDate, 'MM-dd')
+          }
+        }
+
+        if (occursOnPastDate) {
+          const status = logs.get(`${e.id}_${pastDateStr}`) || 'none'
+          const isCompleted = status === 'done' || status === 'partial' || status === 'failed'
+          const alreadyAdded = overdueItems.some(o => o.id === e.id && o.date === pastDateStr)
+          if (!isCompleted && !alreadyAdded) {
+            overdueItems.push({
+              ...e,
+              date: pastDateStr,
+              status: status as CalendarEvent['status'],
+              isOverdue: true
+            })
           }
         }
       })
     }
-    if (overdueForToday.length > 0) {
-      grouped[todayStr] = [...overdueForToday, ...(grouped[todayStr] || [])]
+
+    if (overdueItems.length > 0) {
+      grouped[todayStr] = [...overdueItems, ...(grouped[todayStr] || [])]
     }
+
+    // Remove empty groups
+    Object.keys(grouped).forEach(key => { if (grouped[key].length === 0) delete grouped[key] })
 
     return grouped
   }, [events, currentMonth, logs, currentTime])
@@ -494,104 +439,37 @@ function AgendaPage() {
   const pastEventsGrouped = useMemo(() => {
     if (!events) return {}
     const todayStr = format(currentTime, 'yyyy-MM-dd')
-    const past = events.filter(e => {
-      if (!e.date || e.date >= todayStr) return false
-      
-      if (historyPeriod === 'custom') {
-        if (historyStartDate && e.date < historyStartDate) return false
-        if (historyEndDate && e.date > historyEndDate) return false
-      }
-      return true
-    })
-    
+
     const grouped: Record<string, CalendarEvent[]> = {}
-    past.forEach(e => {
-      const status = logs[`${e.id}_${e.date}`] || 'none'
-      // Inclui TODOS os eventos passados — concluídos E atrasados.
-      // O usuário pode marcar os atrasados como concluídos direto aqui.
-      const isPastOverdue = status === 'none' || status === 'todo'
+
+    events.forEach(e => {
+      // Skip events with no date (safety guard)
+      if (!e.date) return
+      // Skip future events
+      if (e.date > todayStr) return
+
+      const status = (logs.get(`${e.id}_${e.date}`) || 'none') as CalendarEvent['status']
+
+      // For today: only include events that have a non-pending status
+      if (e.date === todayStr) {
+        if (status === 'none' || status === 'todo') return
+      }
+
+      // Apply period filter
+      if (historyPeriod === 'custom') {
+        if (historyStartDate && e.date < historyStartDate) return
+        if (historyEndDate && e.date > historyEndDate) return
+      }
+
       if (!grouped[e.date]) grouped[e.date] = []
-      grouped[e.date].push({
-        ...e,
-        status: status as CalendarEvent['status'],
-        isOverdue: isPastOverdue
-      })
+      grouped[e.date].push({ ...e, status })
     })
-
-    // Prepend today's completed events so they appear at the top of the history section
-    const todayStr2 = format(currentTime, 'yyyy-MM-dd')
-    const todayDay2 = getDay(currentTime)
-    const todayCompletedForHistory: CalendarEvent[] = events
-      .filter(e => {
-        if (!e.date) return false
-        if (e.date === todayStr2) return true
-        if (!e.recurrence) return false
-        const evDate = parseISO(e.date)
-        if (todayStr2 < e.date) return false
-        const interval = e.recurrence.interval || 1
-        const freq = e.recurrence.frequency
-        if (freq === 'daily') return Math.abs(differenceInDays(currentTime, evDate)) % interval === 0
-        if (freq === 'weekly') return Math.abs(differenceInWeeks(currentTime, evDate)) % interval === 0 && todayDay2 === getDay(evDate)
-        if (freq === 'specific_days') return Math.abs(differenceInWeeks(currentTime, evDate)) % interval === 0 && !!e.recurrence.days_of_week?.includes(todayDay2)
-        if (freq === 'monthly') return getDate(currentTime) === getDate(evDate)
-        if (freq === 'yearly') return getDate(currentTime) === getDate(evDate) && getMonth(currentTime) === getMonth(evDate)
-        return false
-      })
-      .filter(e => {
-        const status = logs[`${e.id}_${todayStr2}`]
-        return status === 'done' || status === 'partial' || status === 'failed'
-      })
-      .map(e => ({
-        ...e,
-        date: todayStr2,
-        status: logs[`${e.id}_${todayStr2}`] as CalendarEvent['status'],
-        isOverdue: false
-      }))
-
-    if (todayCompletedForHistory.length > 0) {
-      grouped[todayStr2] = todayCompletedForHistory
-    }
 
     // Sort dates in descending order (most recent first)
     return Object.fromEntries(
       Object.entries(grouped).sort((a, b) => b[0].localeCompare(a[0]))
     )
   }, [events, logs, currentTime, historyStartDate, historyEndDate, historyPeriod])
-
-  // Events that occurred today and have been completed (done/partial/failed)
-  // They are moved to the "past" collapsible section
-  const todayCompletedEvents = useMemo(() => {
-    if (!events || !logs) return []
-    const todayStr = format(currentTime, 'yyyy-MM-dd')
-    const todayDay = getDay(currentTime)
-
-    return events
-      .filter(e => {
-        if (!e.date) return false
-        if (e.date === todayStr) return true
-        if (!e.recurrence) return false
-        const evDate = parseISO(e.date)
-        if (todayStr < e.date) return false
-        const interval = e.recurrence.interval || 1
-        const freq = e.recurrence.frequency
-        if (freq === 'daily') return Math.abs(differenceInDays(currentTime, evDate)) % interval === 0
-        if (freq === 'weekly') return Math.abs(differenceInWeeks(currentTime, evDate)) % interval === 0 && todayDay === getDay(evDate)
-        if (freq === 'specific_days') return Math.abs(differenceInWeeks(currentTime, evDate)) % interval === 0 && !!e.recurrence.days_of_week?.includes(todayDay)
-        if (freq === 'monthly') return getDate(currentTime) === getDate(evDate)
-        if (freq === 'yearly') return getDate(currentTime) === getDate(evDate) && getMonth(currentTime) === getMonth(evDate)
-        return false
-      })
-      .filter(e => {
-        const status = logs[`${e.id}_${todayStr}`]
-        return status === 'done' || status === 'partial' || status === 'failed'
-      })
-      .map(e => ({
-        ...e,
-        date: todayStr,
-        status: logs[`${e.id}_${todayStr}`] as CalendarEvent['status'],
-        isOverdue: false
-      }))
-  }, [events, logs, currentTime])
 
   return (
     <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10">
@@ -717,25 +595,39 @@ function AgendaPage() {
                         </div>
 
                         {historyPeriod === 'custom' && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="grid grid-cols-2 gap-3 pt-1"
+                          <motion.div 
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex flex-wrap items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10"
                           >
-                            <CustomDateTimePicker
-                              label="Início"
-                              type="date"
-                              value={historyStartDate}
-                              onChange={setHistoryStartDate}
-                            />
-                            <CustomDateTimePicker
-                              label="Fim"
-                              type="date"
-                              value={historyEndDate}
-                              onChange={setHistoryEndDate}
-                              align="right"
-                            />
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Início</label>
+                              <input 
+                                type="date" 
+                                value={historyStartDate}
+                                onChange={(e) => setHistoryStartDate(e.target.value)}
+                                className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Fim</label>
+                              <input 
+                                type="date" 
+                                value={historyEndDate}
+                                onChange={(e) => setHistoryEndDate(e.target.value)}
+                                className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
+                              />
+                            </div>
+                            <button 
+                              onClick={() => {
+                                setHistoryStartDate('')
+                                setHistoryEndDate('')
+                                setHistoryPeriod('all')
+                              }}
+                              className="mt-4 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                            >
+                              Limpar
+                            </button>
                           </motion.div>
                         )}
                     </div>
@@ -755,22 +647,9 @@ function AgendaPage() {
                               isSelectionMode={isSelectionMode}
                               isSelected={selectedIds.includes(event.id)}
                               toggleSelection={toggleSelection}
+                              openEditModal={openEditModal}
                               setIsSelectionMode={setIsSelectionMode}
                               onDelete={(id) => deleteEvent.mutate(id)}
-                              onEdit={() => openEditModal(event)}
-                              onDuplicate={() => {
-                                const { id, status, isOverdue, ...rest } = event as any
-                                addEvent.mutate({ ...rest })
-                              }}
-                              onOpenBubble={(position) => setActiveBubble({
-                                id: event.id,
-                                position,
-                                options: AGENDA_STATUS_OPTIONS,
-                                onSelect: (status) => {
-                                  handleEventStatusChange(event, status)
-                                  setActiveBubble(null)
-                                }
-                              })}
                               currentTime={currentTime}
                             />
                           ))}
@@ -819,22 +698,9 @@ function AgendaPage() {
                       isSelectionMode={isSelectionMode}
                       isSelected={selectedIds.includes(event.id)}
                       toggleSelection={toggleSelection}
+                      openEditModal={openEditModal}
                       setIsSelectionMode={setIsSelectionMode}
                       onDelete={(id) => deleteEvent.mutate(id)}
-                      onEdit={() => openEditModal(event)}
-                      onDuplicate={() => {
-                        const { id, status, isOverdue, ...rest } = event as any
-                        addEvent.mutate({ ...rest })
-                      }}
-                      onOpenBubble={(position) => setActiveBubble({
-                        id: event.id,
-                        position,
-                        options: AGENDA_STATUS_OPTIONS,
-                        onSelect: (status) => {
-                          handleEventStatusChange(event, status)
-                          setActiveBubble(null)
-                        }
-                      })}
                       currentTime={currentTime}
                     />
                   ))}
@@ -872,24 +738,14 @@ function AgendaPage() {
 
 
 
-      <AgendaModal
-        isOpen={showAddModal}
+      <AgendaModal 
+        isOpen={showAddModal} 
         onClose={() => {
           setShowAddModal(false)
           setEventToEdit(null)
-        }}
-        eventToEdit={eventToEdit}
+        }} 
+        eventToEdit={eventToEdit} 
       />
-
-      {activeBubble && (
-        <StatusChoiceBubble
-          isOpen={true}
-          onClose={() => setActiveBubble(null)}
-          onSelect={activeBubble.onSelect}
-          options={activeBubble.options}
-          position={activeBubble.position}
-        />
-      )}
 
 
 
@@ -899,7 +755,7 @@ function AgendaPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100vw-1.5rem)] md:w-auto max-w-5xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-8 lg:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-3 md:gap-8 lg:gap-10 shadow-2xl ring-1 ring-[var(--text-primary)]/5"
+            className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[1000] w-[95%] md:w-auto max-w-5xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-3 md:gap-10 shadow-2xl ring-1 ring-[var(--text-primary)]/5"
           >
             <div className="flex flex-col items-center justify-center min-w-[60px] md:min-w-[80px]">
               <span className="text-2xl md:text-3xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>
