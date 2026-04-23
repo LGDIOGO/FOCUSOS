@@ -353,13 +353,10 @@ function AgendaPage() {
           isOverdue: false
         }))
 
-      // For today: hide completed events (they are visible in history)
-      // But only apply this filter once logs have loaded to avoid flash
-      const visibleEvents = (dateStr === todayStr && !loadingLogs)
-        ? rawEvents.filter(e => e.status !== 'done' && e.status !== 'partial' && e.status !== 'failed')
-        : dateStr === todayStr && loadingLogs
-          ? [] // show nothing for today while logs load (prevents flash of completed items)
-          : rawEvents
+      // For today: show ALL events (pending + completed). Completed ones sort to the
+      // bottom. They only move to "Compromissos Passados" the following day.
+      // While logs are still loading, hide today entirely to prevent stale flash.
+      const visibleEvents = (dateStr === todayStr && loadingLogs) ? [] : rawEvents
 
       if (visibleEvents.length > 0) {
         const sorted = [...visibleEvents].sort((a, b) => {
@@ -465,8 +462,8 @@ function AgendaPage() {
       // Only show resolved events in history
       if (status === 'none' || status === 'todo') return
 
-      // Skip future dates
-      if (logDate > todayStr) return
+      // Skip today and future — today's events stay in today's main section
+      if (logDate >= todayStr) return
 
       // Apply period filter
       if (historyPeriod === 'custom') {
