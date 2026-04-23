@@ -60,9 +60,11 @@ function EventItem({
 
   const timeStatus = useMemo(() => {
     if (!event.time || event.isOverdue || event.status === 'done') return { approaching: false, passed: !!event.isOverdue }
-    
+    if (!event.date || typeof event.date !== 'string') return { approaching: false, passed: false }
+
     // Check if event is for today
-    const eventDate = parseISO(event.date)
+    let eventDate: Date
+    try { eventDate = parseISO(event.date) } catch { return { approaching: false, passed: false } }
     if (!isToday(eventDate)) return { approaching: false, passed: false }
 
     const now = currentTime || new Date()
@@ -273,9 +275,9 @@ function AgendaPage() {
     } else if (type === 'tomorrow') {
       ids = events.filter(e => e.date === tomorrowStr).map(e => e.id)
     } else if (type === 'current_year') {
-      ids = events.filter(e => e.date.startsWith(currentYear)).map(e => e.id)
+      ids = events.filter(e => e.date?.startsWith(currentYear)).map(e => e.id)
     } else if (type === 'next_year') {
-      ids = events.filter(e => e.date.startsWith(nextYear)).map(e => e.id)
+      ids = events.filter(e => e.date?.startsWith(nextYear)).map(e => e.id)
     }
     
     setSelectedIds(ids)
@@ -293,6 +295,11 @@ function AgendaPage() {
   const groupedEvents = useMemo(() => {
     if (!events) return {}
 
+    // Filtra eventos com data inválida para evitar crash em parseISO/format
+    const validEvents = events.filter(e =>
+      typeof e.date === 'string' && e.date.length >= 8
+    )
+
     const start = startOfMonth(currentMonth)
     const end = endOfMonth(currentMonth)
     const days = eachDayOfInterval({ start, end })
@@ -307,26 +314,28 @@ function AgendaPage() {
 
       const dayOfWeek = getDay(day)
 
-      const dayEvents = events.filter(e => {
+      const dayEvents = validEvents.filter(e => {
         if (e.date === dateStr) return true
         if (e.recurrence) {
-          const evDate = parseISO(e.date)
-          if (dateStr < e.date) return false
+          try {
+            const evDate = parseISO(e.date)
+            if (dateStr < e.date) return false
 
-          const interval = e.recurrence.interval || 1
-          const freq = e.recurrence.frequency
+            const interval = e.recurrence.interval || 1
+            const freq = e.recurrence.frequency
 
-          if (freq === 'daily') return Math.abs(differenceInDays(day, evDate)) % interval === 0
-          if (freq === 'weekly') {
-            if (dayOfWeek !== getDay(evDate)) return false
-            return Math.abs(differenceInDays(day, evDate)) % (7 * interval) === 0
-          }
-          if (freq === 'specific_days') {
-             const diff = Math.abs(differenceInWeeks(day, evDate))
-             return diff % interval === 0 && !!e.recurrence.days_of_week?.includes(dayOfWeek)
-          }
-          if (freq === 'monthly') return format(day, 'dd') === format(evDate, 'dd')
-          if (freq === 'yearly') return format(day, 'MM-dd') === format(evDate, 'MM-dd')
+            if (freq === 'daily') return Math.abs(differenceInDays(day, evDate)) % interval === 0
+            if (freq === 'weekly') {
+              if (dayOfWeek !== getDay(evDate)) return false
+              return Math.abs(differenceInDays(day, evDate)) % (7 * interval) === 0
+            }
+            if (freq === 'specific_days') {
+               const diff = Math.abs(differenceInWeeks(day, evDate))
+               return diff % interval === 0 && !!e.recurrence.days_of_week?.includes(dayOfWeek)
+            }
+            if (freq === 'monthly') return format(day, 'dd') === format(evDate, 'dd')
+            if (freq === 'yearly') return format(day, 'MM-dd') === format(evDate, 'MM-dd')
+          } catch { return false }
         }
         return false
       }).map(e => ({
@@ -373,7 +382,7 @@ function AgendaPage() {
       const pastDateStr = format(pastDate, 'yyyy-MM-dd')
       const pastDayOfWeek = getDay(pastDate)
 
-      events.forEach(e => {
+      validEvents.forEach(e => {
         if (e.created_at) {
           try {
             if (pastDateStr < format(new Date(e.created_at), 'yyyy-MM-dd')) return
@@ -384,7 +393,8 @@ function AgendaPage() {
         if (e.date === pastDateStr) {
           occursOnPastDate = true
         } else if (e.recurrence) {
-          const evDate = parseISO(e.date)
+          let evDate: Date
+          try { evDate = parseISO(e.date) } catch { return }
           if (pastDateStr >= e.date) {
             const interval = e.recurrence.interval || 1
             const freq = e.recurrence.frequency
