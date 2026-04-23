@@ -2,8 +2,9 @@
 
 import { useState, useMemo, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
+import {
   Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle, History
 } from 'lucide-react'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
@@ -12,9 +13,10 @@ import { db, auth } from '@/lib/firebase/config'
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { CalendarEvent, EventType } from '@/types'
 import { cn } from '@/lib/utils/cn'
-import { 
-  format, isToday, isTomorrow, parseISO, addMonths, subMonths, startOfMonth, endOfMonth, 
-  eachDayOfInterval, getDay, differenceInWeeks, differenceInDays, parse, startOfYear, endOfYear 
+import {
+  format, isToday, isTomorrow, parseISO, addMonths, subMonths, startOfMonth, endOfMonth,
+  eachDayOfInterval, getDay, differenceInWeeks, differenceInDays, parse, startOfYear, endOfYear,
+  subDays
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useLongPress } from '@/lib/hooks/useLongPress'
@@ -29,6 +31,26 @@ const EVENT_TYPES: { type: EventType; label: string; icon: any; color: string }[
 ]
 
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+
+// Pure helper — shared by groupedEvents and overdue injection
+function occursOnDate(e: CalendarEvent, targetStr: string, targetDate: Date): boolean {
+  if (!e.date || typeof e.date !== 'string') return false
+  if (e.date === targetStr) return true
+  if (!e.recurrence) return false
+  if (targetStr < e.date) return false
+  try {
+    const evDate = parseISO(e.date)
+    const targetDay = getDay(targetDate)
+    const interval = e.recurrence.interval || 1
+    const freq = e.recurrence.frequency
+    if (freq === 'daily') return Math.abs(differenceInDays(targetDate, evDate)) % interval === 0
+    if (freq === 'weekly') return getDay(evDate) === targetDay && Math.abs(differenceInDays(targetDate, evDate)) % (7 * interval) === 0
+    if (freq === 'specific_days') return Math.abs(differenceInWeeks(targetDate, evDate)) % interval === 0 && !!e.recurrence.days_of_week?.includes(targetDay)
+    if (freq === 'monthly') return format(targetDate, 'dd') === format(evDate, 'dd')
+    if (freq === 'yearly') return format(targetDate, 'MM-dd') === format(evDate, 'MM-dd')
+  } catch { /* invalid date */ }
+  return false
+}
 
 function EventItem({ 
   event, 
@@ -190,8 +212,6 @@ function AgendaPage() {
   const deleteEvent = useDeleteEvent()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const searchParams = useSearchParams()
-  const [logs, setLogs] = useState<Map<string, string>>(new Map())
-  const [loadingLogs, setLoadingLogs] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showAddModal, setShowAddModal] = useState(false)
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null)
@@ -202,44 +222,41 @@ function AgendaPage() {
   const [historyEndDate, setHistoryEndDate] = useState<string>('')
   const [historyPeriod, setHistoryPeriod] = useState<'all' | 'custom'>('all')
 
+  const user = auth.currentUser
+
   // Update logic for real-time visual alerts
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000)
     return () => clearInterval(timer)
   }, [])
 
-  // Fetch logs for the current month view
-  useEffect(() => {
-    const fetchLogs = async () => {
-      const user = auth.currentUser
-      if (!user || !events) return
-      
-      setLoadingLogs(true)
-      try {
-        const start = format(startOfMonth(currentMonth), 'yyyy-MM-dd')
-        const end = format(endOfMonth(currentMonth), 'yyyy-MM-dd')
-        
-        const q = query(
-          collection(db, 'event_logs'),
-          where('user_id', '==', user.uid),
-          where('log_date', '>=', start),
-          where('log_date', '<=', end)
-        )
-        const snap = await getDocs(q)
-        const newLogs = new Map()
-        snap.docs.forEach(d => {
-          const data = d.data()
-          newLogs.set(`${data.event_id}_${data.log_date}`, data.status)
-        })
-        setLogs(newLogs)
-      } catch (e) {
-        console.error('Error fetching logs:', e)
-      } finally {
-        setLoadingLogs(false)
-      }
-    }
-    fetchLogs()
-  }, [events, currentMonth])
+  // ── Logs via React Query so they invalidate automatically when useLogEvent fires ──
+  // Range: past 60 days (covers 30-day overdue window + buffer) → end of viewed month
+  const logsStart = format(subDays(new Date(), 60), 'yyyy-MM-dd')
+  const logsEnd   = format(endOfMonth(currentMonth), 'yyyy-MM-dd')
+
+  const { data: logsData, isLoading: loadingLogs } = useQuery({
+    queryKey: ['event-logs-agenda', user?.uid, logsStart, logsEnd],
+    queryFn: async () => {
+      if (!user) return new Map<string, string>()
+      const q = query(
+        collection(db, 'event_logs'),
+        where('user_id', '==', user.uid),
+        where('log_date', '>=', logsStart),
+        where('log_date', '<=', logsEnd)
+      )
+      const snap = await getDocs(q)
+      const m = new Map<string, string>()
+      snap.docs.forEach(d => {
+        const data = d.data()
+        m.set(`${data.event_id}_${data.log_date}`, data.status)
+      })
+      return m
+    },
+    enabled: !!user,
+    staleTime: 5_000,
+  })
+  const logs = logsData || new Map<string, string>()
 
   useEffect(() => {
     if (searchParams.get('add') === 'true') {
@@ -295,7 +312,7 @@ function AgendaPage() {
   const groupedEvents = useMemo(() => {
     if (!events) return {}
 
-    // Filtra eventos com data inválida para evitar crash em parseISO/format
+    // Filter events with invalid dates to avoid parseISO crashes
     const validEvents = events.filter(e =>
       typeof e.date === 'string' && e.date.length >= 8
     )
@@ -309,52 +326,31 @@ function AgendaPage() {
 
     days.forEach((day: Date) => {
       const dateStr = format(day, 'yyyy-MM-dd')
-      // Skip past days — they belong to pastEventsGrouped
+      // Past days belong to pastEventsGrouped (history section)
       if (dateStr < todayStr) return
 
-      const dayOfWeek = getDay(day)
+      const rawEvents = validEvents
+        .filter(e => occursOnDate(e, dateStr, day))
+        .map(e => ({
+          ...e,
+          status: (logs.get(`${e.id}_${dateStr}`) || 'none') as CalendarEvent['status'],
+          isOverdue: false
+        }))
 
-      const dayEvents = validEvents.filter(e => {
-        if (e.date === dateStr) return true
-        if (e.recurrence) {
-          try {
-            const evDate = parseISO(e.date)
-            if (dateStr < e.date) return false
-
-            const interval = e.recurrence.interval || 1
-            const freq = e.recurrence.frequency
-
-            if (freq === 'daily') return Math.abs(differenceInDays(day, evDate)) % interval === 0
-            if (freq === 'weekly') {
-              if (dayOfWeek !== getDay(evDate)) return false
-              return Math.abs(differenceInDays(day, evDate)) % (7 * interval) === 0
-            }
-            if (freq === 'specific_days') {
-               const diff = Math.abs(differenceInWeeks(day, evDate))
-               return diff % interval === 0 && !!e.recurrence.days_of_week?.includes(dayOfWeek)
-            }
-            if (freq === 'monthly') return format(day, 'dd') === format(evDate, 'dd')
-            if (freq === 'yearly') return format(day, 'MM-dd') === format(evDate, 'MM-dd')
-          } catch { return false }
-        }
-        return false
-      }).map(e => ({
-        ...e,
-        status: (logs.get(`${e.id}_${dateStr}`) || 'none') as CalendarEvent['status'],
-        isOverdue: false
-      }))
-
-      // For today: hide completed events (they go to history)
-      const visibleEvents = dateStr === todayStr
-        ? dayEvents.filter(e => e.status !== 'done' && e.status !== 'partial' && e.status !== 'failed')
-        : dayEvents
+      // For today: hide completed events (they are visible in history)
+      // But only apply this filter once logs have loaded to avoid flash
+      const visibleEvents = (dateStr === todayStr && !loadingLogs)
+        ? rawEvents.filter(e => e.status !== 'done' && e.status !== 'partial' && e.status !== 'failed')
+        : dateStr === todayStr && loadingLogs
+          ? [] // show nothing for today while logs load (prevents flash of completed items)
+          : rawEvents
 
       if (visibleEvents.length > 0) {
-        const sorted = (visibleEvents as CalendarEvent[]).sort((a, b) => {
-          const isDoneA = a.status === 'done'
-          const isDoneB = b.status === 'done'
-          if (isDoneA && !isDoneB) return 1
-          if (!isDoneA && isDoneB) return -1
+        const sorted = [...visibleEvents].sort((a, b) => {
+          const aResolved = a.status === 'done' || a.status === 'partial' || a.status === 'failed'
+          const bResolved = b.status === 'done' || b.status === 'partial' || b.status === 'failed'
+          if (aResolved && !bResolved) return 1
+          if (!aResolved && bResolved) return -1
           if (isToday(day)) {
             const timeA = a.time ? parse(a.time, 'HH:mm', currentTime) : null
             const timeB = b.time ? parse(b.time, 'HH:mm', currentTime) : null
@@ -372,104 +368,111 @@ function AgendaPage() {
       }
     })
 
-    // Inject overdue items (past 30 days, uncompleted) into today's group at the top
-    const overdueItems: (CalendarEvent & { isOverdue: boolean })[] = []
-    const today = new Date()
+    // ── Overdue injection: past 30 days, one entry per event (most-recent date) ──
+    // Only inject after logs have loaded to avoid false positives
+    if (!loadingLogs) {
+      const today = new Date()
+      // IDs of events already shown in today's active group (to avoid duplicates)
+      const todayActiveIds = new Set((grouped[todayStr] || []).map(e => e.id))
+      // Collect: eventId → most-recent unhandled past date
+      const overdueMap = new Map<string, { dateStr: string; event: CalendarEvent }>()
 
-    for (let i = 1; i <= 30; i++) {
-      const pastDate = new Date(today)
-      pastDate.setDate(today.getDate() - i)
-      const pastDateStr = format(pastDate, 'yyyy-MM-dd')
-      const pastDayOfWeek = getDay(pastDate)
+      for (let i = 1; i <= 30; i++) {
+        const pastDate = subDays(today, i)
+        const pastDateStr = format(pastDate, 'yyyy-MM-dd')
 
-      validEvents.forEach(e => {
-        if (e.created_at) {
-          try {
-            if (pastDateStr < format(new Date(e.created_at), 'yyyy-MM-dd')) return
-          } catch {}
-        }
+        validEvents.forEach(e => {
+          if (overdueMap.has(e.id)) return // already found a more-recent overdue date
+          if (todayActiveIds.has(e.id)) return // already in today's active list
 
-        let occursOnPastDate = false
-        if (e.date === pastDateStr) {
-          occursOnPastDate = true
-        } else if (e.recurrence) {
-          let evDate: Date
-          try { evDate = parseISO(e.date) } catch { return }
-          if (pastDateStr >= e.date) {
-            const interval = e.recurrence.interval || 1
-            const freq = e.recurrence.frequency
-            if (freq === 'daily') occursOnPastDate = Math.abs(differenceInDays(pastDate, evDate)) % interval === 0
-            if (freq === 'weekly') {
-              if (pastDayOfWeek === getDay(evDate)) {
-                occursOnPastDate = Math.abs(differenceInDays(pastDate, evDate)) % (7 * interval) === 0
-              }
-            }
-            if (freq === 'specific_days') occursOnPastDate = Math.abs(differenceInWeeks(pastDate, evDate)) % interval === 0 && !!e.recurrence.days_of_week?.includes(pastDayOfWeek)
-            if (freq === 'monthly') occursOnPastDate = format(pastDate, 'dd') === format(evDate, 'dd')
-            if (freq === 'yearly') occursOnPastDate = format(pastDate, 'MM-dd') === format(evDate, 'MM-dd')
+          // Skip if event was created after this past date
+          if (e.created_at) {
+            try {
+              if (pastDateStr < format(new Date(e.created_at as string), 'yyyy-MM-dd')) return
+            } catch { return }
           }
-        }
 
-        if (occursOnPastDate) {
+          if (!occursOnDate(e, pastDateStr, pastDate)) return
+
           const status = logs.get(`${e.id}_${pastDateStr}`) || 'none'
           const isCompleted = status === 'done' || status === 'partial' || status === 'failed'
-          const alreadyAdded = overdueItems.some(o => o.id === e.id && o.date === pastDateStr)
-          if (!isCompleted && !alreadyAdded) {
-            overdueItems.push({
-              ...e,
-              date: pastDateStr,
-              status: status as CalendarEvent['status'],
-              isOverdue: true
-            })
+          if (!isCompleted) {
+            overdueMap.set(e.id, { dateStr: pastDateStr, event: e })
           }
-        }
-      })
-    }
+        })
+      }
 
-    if (overdueItems.length > 0) {
-      grouped[todayStr] = [...overdueItems, ...(grouped[todayStr] || [])]
+      const overdueItems: (CalendarEvent & { isOverdue: boolean })[] = []
+      overdueMap.forEach(({ dateStr: pastDateStr, event: e }) => {
+        const status = logs.get(`${e.id}_${pastDateStr}`) || 'none'
+        overdueItems.push({
+          ...e,
+          date: pastDateStr,
+          status: status as CalendarEvent['status'],
+          isOverdue: true
+        })
+      })
+
+      if (overdueItems.length > 0) {
+        // Sort overdue items: most recent first, then by time
+        overdueItems.sort((a, b) => {
+          if (a.date !== b.date) return b.date.localeCompare(a.date)
+          return (a.time || '00:00').localeCompare(b.time || '00:00')
+        })
+        grouped[todayStr] = [...overdueItems, ...(grouped[todayStr] || [])]
+      }
     }
 
     // Remove empty groups
     Object.keys(grouped).forEach(key => { if (grouped[key].length === 0) delete grouped[key] })
 
     return grouped
-  }, [events, currentMonth, logs, currentTime])
+  }, [events, currentMonth, logs, currentTime, loadingLogs])
 
   const pastEventsGrouped = useMemo(() => {
-    if (!events) return {}
-    const todayStr = format(currentTime, 'yyyy-MM-dd')
+    if (!events || !logs.size) return {}
+    const todayStr = format(new Date(), 'yyyy-MM-dd')
+
+    // Build a fast lookup map: eventId → event object
+    const eventMap = new Map(events.map(e => [e.id, e]))
 
     const grouped: Record<string, CalendarEvent[]> = {}
 
-    events.forEach(e => {
-      // Skip events with no date (safety guard)
-      if (!e.date) return
-      // Skip future events
-      if (e.date > todayStr) return
+    // Iterate logs instead of events — this correctly handles recurring events
+    // because each occurrence has its own log entry under the occurrence date.
+    logs.forEach((status, logKey) => {
+      // logKey format: "${eventId}_yyyy-MM-dd"  (log_date is always last 10 chars)
+      if (logKey.length < 12) return
+      const logDate = logKey.slice(-10)
+      const eventId = logKey.slice(0, -11) // strip "_yyyy-MM-dd"
 
-      const status = (logs.get(`${e.id}_${e.date}`) || 'none') as CalendarEvent['status']
+      // Only show resolved events in history
+      if (status === 'none' || status === 'todo') return
 
-      // For today: only include events that have a non-pending status
-      if (e.date === todayStr) {
-        if (status === 'none' || status === 'todo') return
-      }
+      // Skip future dates
+      if (logDate > todayStr) return
 
       // Apply period filter
       if (historyPeriod === 'custom') {
-        if (historyStartDate && e.date < historyStartDate) return
-        if (historyEndDate && e.date > historyEndDate) return
+        if (historyStartDate && logDate < historyStartDate) return
+        if (historyEndDate && logDate > historyEndDate) return
       }
 
-      if (!grouped[e.date]) grouped[e.date] = []
-      grouped[e.date].push({ ...e, status })
+      const event = eventMap.get(eventId)
+      if (!event) return
+
+      if (!grouped[logDate]) grouped[logDate] = []
+      // Deduplicate (each log entry is unique by design, but be safe)
+      if (!grouped[logDate].some(ev => ev.id === eventId)) {
+        grouped[logDate].push({ ...event, status: status as CalendarEvent['status'], date: logDate })
+      }
     })
 
-    // Sort dates in descending order (most recent first)
+    // Sort dates descending (most recent first)
     return Object.fromEntries(
       Object.entries(grouped).sort((a, b) => b[0].localeCompare(a[0]))
     )
-  }, [events, logs, currentTime, historyStartDate, historyEndDate, historyPeriod])
+  }, [events, logs, historyPeriod, historyStartDate, historyEndDate])
 
   return (
     <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10">

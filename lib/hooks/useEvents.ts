@@ -178,6 +178,8 @@ export function useLogEvent() {
       const user = auth.currentUser
       qc.invalidateQueries({ queryKey: ['eventsToday'] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
+      // Also refresh the agenda page logs so completed events move to history immediately
+      qc.invalidateQueries({ queryKey: ['event-logs-agenda'] })
     },
   })
 }
