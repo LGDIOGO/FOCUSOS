@@ -13,6 +13,7 @@ import { CpfOnboarding } from '@/components/auth/CpfOnboarding'
 import { SubscriptionWall } from '@/components/auth/SubscriptionWall'
 import { isTrialExpired, isGracePeriodOver } from '@/lib/utils/subscription'
 import { useCurrentUser } from '@/lib/context/AuthContext'
+import { FirestoreDiagnostic } from '@/components/FirestoreDiagnostic'
 
 export default function AppLayout({
   children,
@@ -58,6 +59,7 @@ export default function AppLayout({
 
   return (
     <div className="flex min-h-dvh bg-[var(--bg-primary)] transition-colors duration-300 font-sans relative">
+      <FirestoreDiagnostic />
       {/* Paywalls */}
       {showCpfOnboarding && <CpfOnboarding />}
       {showPaywall && !showCpfOnboarding && <SubscriptionWall />}
