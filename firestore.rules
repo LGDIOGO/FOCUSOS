@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwnerByField() {
+      return isAuth() && request.auth.uid == resource.data.user_id;
+    }
+
+    function isOwnerByFieldOnCreate() {
+      return isAuth() && request.auth.uid == request.resource.data.user_id;
+    }
+
+    // profiles/{uid} and settings/{uid} — doc ID equals the user's UID
+    match /profiles/{uid} {
+      allow read, write: if isAuth() && request.auth.uid == uid;
+    }
+
+    match /settings/{uid} {
+      allow read, write: if isAuth() && request.auth.uid == uid;
+    }
+
+    // All user-owned collections — user_id field must match the authenticated user
+    match /habits/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    match /habit_logs/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    match /events/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    match /event_logs/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    match /tasks/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    match /goals/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    match /notifications/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    match /categories/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    match /finance_entries/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+  }
+}
