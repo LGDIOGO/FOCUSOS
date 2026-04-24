@@ -37,29 +37,26 @@ export default function AppLayout({
   }, [settings?.theme])
 
   useEffect(() => {
-    // 1. Defina um timeout de segurança (5s) para o spinner caso o Firebase trave
-    const timer = setTimeout(() => {
-      if (loading) setLoading(false)
-    }, 5000)
+    // Safety timeout: if Firebase takes > 5s, unblock the app
+    const timer = setTimeout(() => setLoading(false), 5000)
 
     const unsubscribe = onAuthStateChanged(auth, (u) => {
+      clearTimeout(timer)
       if (!u) {
-        setLoading(false)
         router.push('/login')
       } else {
         setUser(u)
-        // Apenas pare de carregar o auth, o perfil pode demorar um pouco mais
-        setLoading(false)
       }
+      setLoading(false)
     })
-    
+
     return () => {
       unsubscribe()
       clearTimeout(timer)
     }
-  }, [router, loading])
+  }, [router]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (loading || profileLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />

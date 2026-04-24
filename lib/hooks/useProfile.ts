@@ -30,6 +30,7 @@ export function useProfile() {
       return snap.data() as UserProfile
     },
     enabled: !!user,
+    staleTime: 30_000,
   })
 }
 
