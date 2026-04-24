@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import { auth } from '@/lib/firebase/config'
 import { onAuthStateChanged, User } from 'firebase/auth'
 
-// undefined = still loading, null = not authenticated, User = authenticated
+// undefined = still resolving, null = not authenticated, User = authenticated
 type AuthState = User | null | undefined
 
 const AuthContext = createContext<AuthState>(undefined)
@@ -13,7 +13,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthState>(undefined)
 
   useEffect(() => {
-    return onAuthStateChanged(auth, setUser)
+    // Guard: if Firebase auth didn't initialize (e.g. SSR/missing config), treat as unauthenticated
+    if (!auth) {
+      setUser(null)
+      return
+    }
+    return onAuthStateChanged(auth, (u) => {
+      setUser(u)
+    })
   }, [])
 
   return <AuthContext.Provider value={user}>{children}</AuthContext.Provider>

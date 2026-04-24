@@ -9,8 +9,9 @@ import {
 } from 'lucide-react'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
 import { useEvents, useDeleteEvent } from '@/lib/hooks/useEvents'
-import { db, auth } from '@/lib/firebase/config'
+import { db } from '@/lib/firebase/config'
 import { collection, query, where, getDocs } from 'firebase/firestore'
+import { useCurrentUser } from '@/lib/context/AuthContext'
 import { CalendarEvent, EventType } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import {
@@ -222,7 +223,7 @@ function AgendaPage() {
   const [historyEndDate, setHistoryEndDate] = useState<string>('')
   const [historyPeriod, setHistoryPeriod] = useState<'all' | 'custom'>('all')
 
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   // Update logic for real-time visual alerts
   useEffect(() => {
