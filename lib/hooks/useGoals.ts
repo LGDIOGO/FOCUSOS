@@ -1,27 +1,19 @@
-import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, db } from '@/lib/firebase/config'
-import { onAuthStateChanged, User } from 'firebase/auth'
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  addDoc, 
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
   updateDoc,
   deleteDoc,
-  doc, 
-  orderBy, 
-  Timestamp 
+  doc,
 } from 'firebase/firestore'
 import { Goal } from '@/types'
 
 export function useGoals() {
-  const [user, setUser] = useState<User | null>(auth.currentUser)
-
-  useEffect(() => {
-    return onAuthStateChanged(auth, u => setUser(u))
-  }, [])
+  const user = auth.currentUser
 
   return useQuery({
     queryKey: ['goals', user?.uid],
@@ -32,18 +24,19 @@ export function useGoals() {
         collection(db, 'goals'),
         where('user_id', '==', user.uid)
       )
-      
+
       const snap = await getDocs(q)
-      const goals = snap.docs.map(d => ({ 
-        id: d.id, 
-        ...d.data() 
+      const goals = snap.docs.map(d => ({
+        id: d.id,
+        ...d.data()
       })) as Goal[]
 
-      return goals.sort((a, b) => 
+      return goals.sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )
     },
     enabled: !!user,
+    staleTime: 5_000,
   })
 }
 

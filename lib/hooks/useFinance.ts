@@ -1,18 +1,14 @@
-import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, db } from '@/lib/firebase/config'
-import { onAuthStateChanged, User } from 'firebase/auth'
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  addDoc, 
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
   updateDoc,
   deleteDoc,
-  doc, 
-  setDoc,
-  orderBy
+  doc,
 } from 'firebase/firestore'
 import { FinanceTransaction, FinanceRecurringCost, FinancePote, FinanceRoadmap } from '@/types'
 
@@ -25,11 +21,7 @@ function stripUndefinedFields<T extends Record<string, any>>(data: T) {
 // --- Transactions --- //
 
 export function useFinanceTransactions() {
-  const [user, setUser] = useState<User | null>(auth.currentUser)
-
-  useEffect(() => {
-    return onAuthStateChanged(auth, u => setUser(u))
-  }, [])
+  const user = auth.currentUser
 
   return useQuery({
     queryKey: ['finance_transactions', user?.uid],
@@ -47,6 +39,7 @@ export function useFinanceTransactions() {
       return data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     },
     enabled: !!user,
+    staleTime: 5_000,
   })
 }
 
@@ -84,11 +77,7 @@ export function useDeleteFinanceTransaction() {
 // --- Recurring Costs --- //
 
 export function useFinanceRecurringCosts() {
-  const [user, setUser] = useState<User | null>(auth.currentUser)
-
-  useEffect(() => {
-    return onAuthStateChanged(auth, u => setUser(u))
-  }, [])
+  const user = auth.currentUser
 
   return useQuery({
     queryKey: ['finance_recurring_costs', user?.uid],
@@ -153,11 +142,7 @@ export function useUpdateFinanceRecurringCost() {
 // --- Potes (Jars) --- //
 
 export function useFinancePotes() {
-  const [user, setUser] = useState<User | null>(auth.currentUser)
-
-  useEffect(() => {
-    return onAuthStateChanged(auth, u => setUser(u))
-  }, [])
+  const user = auth.currentUser
 
   return useQuery({
     queryKey: ['finance_potes', user?.uid],
@@ -222,11 +207,7 @@ export function useUpdateFinancePote() {
 // --- Roadmap AI --- //
 
 export function useFinanceRoadmap() {
-  const [user, setUser] = useState<User | null>(auth.currentUser)
-
-  useEffect(() => {
-    return onAuthStateChanged(auth, u => setUser(u))
-  }, [])
+  const user = auth.currentUser
 
   return useQuery({
     queryKey: ['finance_roadmap', user?.uid],

@@ -1,17 +1,15 @@
-import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  addDoc, 
-  deleteDoc, 
-  doc, 
-  updateDoc 
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  doc,
+  updateDoc
 } from 'firebase/firestore'
 import { db, auth } from '../firebase/config'
-import { onAuthStateChanged, User } from 'firebase/auth'
 
 export interface Category {
   id: string
@@ -23,11 +21,7 @@ export interface Category {
 }
 
 export function useCategories() {
-  const [user, setUser] = useState<User | null>(auth.currentUser)
-
-  useEffect(() => {
-    return onAuthStateChanged(auth, u => setUser(u))
-  }, [])
+  const user = auth.currentUser
 
   return useQuery({
     queryKey: ['categories', user?.uid],
