@@ -27,19 +27,23 @@ export function useHabitsHistory(startDate?: string, endDate?: string) {
     queryKey: ['habits', 'history', user?.uid, startDate, endDate],
     queryFn: async () => {
       if (!user) return []
-      
+
       const qStart = startDate || '2000-01-01'
       const qEnd = endDate || '2100-12-31'
-      
+
+      // Single-field query — no composite index required
       const q = query(
         collection(db, 'habit_logs'),
-        where('user_id', '==', user.uid),
-        where('log_date', '>=', qStart),
-        where('log_date', '<=', qEnd)
+        where('user_id', '==', user.uid)
       )
       const snap = await getDocs(q)
       const logs = snap.docs.map(d => d.data())
-      return logs.filter(l => l.status === 'done' || l.status === 'partial')
+      // Filter date range and status client-side
+      return logs.filter(l =>
+        (l.status === 'done' || l.status === 'partial') &&
+        l.log_date >= qStart &&
+        l.log_date <= qEnd
+      )
     },
     enabled: !!user,
     staleTime: 5_000,
@@ -55,13 +59,16 @@ export function useHabits() {
     queryFn: async () => {
       if (!user) return []
 
+      // Single-field query — no composite index required
       const q = query(
         collection(db, 'habits'),
-        where('user_id', '==', user.uid),
-        where('is_archived', '==', false)
+        where('user_id', '==', user.uid)
       )
       const snap = await getDocs(q)
-      const habits = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Habit[]
+      // Filter archived client-side
+      const habits = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter((h: any) => !h.is_archived) as Habit[]
       return habits.sort((a, b) => {
         if (a.time && b.time) {
           const tCmp = a.time.localeCompare(b.time)
@@ -88,14 +95,15 @@ export function useHabitsToday(selectedDate: Date = new Date()) {
       const todayStr = format(selectedDate, 'yyyy-MM-dd')
       const todayDay = getDay(selectedDate)
 
+      // Single-field query — no composite index required; filter archived client-side
       const habitsQuery = query(
         collection(db, 'habits'),
-        where('user_id', '==', user.uid),
-        where('is_archived', '==', false)
+        where('user_id', '==', user.uid)
       )
       const habitsSnap = await getDocs(habitsQuery)
       const allHabits = habitsSnap.docs
-        .map(d => ({ id: d.id, ...d.data() })) as Habit[]
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter((h: any) => !h.is_archived) as Habit[]
       
       const sortedHabits = allHabits.sort((a, b) => {
         if (a.time && b.time) {
@@ -134,13 +142,15 @@ export function useHabitsToday(selectedDate: Date = new Date()) {
         return true
       })
 
-      const logsQuery = query(
-        collection(db, 'habit_logs'),
-        where('user_id', '==', user.uid),
-        where('log_date', '==', todayStr)
+      // Fetch each log by its known document ID — zero composite indexes needed
+      const logDocs = await Promise.all(
+        filteredHabits.map(h => getDoc(doc(db, 'habit_logs', `${h.id}_${todayStr}`)))
       )
-      const logsSnap = await getDocs(logsQuery)
-      const logsMap = new Map(logsSnap.docs.map(d => [d.data().habit_id, d.data()]))
+      const logsMap = new Map(
+        logDocs
+          .filter(d => d.exists())
+          .map(d => [d.data()!.habit_id, d.data()])
+      )
 
       return filteredHabits.map(h => ({
         ...h,

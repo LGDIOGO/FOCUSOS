@@ -1,17 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, db } from '@/lib/firebase/config'
 import { useCurrentUser } from '@/lib/context/AuthContext'
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  getDoc,
   addDoc,
   deleteDoc,
-  doc, 
+  doc,
   updateDoc,
   setDoc,
-  Timestamp 
+  Timestamp
 } from 'firebase/firestore'
 import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, differenceInDays, isToday, subDays } from 'date-fns'
 import { CalendarEvent, HabitStatus } from '@/types'
@@ -224,14 +225,15 @@ export function useEventsToday(selectedDate: Date = new Date()) {
       // Filter events that occur ON the selected date
       const occurringToday = allEvents.filter(e => occursOnDate(e, dateStr, selectedDate))
 
-      // Get logs for the selected date
-      const logsTodayQ = query(
-        collection(db, 'event_logs'),
-        where('user_id', '==', user.uid),
-        where('log_date', '==', dateStr)
+      // Fetch each log by its known document ID — zero composite indexes needed
+      const logTodayDocs = await Promise.all(
+        occurringToday.map(e => getDoc(doc(db, 'event_logs', `${e.id}_${dateStr}`)))
       )
-      const logsTodaySnap = await getDocs(logsTodayQ)
-      const logsTodayMap = new Map(logsTodaySnap.docs.map(d => [d.data().event_id, d.data().status]))
+      const logsTodayMap = new Map(
+        logTodayDocs
+          .filter(d => d.exists())
+          .map(d => [d.data()!.event_id, d.data()!.status])
+      )
 
       let todayResults: (CalendarEvent & { isOverdue: boolean })[] = occurringToday.map(e => ({
         ...e,
@@ -250,17 +252,15 @@ export function useEventsToday(selectedDate: Date = new Date()) {
           format(subDays(selectedDate, i + 1), 'yyyy-MM-dd')
         )
 
-        // Fetch logs for past dates in batches of 10 (safe Firestore 'in' limit)
-        const allPastLogDocs: any[] = []
-        for (let i = 0; i < pastDates.length; i += 10) {
-          const chunk = pastDates.slice(i, i + 10)
-          const chunkSnap = await getDocs(query(
-            collection(db, 'event_logs'),
-            where('user_id', '==', user.uid),
-            where('log_date', 'in', chunk)
-          ))
-          allPastLogDocs.push(...chunkSnap.docs)
-        }
+        // Single-field query + client-side date filter — no composite indexes needed
+        const pastDatesSet = new Set(pastDates)
+        const allLogsSnap = await getDocs(query(
+          collection(db, 'event_logs'),
+          where('user_id', '==', user.uid)
+        ))
+        const allPastLogDocs = allLogsSnap.docs.filter(d =>
+          pastDatesSet.has(d.data().log_date)
+        )
 
         // handledMap: eventId → Set of past dates that already have a real status
         const handledMap = new Map<string, Set<string>>()

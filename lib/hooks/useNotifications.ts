@@ -3,15 +3,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, db } from '@/lib/firebase/config'
 import { useCurrentUser } from '@/lib/context/AuthContext'
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  orderBy, 
-  doc, 
-  updateDoc, 
-  deleteDoc, 
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
   addDoc,
   writeBatch
 } from 'firebase/firestore'
@@ -25,13 +24,16 @@ export function useNotifications() {
     queryFn: async () => {
       if (!user) return []
 
+      // Single-field query — no composite index required; sort client-side
       const q = query(
         collection(db, 'notifications'),
-        where('user_id', '==', user.uid),
-        orderBy('created_at', 'desc')
+        where('user_id', '==', user.uid)
       )
       const snap = await getDocs(q)
-      return snap.docs.map(d => ({ id: d.id, ...d.data() })) as FocusNotification[]
+      const notifs = snap.docs.map(d => ({ id: d.id, ...d.data() })) as FocusNotification[]
+      return notifs.sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
     },
     enabled: !!user,
     staleTime: 30000, // 30s
