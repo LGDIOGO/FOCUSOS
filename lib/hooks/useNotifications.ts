@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, db } from '@/lib/firebase/config'
+import { useCurrentUser } from '@/lib/context/AuthContext'
 import { 
   collection, 
   query, 
@@ -17,7 +18,7 @@ import {
 import { FocusNotification } from '@/types'
 
 export function useNotifications() {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['notifications', user?.uid],
@@ -39,7 +40,7 @@ export function useNotifications() {
 
 export function useAddNotification() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (notif: Omit<FocusNotification, 'id' | 'user_id' | 'created_at' | 'is_read'>) => {
@@ -60,7 +61,7 @@ export function useAddNotification() {
 
 export function useMarkAsRead() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -75,7 +76,7 @@ export function useMarkAsRead() {
 
 export function useDeleteNotification() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -89,7 +90,7 @@ export function useDeleteNotification() {
 
 export function useClearAllNotifications() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (ids: string[]) => {

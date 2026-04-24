@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useCurrentUser } from '@/lib/context/AuthContext'
 import {
   collection,
   query,
@@ -9,7 +10,7 @@ import {
   doc,
   updateDoc
 } from 'firebase/firestore'
-import { db, auth } from '../firebase/config'
+import { db } from '../firebase/config'
 
 export interface Category {
   id: string
@@ -21,7 +22,7 @@ export interface Category {
 }
 
 export function useCategories() {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['categories', user?.uid],
@@ -41,7 +42,7 @@ export function useCategories() {
 
 export function useAddCategory() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (category: Omit<Category, 'id' | 'user_id'>) => {

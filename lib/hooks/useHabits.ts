@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, db } from '@/lib/firebase/config'
+import { useCurrentUser } from '@/lib/context/AuthContext'
 import { 
   collection, 
   query, 
@@ -21,7 +22,7 @@ import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, subDays
 import { Habit } from '@/types'
 
 export function useHabitsHistory(startDate?: string, endDate?: string) {
-  const user = auth.currentUser
+  const user = useCurrentUser()
   return useQuery({
     queryKey: ['habits', 'history', user?.uid, startDate, endDate],
     queryFn: async () => {
@@ -47,7 +48,7 @@ export function useHabitsHistory(startDate?: string, endDate?: string) {
 
 // For the management page (full list)
 export function useHabits() {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['habits', 'all', user?.uid],
@@ -76,7 +77,7 @@ export function useHabits() {
 }
 
 export function useHabitsToday(selectedDate: Date = new Date()) {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['habits', 'date', format(selectedDate, 'yyyy-MM-dd'), user?.uid],
@@ -154,7 +155,7 @@ export function useHabitsToday(selectedDate: Date = new Date()) {
 
 export function useAddHabit() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (habit: Omit<Habit, 'id' | 'user_id' | 'created_at' | 'status' | 'streak'> & {
@@ -182,7 +183,7 @@ export function useAddHabit() {
 
 export function useUpdateHabit() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Habit> & { id: string }) => {
@@ -198,7 +199,7 @@ export function useUpdateHabit() {
 
 export function useDeleteHabit() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (id: string) => {

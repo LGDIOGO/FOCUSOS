@@ -1,14 +1,15 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { auth, db } from '@/lib/firebase/config'
+import { db } from '@/lib/firebase/config'
+import { useCurrentUser } from '@/lib/context/AuthContext'
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore'
 import { startOfWeek, endOfWeek, format, eachDayOfInterval, isPast, isToday, parseISO, getDay, addDays } from 'date-fns'
 import { Habit, Task, CalendarEvent, HabitStatus } from '@/types'
 import { calculateProgress, calculateWeeklyProgress } from '@/lib/utils/performance'
 
 export function usePerformanceMetrics(weekOffset: number = 0) {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['performance-metrics', user?.uid, weekOffset],

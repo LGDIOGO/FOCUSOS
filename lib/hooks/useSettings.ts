@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { auth, db } from '@/lib/firebase/config'
-import { 
-  doc, 
-  getDoc, 
+import { db } from '@/lib/firebase/config'
+import {
+  doc,
+  getDoc,
   setDoc,
-  Timestamp 
 } from 'firebase/firestore'
 import { UserSettings } from '@/types'
+import { useCurrentUser } from '@/lib/context/AuthContext'
 
 const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id' | 'updated_at'> = {
   timezone: 'America/Sao_Paulo',
@@ -24,7 +24,7 @@ const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id' | 'updated_at'> = {
 }
 
 export function useSettings() {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['settings', user?.uid],
@@ -53,7 +53,7 @@ export function useSettings() {
 
 export function useUpdateSettings() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (updates: Partial<UserSettings>) => {

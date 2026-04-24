@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, db } from '@/lib/firebase/config'
+import { useCurrentUser } from '@/lib/context/AuthContext'
 import { 
   collection, 
   query, 
@@ -16,7 +17,7 @@ import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, differe
 import { CalendarEvent, HabitStatus } from '@/types'
 
 export function useEvents() {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['events', user?.uid],
@@ -51,7 +52,7 @@ export function useEvents() {
 
 export function useAddEvent() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (event: Omit<CalendarEvent, 'id' | 'user_id' | 'created_at'>) => {
@@ -74,7 +75,7 @@ export function useAddEvent() {
 
 export function useUpdateEvent() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     onMutate: async (vars: any) => {
@@ -113,7 +114,7 @@ export function useUpdateEvent() {
 
 export function useDeleteEvent() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -185,7 +186,7 @@ export function useLogEvent() {
 }
 
 export function useEventsToday(selectedDate: Date = new Date()) {
-  const user = auth.currentUser
+  const user = useCurrentUser()
   const dateStr = format(selectedDate, 'yyyy-MM-dd')
 
   return useQuery({
