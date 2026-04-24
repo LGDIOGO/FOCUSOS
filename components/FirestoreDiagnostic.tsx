@@ -13,13 +13,13 @@ export function FirestoreDiagnostic() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    if (!auth) { setState('error'); setDetail('Firebase auth not initialized'); setVisible(true); return }
+    if (!auth || !db) { setState('error'); setDetail('Firebase não inicializou (auth ou db undefined)'); setVisible(true); return }
 
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { setState('no_auth'); setVisible(true); return }
 
       try {
-        // Try a minimal read — just 1 habit doc for this user
+        // Try a minimal read — just 1 habit doc for this user (single-field query, no index needed)
         const snap = await getDocs(
           query(collection(db, 'habits'), where('user_id', '==', user.uid), limit(1))
         )
