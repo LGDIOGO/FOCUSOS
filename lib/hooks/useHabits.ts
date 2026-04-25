@@ -18,7 +18,7 @@ import {
   Timestamp,
   increment 
 } from 'firebase/firestore'
-import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, subDays } from 'date-fns'
+import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, differenceInDays, subDays } from 'date-fns'
 import { Habit } from '@/types'
 
 export function useHabitsHistory(startDate?: string, endDate?: string) {
@@ -242,7 +242,35 @@ export function useLogHabit() {
 
       qc.setQueryData(queryKey, (old: Habit[] | undefined) => {
         if (!old) return old
-        return old.map(h => h.id === vars.habitId ? { ...h, status: vars.status } : h)
+        return old.map(h => {
+          if (h.id !== vars.habitId) return h
+          const newStatus = vars.status
+          const prevStatus = (h as any).status || 'none'
+          let newStreak = h.streak || 0
+          let newLastDate = h.last_completed_date as string | null | undefined
+
+          if (newStatus === 'failed') {
+            newStreak = 0
+          } else if (newStatus === 'done' && prevStatus !== 'done') {
+            if (!newLastDate) {
+              newStreak = 1
+              newLastDate = targetDate
+            } else {
+              const diff = differenceInDays(parseISO(targetDate), parseISO(newLastDate))
+              if (diff === 0) { if (newStreak === 0) newStreak = 1; newLastDate = targetDate }
+              else if (diff === 1) { newStreak += 1; newLastDate = targetDate }
+              else { newStreak = 1; newLastDate = targetDate }
+            }
+          } else if (prevStatus === 'done' && newStatus !== 'done' && newStatus !== 'failed') {
+            if (newLastDate === targetDate) {
+              newStreak = Math.max(0, newStreak - 1)
+              newLastDate = newStreak > 0
+                ? format(subDays(parseISO(targetDate), 1), 'yyyy-MM-dd')
+                : null
+            }
+          }
+          return { ...h, status: newStatus, streak: newStreak, last_completed_date: newLastDate }
+        })
       })
 
       return { previousHabits, queryKey }
@@ -302,56 +330,42 @@ export function useLogHabit() {
       }
 
         // 4. Update Habit Streak (Ofensiva)
-        const isSuccess = (s: string) => s === 'done' || s === 'partial'
+        // Rules: done → +1 | partial → no change | failed/none → 0 | undo done → -1
         const habitRef = doc(db, 'habits', habitId)
         const habitDoc = await getDoc(habitRef)
-        
+
         if (habitDoc.exists()) {
           const habitData = habitDoc.data()
           let currentStreak = habitData.streak || 0
-          const lastDate = habitData.last_completed_date
-          
+          const lastDate = habitData.last_completed_date as string | null | undefined
+
           let newStreak = currentStreak
           let newLastDate = lastDate
 
-          const { differenceInDays, parseISO } = await import('date-fns')
-
-          // Status mudou para um estado de SUCESSO?
-          if (isSuccess(status) && !isSuccess(prevStatus)) {
-             if (!lastDate) {
-               newStreak = 1
-               newLastDate = targetDate
-             } else {
-               const diff = differenceInDays(parseISO(targetDate), parseISO(lastDate))
-               if (diff === 1) {
-                 newStreak += 1
-                 newLastDate = targetDate
-               } else if (diff > 1) {
-                 newStreak = 1
-                 newLastDate = targetDate
-               } else if (diff === 0) {
-                 if (newStreak === 0) newStreak = 1
-                 newLastDate = targetDate
-               }
-             }
-          } 
-          // Status mudou de SUCESSO para NAO SUCESSO? (Exceto falha direta)
-          else if (!isSuccess(status) && isSuccess(prevStatus) && status !== 'failed') {
-             if (lastDate === targetDate) {
-               newStreak = Math.max(0, newStreak - 1)
-               // Tentar recuperar a data anterior seria complexo sem histórico completo, 
-               // então apenas resetamos a data se a ofensiva zerar.
-               if (newStreak === 0) newLastDate = null
-             }
-          } 
-          // Falha direta ou inatividade
-          else if (status === 'failed') {
-             newStreak = 0
-             // Mantemos a lastDate mas a ofensiva zerou
+          if (status === 'failed') {
+            newStreak = 0
+          } else if (status === 'done' && prevStatus !== 'done') {
+            if (!lastDate) {
+              newStreak = 1
+              newLastDate = targetDate
+            } else {
+              const diff = differenceInDays(parseISO(targetDate), parseISO(lastDate))
+              if (diff === 0) { if (newStreak === 0) newStreak = 1; newLastDate = targetDate }
+              else if (diff === 1) { newStreak += 1; newLastDate = targetDate }
+              else { newStreak = 1; newLastDate = targetDate }
+            }
+          } else if (prevStatus === 'done' && status !== 'done' && status !== 'failed') {
+            if (lastDate === targetDate) {
+              newStreak = Math.max(0, newStreak - 1)
+              newLastDate = newStreak > 0
+                ? format(subDays(parseISO(targetDate), 1), 'yyyy-MM-dd')
+                : null
+            }
           }
-          
+          // partial → no streak change
+
           if (newStreak !== currentStreak || newLastDate !== lastDate) {
-             await updateDoc(habitRef, { streak: newStreak, last_completed_date: newLastDate })
+            await updateDoc(habitRef, { streak: newStreak, last_completed_date: newLastDate })
           }
         }
     },

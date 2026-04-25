@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils/cn'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { resolveBubblePosition } from '@/lib/utils/statusBubble'
 import { CalendarEvent } from '@/types'
+import { useCategories } from '@/lib/hooks/useCategories'
 
 interface AgendaItemProps {
   event: CalendarEvent
@@ -83,6 +84,9 @@ function AgendaItem({
 
   const isNeutral = status === 'none' || status === 'todo'
 
+  const { data: categories } = useCategories()
+  const category = event.category_id ? categories?.find(c => c.id === event.category_id) : undefined
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -153,13 +157,22 @@ function AgendaItem({
               {event.time}
             </span>
           )}
+          {category && (
+            <span
+              className="flex items-center gap-0.5 text-[9px] font-black uppercase tracking-widest opacity-50"
+              style={{ color: category.color || undefined }}
+            >
+              {category.icon && <span className="text-[10px] leading-none">{category.icon}</span>}
+              {category.name}
+            </span>
+          )}
           {event.isOverdue && status !== 'done' && (
             <span className="flex items-center gap-1 px-1.5 py-0.5 bg-red-500/10 border border-red-500/20 rounded-md text-red-400 text-[9px] font-black uppercase tracking-widest">
               <AlertCircle size={9} />
               NÃO REALIZADO
             </span>
           )}
-          {event.description && !event.isOverdue && (
+          {event.description && !event.isOverdue && !category && (
             <span className="text-[11px] text-white/25 truncate font-normal italic lowercase">
               {event.description}
             </span>
