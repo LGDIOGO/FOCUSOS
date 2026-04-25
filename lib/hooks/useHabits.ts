@@ -29,16 +29,18 @@ export function useHabitsHistory(startDate?: string, endDate?: string) {
       
       const qStart = startDate || '2000-01-01'
       const qEnd = endDate || '2100-12-31'
-      
+
       const q = query(
         collection(db, 'habit_logs'),
-        where('user_id', '==', user.uid),
-        where('log_date', '>=', qStart),
-        where('log_date', '<=', qEnd)
+        where('user_id', '==', user.uid)
       )
       const snap = await getDocs(q)
       const logs = snap.docs.map(d => d.data())
-      return logs.filter(l => l.status === 'done' || l.status === 'partial')
+      return logs.filter(l =>
+        (l.status === 'done' || l.status === 'partial') &&
+        l.log_date >= qStart &&
+        l.log_date <= qEnd
+      )
     },
     enabled: !!user,
     staleTime: 5_000,
