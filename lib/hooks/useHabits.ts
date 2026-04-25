@@ -226,7 +226,33 @@ export function useLogHabit() {
 
       qc.setQueryData(queryKey, (old: Habit[] | undefined) => {
         if (!old) return old
-        return old.map(h => h.id === vars.habitId ? { ...h, status: vars.status } : h)
+        const isSuccess = (s: string) => s === 'done' || s === 'partial'
+        return old.map(h => {
+          if (h.id !== vars.habitId) return h
+          const newStatus = vars.status
+          const wasSuccess = isSuccess((h as any).status || 'none')
+          const nowSuccess = isSuccess(newStatus)
+          let newStreak = h.streak || 0
+          let newLastDate = h.last_completed_date as string | null | undefined
+
+          if (nowSuccess && !wasSuccess) {
+            if (!newLastDate) {
+              newStreak = 1
+              newLastDate = targetDate
+            } else {
+              const diff = differenceInDays(parseISO(targetDate), parseISO(newLastDate))
+              if (diff === 0) { if (newStreak === 0) newStreak = 1; newLastDate = targetDate }
+              else if (diff === 1) { newStreak += 1; newLastDate = targetDate }
+              else { newStreak = 1; newLastDate = targetDate }
+            }
+          } else if (!nowSuccess && wasSuccess && newStatus !== 'failed') {
+            if (newLastDate === targetDate) newStreak = Math.max(0, newStreak - 1)
+          } else if (newStatus === 'failed') {
+            newStreak = 0
+          }
+
+          return { ...h, status: newStatus, streak: newStreak, last_completed_date: newLastDate }
+        })
       })
 
       return { previousHabits, queryKey }
