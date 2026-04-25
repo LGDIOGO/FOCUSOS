@@ -82,7 +82,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
         body: JSON.stringify({
           text: newEvent.title,
           type: 'agenda',
-          categories: categories?.filter(c => c.type === 'agenda').map(c => ({ id: c.id, name: c.name })),
+          categories: categories?.map(c => ({ id: c.id, name: c.name })),
           currentDetails: {
             today: format(new Date(), 'yyyy-MM-dd'),
             dayName: format(new Date(), 'EEEE', { locale: ptBR })
@@ -243,7 +243,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
               >
                 Nenhuma
               </button>
-              {categories?.filter(c => c.type === 'agenda').map(cat => (
+              {categories?.map(cat => (
                 <button
                   key={cat.id}
                   type="button"
