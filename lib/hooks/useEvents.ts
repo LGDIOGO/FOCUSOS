@@ -298,9 +298,10 @@ export function useEventsToday(selectedDate: Date = new Date()) {
         // ── Case 1: event occurs today AND has overdue past occurrences
         //   → unify: mark today's entry with isOverdue (no separate duplicate entry)
         //   → only flag as overdue if today hasn't been handled yet
+        //   → set date to dateStr so marking done logs to TODAY (not the original start date)
         todayResults = todayResults.map(e => {
           if (overdueMap.has(e.id) && (e.status === 'none' || !e.status)) {
-            return { ...e, isOverdue: true }
+            return { ...e, date: dateStr, isOverdue: true }
           }
           return e
         })
