@@ -226,9 +226,13 @@ export function useEventsToday(selectedDate: Date = new Date()) {
       const occurringToday = allEvents.filter(e => occursOnDate(e, dateStr, selectedDate))
 
       // Fetch each log by its known document ID — zero composite indexes needed
-      const logTodayDocs = await Promise.all(
+      // Use allSettled so a permission-denied on a non-existing doc doesn't abort all
+      const logTodayResults = await Promise.allSettled(
         occurringToday.map(e => getDoc(doc(db, 'event_logs', `${e.id}_${dateStr}`)))
       )
+      const logTodayDocs = logTodayResults
+        .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+        .map(r => r.value)
       const logsTodayMap = new Map(
         logTodayDocs
           .filter(d => d.exists())

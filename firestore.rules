@@ -14,7 +14,13 @@ service cloud.firestore {
       return isAuth() && request.auth.uid == request.resource.data.user_id;
     }
 
-    // profiles/{uid} and settings/{uid} — doc ID equals the user's UID
+    // Allow reading a non-existing doc (resource == null) so that getDoc() on
+    // log IDs that haven't been created yet returns "not found" instead of
+    // "permission-denied". When the doc exists, ownership is enforced.
+    function canReadLog() {
+      return isAuth() && (resource == null || request.auth.uid == resource.data.user_id);
+    }
+
     match /profiles/{uid} {
       allow read, write: if isAuth() && request.auth.uid == uid;
     }
@@ -23,14 +29,15 @@ service cloud.firestore {
       allow read, write: if isAuth() && request.auth.uid == uid;
     }
 
-    // All user-owned collections — user_id field must match the authenticated user
     match /habits/{docId} {
       allow read, update, delete: if isOwnerByField();
       allow create: if isOwnerByFieldOnCreate();
     }
 
+    // habit_logs use getDoc(id) on potentially non-existing docs
     match /habit_logs/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read: if canReadLog();
+      allow update, delete: if isOwnerByField();
       allow create: if isOwnerByFieldOnCreate();
     }
 
@@ -39,8 +46,10 @@ service cloud.firestore {
       allow create: if isOwnerByFieldOnCreate();
     }
 
+    // event_logs use getDoc(id) on potentially non-existing docs
     match /event_logs/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read: if canReadLog();
+      allow update, delete: if isOwnerByField();
       allow create: if isOwnerByFieldOnCreate();
     }
 

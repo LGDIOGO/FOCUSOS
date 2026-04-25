@@ -15,6 +15,9 @@ service cloud.firestore {
     function isOwnerByFieldOnCreate() {
       return isAuth() && request.auth.uid == request.resource.data.user_id;
     }
+    function canReadLog() {
+      return isAuth() && (resource == null || request.auth.uid == resource.data.user_id);
+    }
 
     match /profiles/{uid} {
       allow read, write: if isAuth() && request.auth.uid == uid;
@@ -27,7 +30,8 @@ service cloud.firestore {
       allow create: if isOwnerByFieldOnCreate();
     }
     match /habit_logs/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read: if canReadLog();
+      allow update, delete: if isOwnerByField();
       allow create: if isOwnerByFieldOnCreate();
     }
     match /events/{docId} {
@@ -35,7 +39,8 @@ service cloud.firestore {
       allow create: if isOwnerByFieldOnCreate();
     }
     match /event_logs/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read: if canReadLog();
+      allow update, delete: if isOwnerByField();
       allow create: if isOwnerByFieldOnCreate();
     }
     match /tasks/{docId} {

@@ -143,9 +143,13 @@ export function useHabitsToday(selectedDate: Date = new Date()) {
       })
 
       // Fetch each log by its known document ID — zero composite indexes needed
-      const logDocs = await Promise.all(
+      // Use allSettled so a permission-denied on a non-existing doc doesn't abort all
+      const logResults = await Promise.allSettled(
         filteredHabits.map(h => getDoc(doc(db, 'habit_logs', `${h.id}_${todayStr}`)))
       )
+      const logDocs = logResults
+        .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+        .map(r => r.value)
       const logsMap = new Map(
         logDocs
           .filter(d => d.exists())
