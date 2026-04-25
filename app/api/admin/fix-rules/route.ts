@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import * as admin from 'firebase-admin'
-import { adminDb } from '@/lib/firebase/admin'
 
-const RULES_SOURCE = `
-rules_version = '2';
+const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'foco-os---produtividade-bfb58'
+
+const RULES_SOURCE = `rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -60,50 +59,84 @@ service cloud.firestore {
       allow create: if isOwnerByFieldOnCreate();
     }
   }
+}`
+
+async function getAccessToken(): Promise<string> {
+  const refreshToken = process.env.FIREBASE_OAUTH_REFRESH_TOKEN
+  if (!refreshToken) throw new Error('FIREBASE_OAUTH_REFRESH_TOKEN not set in environment')
+
+  const params = new URLSearchParams({
+    client_id: '563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com',
+    client_secret: 'j9iVZfS8kkCEFUPaAeJV0sAi',
+    refresh_token: refreshToken,
+    grant_type: 'refresh_token',
+  })
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  })
+  const data = await res.json()
+  if (!data.access_token) throw new Error(`Token refresh failed: ${JSON.stringify(data)}`)
+  return data.access_token
 }
-`
 
-export async function POST(req: NextRequest) {
-  try {
-    const apps = admin.apps
-    if (!apps.length) {
-      return NextResponse.json({ error: 'Firebase Admin not initialized' }, { status: 500 })
+async function deployRules(accessToken: string): Promise<string> {
+  // Create ruleset
+  const createRes = await fetch(
+    `https://firebaserules.googleapis.com/v1/projects/${PROJECT_ID}/rulesets`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source: { files: [{ name: 'firestore.rules', content: RULES_SOURCE }] } }),
     }
+  )
+  const created = await createRes.json()
+  if (!createRes.ok) throw new Error(`Create ruleset failed: ${JSON.stringify(created)}`)
 
-    const securityRules = admin.securityRules()
+  const rulesetName: string = created.name
 
-    // Create new ruleset
-    const fileSource = securityRules.createRulesFileSource('firestore.rules', RULES_SOURCE)
-    const newRuleset = await securityRules.createRuleset(fileSource)
+  // Release as active
+  const patchRes = await fetch(
+    `https://firebaserules.googleapis.com/v1/projects/${PROJECT_ID}/releases/cloud.firestore`,
+    {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        release: {
+          name: `projects/${PROJECT_ID}/releases/cloud.firestore`,
+          rulesetName,
+        },
+      }),
+    }
+  )
+  const patched = await patchRes.json()
+  if (!patchRes.ok) throw new Error(`Release ruleset failed: ${JSON.stringify(patched)}`)
 
-    // Release it as the active Firestore ruleset
-    await securityRules.releaseFirestoreRuleset(newRuleset)
+  return rulesetName
+}
 
-    return NextResponse.json({
-      success: true,
-      message: 'Firestore security rules updated successfully',
-      rulesetName: newRuleset.name,
-    })
+export async function POST(_req: NextRequest) {
+  try {
+    const accessToken = await getAccessToken()
+    const rulesetName = await deployRules(accessToken)
+    return NextResponse.json({ success: true, rulesetName })
   } catch (err: any) {
-    return NextResponse.json({
-      success: false,
-      error: err.message,
-      code: err.code,
-    }, { status: 500 })
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 })
   }
 }
 
-// GET returns the current active rules for verification
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
-    const securityRules = admin.securityRules()
-    const release = await securityRules.getFirestoreRuleset()
-    return NextResponse.json({
-      name: release.name,
-      createTime: release.createTime,
-      files: release.source.map((f: any) => ({ name: f.name, contentLength: f.content?.length })),
-    })
+    const accessToken = await getAccessToken()
+    const res = await fetch(
+      `https://firebaserules.googleapis.com/v1/projects/${PROJECT_ID}/releases/cloud.firestore`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    )
+    const data = await res.json()
+    return NextResponse.json(data)
   } catch (err: any) {
-    return NextResponse.json({ error: err.message, code: err.code }, { status: 500 })
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
