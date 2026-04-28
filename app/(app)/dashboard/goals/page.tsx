@@ -92,7 +92,7 @@ function GoalGridItem({
         onToggleSelection(goal.id)
       }}
       className={cn(
-        "group relative rounded-[32px] p-6 md:p-8 transition-all flex flex-col justify-between overflow-hidden cursor-pointer border",
+        "group relative rounded-[24px] md:rounded-[32px] p-4 md:p-6 transition-all flex flex-col justify-between overflow-hidden cursor-pointer border",
         isSelected
           ? "border-red-500/50 bg-red-500/[0.05] ring-1 ring-red-500/20"
           : isCompleted
@@ -118,18 +118,18 @@ function GoalGridItem({
       <div className="relative z-10 space-y-5">
         {/* Header Row */}
         <div className="flex justify-between items-start gap-2">
-          <div className="flex items-center gap-4 min-w-0">
-            <div 
-              className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl transition-transform group-hover:scale-110 shrink-0"
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-2xl transition-transform group-hover:scale-110 shrink-0"
               style={{ backgroundColor: `${accentColor}15` }}
             >
-              {goal.emoji 
+              {goal.emoji
                 ? <span>{goal.emoji}</span>
-                : <Target size={22} style={{ color: accentColor }} />
+                : <Target size={20} style={{ color: accentColor }} />
               }
             </div>
-            <div className="min-w-0 space-y-1">
-              <h3 className="text-lg font-bold text-[var(--text-primary)] leading-tight truncate">{goal.title}</h3>
+            <div className="min-w-0 space-y-0.5">
+              <h3 className="text-base md:text-lg font-bold text-[var(--text-primary)] leading-tight truncate">{goal.title}</h3>
               <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
                  <span className={cn(!category?.name && "opacity-50")}>{category?.name || 'Sem Categoria'}</span>
                  {goal.priority && (
@@ -162,12 +162,12 @@ function GoalGridItem({
         <div className="space-y-3">
           {/* Values + % badge */}
           <div className="flex items-end justify-between">
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-black text-[var(--text-primary)]">{goal.current_value}</span>
-              <span className="text-sm font-medium text-[var(--text-muted)]">/ {goal.target_value} {goal.unit}</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl md:text-3xl font-black text-[var(--text-primary)]">{goal.current_value}</span>
+              <span className="text-xs md:text-sm font-medium text-[var(--text-muted)]">/ {goal.target_value} {goal.unit}</span>
             </div>
-            <span 
-              className="px-2.5 py-1 rounded-xl text-sm font-black border"
+            <span
+              className="px-2 py-0.5 md:px-2.5 md:py-1 rounded-lg md:rounded-xl text-xs md:text-sm font-black border"
               style={{
                 color: accentColor,
                 backgroundColor: `${accentColor}12`,
@@ -374,33 +374,32 @@ export default function GoalsPage() {
   }, [activeGoals, categories])
 
   return (
-    <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display',sans-serif]">
+    <div className="p-4 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-6 md:space-y-10 lg:space-y-14 pb-24 lg:pb-10">
       {/* Header */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-end justify-between"
+        className="flex items-center justify-between gap-3"
       >
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-[var(--bg-overlay)] rounded-[24px] flex items-center justify-center border border-[var(--border-subtle)] shadow-2xl">
-            <Target className="text-[var(--text-primary)] w-8 h-8" />
+        <div className="flex items-center gap-3 md:gap-6 min-w-0">
+          <div className="w-10 h-10 md:w-16 md:h-16 bg-[var(--bg-overlay)] rounded-[16px] md:rounded-[24px] flex items-center justify-center border border-[var(--border-subtle)] shadow-2xl shrink-0">
+            <Target className="text-[var(--text-primary)] w-5 h-5 md:w-8 md:h-8" />
           </div>
-          <div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tightest text-[var(--text-primary)]">Metas Estratégicas</h1>
-            <p className="text-[var(--text-secondary)] font-medium text-base md:text-lg italic flex items-center gap-2">
+          <div className="min-w-0">
+            <h1 className="text-2xl md:text-5xl font-black tracking-tightest text-[var(--text-primary)]">Metas Estratégicas</h1>
+            <p className="text-[var(--text-secondary)] font-medium text-sm md:text-lg italic hidden sm:block">
               Planeje grandes objetivos e acompanhe o progresso.
-              <span className="inline-block w-1 h-1 rounded-full bg-[var(--border-subtle)] mx-1" />
-              <span className="text-[var(--text-muted)] text-xs font-black uppercase tracking-tighter border border-[var(--border-subtle)] px-2 py-0.5 rounded-md">Foco no Longo Prazo</span>
             </p>
           </div>
         </div>
-        
-        <button 
+
+        <button
           onClick={() => { setEditingGoal(null); setShowAddModal(true); }}
-          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-6 py-4 rounded-2xl font-black flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-xl shrink-0"
+          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-4 py-2.5 md:px-6 md:py-4 rounded-2xl font-black flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-xl shrink-0 text-sm md:text-base"
         >
-          <Plus size={20} />
-          Nova Meta
+          <Plus size={18} />
+          <span className="hidden sm:inline">Nova Meta</span>
+          <span className="sm:hidden">Nova</span>
         </button>
       </motion.div>
 
@@ -441,7 +440,7 @@ export default function GoalsPage() {
                          <div className="flex-1 h-px bg-white/5" />
                        </div>
                        
-                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                          {yearGroup.items.map((goal: Goal, idx: number) => {
                            const daysLeft = getRemainingDays(goal.end_date)
                            return (

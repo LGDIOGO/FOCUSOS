@@ -82,7 +82,7 @@ export default function AppLayout({
       {showPaywall && !showCpfOnboarding && <SubscriptionWall />}
 
       <Sidebar />
-      <main className="flex-1 overflow-y-auto pb-[calc(env(safe-area-inset-bottom)+80px)] md:pb-0 relative bg-[var(--bg-workspace)] rounded-none lg:rounded-tl-[40px] border-l border-white/[0.03] shadow-2xl">
+      <main className="flex-1 overflow-y-auto pb-[calc(env(safe-area-inset-bottom)+80px)] lg:pb-0 relative bg-[var(--bg-workspace)] rounded-none lg:rounded-tl-[40px] border-l border-white/[0.03] shadow-2xl">
         {children}
         <NotificationSystem />
       </main>

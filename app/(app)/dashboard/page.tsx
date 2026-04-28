@@ -443,40 +443,42 @@ export default function DashboardPage() {
 
   // Removed the full screen blocking spinner so the UI shell renders instantaneously
   return (
-    <div className="min-h-screen bg-[var(--bg-workspace)] text-[var(--text-primary)] pb-24 font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--bg-workspace)] text-[var(--text-primary)] pb-[calc(env(safe-area-inset-bottom)+96px)] lg:pb-12 font-sans transition-colors duration-300">
 
-      {/* ─── Top Bar ─── */}
-      {/* Header */}
+      {/* ─── Header ─── */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 px-6 pt-4 md:px-10 md:pt-6 lg:px-14 max-w-[1600px] mx-auto w-full"
+        className="flex items-center justify-between gap-3 mb-6 px-4 pt-4 md:px-10 md:pt-6 lg:px-14 max-w-[1600px] mx-auto w-full"
       >
-        <div className="flex items-center gap-6">
-          <div>
-            <p className="text-[12px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] mb-1">FocusOS Dashboard</p>
-            <h1 className="text-4xl font-black tracking-tighter text-[var(--text-primary)]">Olá, {auth.currentUser?.displayName?.split(' ')[0] || 'Usuário'}</h1>
-          </div>
+        {/* Left: greeting */}
+        <div className="min-w-0">
+          <p className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] mb-0.5">FocusOS</p>
+          <h1 className="text-2xl md:text-4xl font-black tracking-tighter text-[var(--text-primary)] truncate">
+            Olá, {auth.currentUser?.displayName?.split(' ')[0] || 'Usuário'}
+          </h1>
         </div>
 
-        <div className="flex flex-col md:flex-row md:items-center gap-8 md:gap-12">
-          <PerformanceHeader manualDailyScore={score.combined} />
-          <RealTimeClock />
-          <div className="flex items-center gap-2.5">
-            <button 
-              onClick={() => setIsNotificationsOpen(true)}
-              className="w-12 h-12 rounded-2xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] flex items-center justify-center hover:bg-[var(--bg-overlay)]/80 transition-all group relative"
-            >
-              <Bell size={20} className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors" />
-              {unreadCount > 0 && (
-                <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-600 rounded-full border-2 border-[var(--bg-primary)] animate-pulse" />
-              )}
-            </button>
+        {/* Right: metrics + clock + bell */}
+        <div className="flex items-center gap-3 md:gap-6 shrink-0">
+          {/* Clock — hidden on small mobile to save space */}
+          <div className="hidden sm:block">
+            <RealTimeClock />
           </div>
+          <PerformanceHeader manualDailyScore={score.combined} />
+          <button
+            onClick={() => setIsNotificationsOpen(true)}
+            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] flex items-center justify-center hover:bg-[var(--bg-overlay)]/80 transition-all group relative shrink-0"
+          >
+            <Bell size={18} className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors" />
+            {unreadCount > 0 && (
+              <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-600 rounded-full border border-[var(--bg-primary)] animate-pulse" />
+            )}
+          </button>
         </div>
       </motion.div>
 
-      <main className="px-6 md:px-10 lg:px-14 space-y-6 pt-0 pb-12 max-w-[1600px] mx-auto">
+      <main className="px-4 md:px-10 lg:px-14 space-y-5 md:space-y-6 pt-0 pb-4 max-w-[1600px] mx-auto">
 
 
 

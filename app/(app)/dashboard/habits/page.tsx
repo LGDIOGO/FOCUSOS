@@ -80,23 +80,23 @@ function HabitGridItem({
         onToggleSelection(habit.id)
       }}
       className={cn(
-        "group relative bg-[var(--bg-overlay)] border rounded-[32px] p-6 md:p-8 hover:bg-[var(--bg-overlay)]/80 transition-all flex flex-col justify-between overflow-hidden cursor-pointer h-full transition-colors duration-300",
+        "group relative bg-[var(--bg-overlay)] border rounded-[24px] md:rounded-[32px] p-4 md:p-6 hover:bg-[var(--bg-overlay)]/80 transition-all flex flex-col justify-between overflow-hidden cursor-pointer h-full transition-colors duration-300",
         isSelected ? "border-red-500/50 bg-red-500/[0.05] ring-1 ring-red-500/20" : "border-[var(--border-subtle)] hover:border-white/10"
       )}
     >
 
 
       <div className="relative z-10 flex justify-between items-start">
-        <div className="flex items-center gap-4">
-          <div 
-            className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-110"
+        <div className="flex items-center gap-2 md:gap-4">
+          <div
+            className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center text-lg md:text-2xl shadow-inner transition-transform group-hover:scale-110 shrink-0"
             style={{ backgroundColor: habit.color ? `${habit.color}20` : 'rgba(255,255,255,0.05)', color: habit.color || '#FFFFFF' }}
           >
-            {habit.emoji || (habit.type === 'positive' ? <Sparkles size={20} /> : <ShieldAlert size={20} />)}
+            {habit.emoji || (habit.type === 'positive' ? <Sparkles size={16} /> : <ShieldAlert size={16} />)}
           </div>
-          <div className="space-y-1">
-            <h3 className="text-xl font-bold text-[var(--text-primary)] transition-colors">{habit.name}</h3>
-            <p className="text-[var(--text-muted)] text-base font-medium line-clamp-1 italic">{habit.description || 'Sem descrição'}</p>
+          <div className="space-y-0.5 min-w-0">
+            <h3 className="text-sm md:text-xl font-bold text-[var(--text-primary)] transition-colors leading-tight truncate">{habit.name}</h3>
+            <p className="text-[var(--text-muted)] text-xs md:text-base font-medium line-clamp-1 italic hidden sm:block">{habit.description || 'Sem descrição'}</p>
           </div>
         </div>
         {!isSelectionMode && (
@@ -117,40 +117,40 @@ function HabitGridItem({
         )}
       </div>
 
-      <div className="relative z-10 pt-8 flex items-end justify-between">
-        <div className="space-y-2">
-           <div className="flex gap-1">
-              {DAYS.map((label, i) => {
-                const isActive = !habit.recurrence || 
-                  habit.recurrence.frequency === 'daily' || 
-                  (habit.recurrence.frequency === 'specific_days' && habit.recurrence.days_of_week?.includes(i))
-                return (
-                  <div 
-                    key={i} 
-                    className={cn(
-                      "w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-black border transition-all",
-                      isActive ? "bg-white/10 border-white/20 text-white" : "bg-transparent border-white/5 text-white/5"
-                    )}
-                  >
-                    {label}
-                  </div>
-                )
-              })}
-           </div>
-           <p className="text-[12px] uppercase tracking-widest font-black text-white/20">
-             {habit.recurrence?.frequency === 'specific_days' ? 'Personalizado' : 
-              habit.recurrence?.frequency === 'weekly' ? 'Semanal' :
-              habit.recurrence?.frequency === 'monthly' ? 'Mensal' :
-              habit.recurrence?.frequency === 'yearly' ? 'Anual' : 'Diário'}
-           </p>
+      <div className="relative z-10 pt-4 md:pt-8 flex items-end justify-between">
+        <div className="space-y-1 md:space-y-2">
+          <div className="flex gap-0.5 md:gap-1">
+            {DAYS.map((label, i) => {
+              const isActive = !habit.recurrence ||
+                habit.recurrence.frequency === 'daily' ||
+                (habit.recurrence.frequency === 'specific_days' && habit.recurrence.days_of_week?.includes(i))
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    "w-4 h-4 md:w-5 md:h-5 rounded flex items-center justify-center text-[8px] md:text-[9px] font-black border transition-all",
+                    isActive ? "bg-white/10 border-white/20 text-white" : "bg-transparent border-white/5 text-white/5"
+                  )}
+                >
+                  {label}
+                </div>
+              )
+            })}
+          </div>
+          <p className="text-[9px] md:text-[12px] uppercase tracking-widest font-black text-white/20">
+            {habit.recurrence?.frequency === 'specific_days' ? 'Custom' :
+             habit.recurrence?.frequency === 'weekly' ? 'Semanal' :
+             habit.recurrence?.frequency === 'monthly' ? 'Mensal' :
+             habit.recurrence?.frequency === 'yearly' ? 'Anual' : 'Diário'}
+          </p>
         </div>
-        
+
         <div className="flex flex-col items-end">
-           <span className="text-sm font-black uppercase text-[var(--text-muted)] tracking-widest mb-1">Ofensiva</span>
-           <div className="flex items-center gap-2">
-              <span className="text-xl">🔥</span>
-              <span className="text-2xl font-black italic text-[var(--text-primary)]">{activeOfensiva}</span>
-           </div>
+          <span className="text-[9px] md:text-sm font-black uppercase text-[var(--text-muted)] tracking-widest mb-0.5">Ofensiva</span>
+          <div className="flex items-center gap-1 md:gap-2">
+            <span className="text-base md:text-xl">🔥</span>
+            <span className="text-xl md:text-2xl font-black italic text-[var(--text-primary)]">{activeOfensiva}</span>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -283,33 +283,32 @@ export default function HabitsPage() {
   }, [historyLogs, habits])
 
   return (
-    <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display',sans-serif]">
+    <div className="p-4 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-6 md:space-y-10 lg:space-y-14 pb-24 lg:pb-10">
       {/* Header */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-end justify-between"
+        className="flex items-center justify-between gap-3"
       >
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-[var(--bg-overlay)] rounded-[24px] flex items-center justify-center border border-[var(--border-subtle)] shadow-2xl">
-            <RefreshCcw className="text-[var(--text-primary)] w-8 h-8" />
+        <div className="flex items-center gap-3 md:gap-6 min-w-0">
+          <div className="w-10 h-10 md:w-16 md:h-16 bg-[var(--bg-overlay)] rounded-[16px] md:rounded-[24px] flex items-center justify-center border border-[var(--border-subtle)] shadow-2xl shrink-0">
+            <RefreshCcw className="text-[var(--text-primary)] w-5 h-5 md:w-8 md:h-8" />
           </div>
-          <div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tightest text-[var(--text-primary)]">Meus Hábitos</h1>
-            <p className="text-[var(--text-secondary)] font-medium text-base md:text-lg italic flex items-center gap-2">
+          <div className="min-w-0">
+            <h1 className="text-2xl md:text-5xl font-black tracking-tightest text-[var(--text-primary)]">Meus Hábitos</h1>
+            <p className="text-[var(--text-secondary)] font-medium text-sm md:text-lg italic hidden sm:block">
               Construa disciplina com rotinas consistentes.
-              <span className="inline-block w-1 h-1 rounded-full bg-[var(--text-muted)]/20 mx-1" />
-              <span className="text-[var(--text-muted)] text-xs font-black uppercase tracking-tighter hidden md:inline-block border border-[var(--border-subtle)] px-2 py-0.5 rounded-md">Botão direito para selecionar</span>
             </p>
           </div>
         </div>
-        
-        <button 
+
+        <button
           onClick={() => setShowAddModal(true)}
-          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-5 py-3 md:px-6 md:py-4 rounded-2xl font-black flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-xl shrink-0 text-sm md:text-base"
+          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-4 py-2.5 md:px-6 md:py-4 rounded-2xl font-black flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-xl shrink-0 text-sm md:text-base"
         >
-          <Plus size={20} />
-          Novo Hábito
+          <Plus size={18} />
+          <span className="hidden sm:inline">Novo Hábito</span>
+          <span className="sm:hidden">Novo</span>
         </button>
       </motion.div>
 
@@ -317,7 +316,7 @@ export default function HabitsPage() {
       <div className="space-y-16">
         <AnimatePresence mode="popLayout">
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
               {[1, 2, 3].map(i => (
                 <div key={i} className="h-48 rounded-[40px] bg-white/[0.02] border border-white/10 animate-pulse" />
               ))}
@@ -331,7 +330,7 @@ export default function HabitsPage() {
                 <h2 className="text-sm font-black tracking-widest text-white/50 uppercase">{group.category?.name || 'Sem Categoria'}</h2>
                 <span className="text-white/20 text-xs font-black uppercase tracking-widest">{group.items.length} {group.items.length === 1 ? 'Hábito' : 'Hábitos'}</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
                 {group.items.map((habit: Habit, idx: number) => (
                   <HabitGridItem
                     key={habit.id}

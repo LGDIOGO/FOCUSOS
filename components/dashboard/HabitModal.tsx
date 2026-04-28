@@ -164,23 +164,27 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6">
-      <motion.div 
+    <div className="fixed inset-0 z-[10000] flex items-end md:items-center md:justify-center md:p-6">
+      <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
         className="fixed inset-0 bg-black/60 text-left backdrop-blur-xl"
       />
-      
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-lg bg-[var(--bg-primary)] border text-left border-[var(--border-subtle)] rounded-[40px] md:rounded-[48px] p-4 md:p-7 overflow-y-auto max-h-[90vh] shadow-2xl z-[10001] transition-colors duration-300"
+
+      <motion.div
+        initial={{ y: '100%', opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: '100%', opacity: 0 }}
+        transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+        className="relative w-full md:max-w-lg bg-[var(--bg-primary)] border text-left border-[var(--border-subtle)] rounded-t-[32px] md:rounded-[48px] p-5 md:p-7 overflow-y-auto max-h-[92dvh] md:max-h-[90vh] shadow-2xl z-[10001] transition-colors duration-300"
       >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-4xl font-black tracking-tightest text-[var(--text-primary)] transition-colors">{habitToEdit ? 'Editar Hábito' : 'Novo Hábito'}</h2>
-          <button onClick={onClose} className="p-3 hover:bg-[var(--bg-overlay)] rounded-2xl transition-all">
-            <X className="text-[var(--text-muted)]" />
+        {/* Drag handle — mobile only */}
+        <div className="w-10 h-1 bg-[var(--border-subtle)] rounded-full mx-auto mb-4 md:hidden" />
+
+        <div className="flex justify-between items-center mb-5 md:mb-6">
+          <h2 className="text-2xl md:text-4xl font-black tracking-tightest text-[var(--text-primary)] transition-colors">{habitToEdit ? 'Editar Hábito' : 'Novo Hábito'}</h2>
+          <button onClick={onClose} className="p-2.5 md:p-3 hover:bg-[var(--bg-overlay)] rounded-2xl transition-all">
+            <X size={20} className="text-[var(--text-muted)]" />
           </button>
         </div>
 

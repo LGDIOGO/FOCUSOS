@@ -118,65 +118,66 @@ function EventItem({
         toggleSelection(event.id)
       }}
       className={cn(
-        "group flex items-center gap-6 p-6 bg-[var(--bg-overlay)] border rounded-[32px] hover:bg-[var(--bg-overlay)]/80 transition-all cursor-pointer relative transition-colors duration-300",
+        "group flex items-center gap-3 md:gap-6 p-4 md:p-6 bg-[var(--bg-overlay)] border rounded-[24px] md:rounded-[32px] hover:bg-[var(--bg-overlay)]/80 transition-all cursor-pointer relative transition-colors duration-300",
         isSelected ? "border-red-500 bg-red-500/5" : "border-[var(--border-subtle)]"
       )}
     >
-      <div 
-        className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-110"
+      <div
+        className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-2xl shadow-inner transition-transform group-hover:scale-105 shrink-0"
         style={{ backgroundColor: event.color ? `${event.color}20` : 'rgba(255,255,255,0.05)', color: event.color || '#FFFFFF' }}
       >
         {event.emoji || (
-          event.type === 'meeting' ? <Users size={24} /> :
-          event.type === 'birthday' ? <Cake size={24} /> :
-          event.type === 'event' ? <Star size={24} /> : <CalendarIcon size={24} />
+          event.type === 'meeting' ? <Users size={20} /> :
+          event.type === 'birthday' ? <Cake size={20} /> :
+          event.type === 'event' ? <Star size={20} /> : <CalendarIcon size={20} />
         )}
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-3 mb-1">
-          <h3 className="text-lg font-bold text-[var(--text-primary)] truncate transition-colors">{event.title}</h3>
+        <div className="flex items-center gap-2 mb-0.5 md:mb-1">
+          <h3 className="text-base md:text-lg font-bold text-[var(--text-primary)] truncate transition-colors">{event.title}</h3>
           {event.recurrence && (
-             <div className="flex items-center gap-1 text-[9px] font-black text-white/20 uppercase tracking-widest">
-               <RefreshCcw size={10} />
-               {
-                 event.recurrence.frequency === 'daily' ? 'Diário' :
+            <div className="flex items-center gap-1 text-[9px] font-black text-white/20 uppercase tracking-widest shrink-0">
+              <RefreshCcw size={9} />
+              <span className="hidden sm:inline">
+                {event.recurrence.frequency === 'daily' ? 'Diário' :
                  event.recurrence.frequency === 'weekly' ? (event.recurrence.interval === 2 ? 'Quinzenal' : 'Semanal') :
                  event.recurrence.frequency === 'monthly' ? 'Mensal' :
-                 event.recurrence.frequency === 'yearly' ? 'Anual' :
-                 'Personalizado'
-               }
-             </div>
+                 event.recurrence.frequency === 'yearly' ? 'Anual' : 'Recorrente'}
+              </span>
+            </div>
           )}
         </div>
-          <div className={cn(
-            "flex items-center gap-4 text-base font-medium transition-all duration-700",
-            timeStatus.passed ? "text-[#FF453A]" : 
-            timeStatus.approaching ? "text-[#FF453A] animate-pulse" : "text-[var(--text-muted)]"
-          )}>
-            <div className="flex items-center gap-1.5">
-              <Clock size={14} className={cn(timeStatus.passed || timeStatus.approaching ? "text-[#FF453A]" : "")} />
-              {event.time}
+        <div className={cn(
+          "flex items-center gap-2 md:gap-4 text-sm md:text-base font-medium transition-all duration-700 flex-wrap",
+          timeStatus.passed ? "text-[#FF453A]" :
+          timeStatus.approaching ? "text-[#FF453A] animate-pulse" : "text-[var(--text-muted)]"
+        )}>
+          {event.time && (
+            <div className="flex items-center gap-1">
+              <Clock size={12} className={cn(timeStatus.passed || timeStatus.approaching ? "text-[#FF453A]" : "")} />
+              <span className="text-[12px] font-semibold">{event.time}</span>
             </div>
-            {event.isOverdue && (() => {
-              const daysLate = event.date ? differenceInDays(new Date(), parseISO(event.date)) : 0
-              return (
-                <span className="flex items-center gap-1 px-2 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-lg text-[#FF453A] text-[10px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-500">
-                  <AlertCircle size={10} />
-                  {daysLate > 0 ? `${daysLate}d atraso` : 'ATRASADO'}
-                </span>
-              )
-            })()}
-            {event.description && (
-              <div className="flex items-center gap-1.5 truncate">
-                <div className="w-1 h-1 rounded-full bg-white/10" />
-                {event.description}
-              </div>
-            )}
-          </div>
+          )}
+          {event.isOverdue && (() => {
+            const daysLate = event.date ? differenceInDays(new Date(), parseISO(event.date)) : 0
+            return (
+              <span className="flex items-center gap-1 px-1.5 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-md text-[#FF453A] text-[9px] font-black uppercase tracking-widest">
+                <AlertCircle size={9} />
+                {daysLate > 0 ? `${daysLate}d` : 'ATRASADO'}
+              </span>
+            )
+          })()}
+          {event.description && (
+            <span className="text-[11px] md:text-sm text-[var(--text-muted)] truncate hidden sm:block">
+              {event.description}
+            </span>
+          )}
+        </div>
       </div>
 
-      <button 
+      {/* Delete button — always visible on touch, hover-only on desktop */}
+      <button
         onClick={(e) => {
           e.stopPropagation()
           if (isSelectionMode) return
@@ -188,11 +189,11 @@ function EventItem({
         onTouchStart={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
         className={cn(
-          "p-3 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100",
-          isSelectionMode ? "hidden" : "text-white/5"
+          "p-2.5 rounded-xl text-white/20 hover:text-red-400 hover:bg-red-400/10 transition-all shrink-0",
+          isSelectionMode ? "hidden" : "opacity-40 md:opacity-0 md:group-hover:opacity-100"
         )}
       >
-        <Trash2 size={20} />
+        <Trash2 size={16} />
       </button>
     </motion.div>
   )
@@ -488,46 +489,46 @@ function AgendaPage() {
   }, [events, logs, historyPeriod, historyStartDate, historyEndDate])
 
   return (
-    <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10">
+    <div className="p-4 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-6 md:space-y-10 lg:space-y-14 pb-24 lg:pb-10">
       {/* Header */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-end justify-between gap-6"
+        className="flex items-start justify-between gap-4"
       >
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-[var(--bg-overlay)] rounded-[24px] flex items-center justify-center border border-[var(--border-subtle)] shadow-2xl">
-            <CalendarIcon className="text-[var(--text-primary)] w-8 h-8" />
+        <div className="flex items-center gap-3 md:gap-6 min-w-0">
+          <div className="w-10 h-10 md:w-16 md:h-16 bg-[var(--bg-overlay)] rounded-[16px] md:rounded-[24px] flex items-center justify-center border border-[var(--border-subtle)] shadow-2xl shrink-0">
+            <CalendarIcon className="text-[var(--text-primary)] w-5 h-5 md:w-8 md:h-8" />
           </div>
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-               <h1 className="text-5xl font-black tracking-tightest text-[var(--text-primary)]">Minha Agenda</h1>
-               <div className="flex items-center gap-1 bg-[var(--bg-overlay)] rounded-full px-3 py-1 border border-[var(--border-subtle)]">
-                  <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:text-[var(--text-primary)] transition-colors text-[var(--text-muted)]">
-                    <ChevronRight className="rotate-180" size={14} />
-                  </button>
-                  <span className="text-[12px] font-black uppercase tracking-widest min-w-[100px] text-center text-[var(--text-primary)]">
-                    {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
-                  </span>
-                  <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:text-[var(--text-primary)] transition-colors text-[var(--text-muted)]">
-                    <ChevronRight size={14} />
-                  </button>
-               </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h1 className="text-3xl md:text-5xl font-black tracking-tightest text-[var(--text-primary)]">Minha Agenda</h1>
+              {/* Month nav — inline on desktop */}
+              <div className="flex items-center gap-1 bg-[var(--bg-overlay)] rounded-full px-2 py-1 border border-[var(--border-subtle)]">
+                <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-0.5 hover:text-[var(--text-primary)] transition-colors text-[var(--text-muted)]">
+                  <ChevronRight className="rotate-180" size={13} />
+                </button>
+                <span className="text-[11px] font-black uppercase tracking-widest min-w-[90px] text-center text-[var(--text-primary)] capitalize">
+                  {format(currentMonth, 'MMM yyyy', { locale: ptBR })}
+                </span>
+                <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-0.5 hover:text-[var(--text-primary)] transition-colors text-[var(--text-muted)]">
+                  <ChevronRight size={13} />
+                </button>
+              </div>
             </div>
-            <p className="text-[var(--text-secondary)] font-medium text-lg italic flex items-center gap-2">
+            <p className="text-[var(--text-secondary)] font-medium text-sm md:text-lg italic hidden sm:block">
               Gerencie compromissos para qualquer data futura.
-              <span className="inline-block w-1 h-1 rounded-full bg-[var(--text-muted)]/20 mx-1" />
-              <span className="text-[var(--text-muted)] text-xs font-black uppercase tracking-tighter hidden md:inline-block border border-[var(--border-subtle)] px-2 py-0.5 rounded-md">Botão direito para selecionar</span>
             </p>
           </div>
         </div>
-        
-        <button 
+
+        <button
           onClick={() => setShowAddModal(true)}
-          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-6 py-4 rounded-2xl font-black flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-xl shrink-0"
+          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-4 py-2.5 md:px-6 md:py-4 rounded-2xl font-black flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-xl shrink-0 text-sm md:text-base"
         >
-          <Plus size={20} />
-          Novo Compromisso
+          <Plus size={18} />
+          <span className="hidden sm:inline">Novo Compromisso</span>
+          <span className="sm:hidden">Novo</span>
         </button>
       </motion.div>
 

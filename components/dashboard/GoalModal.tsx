@@ -178,20 +178,23 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 md:p-6">
-      <motion.div 
+    <div className="fixed inset-0 z-[10000] flex items-end md:items-center md:justify-center md:p-6">
+      <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
         className="fixed inset-0 bg-black/60 backdrop-blur-xl"
       />
-      
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-xl bg-[#0A0A0A] border border-white/10 rounded-[32px] md:rounded-[40px] shadow-2xl overflow-visible flex flex-col max-h-[95vh] z-[10001]"
+
+      <motion.div
+        initial={{ y: '100%', opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: '100%', opacity: 0 }}
+        transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+        className="relative w-full md:max-w-xl bg-[#0A0A0A] border border-white/10 rounded-t-[32px] md:rounded-[40px] shadow-2xl overflow-visible flex flex-col max-h-[92dvh] md:max-h-[95vh] z-[10001]"
       >
-        <div className="p-6 pb-2 flex items-center justify-between">
+        {/* Drag handle — mobile only */}
+        <div className="w-10 h-1 bg-white/10 rounded-full mx-auto mt-3 mb-1 md:hidden" />
+        <div className="p-5 md:p-6 pb-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
               <Target className="text-white w-5 h-5" />
