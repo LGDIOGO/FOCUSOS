@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { format, startOfWeek, addDays, isToday, getDay, isSameDay, isTomorrow, isYesterday, parse, isAfter } from 'date-fns'
+import { format, startOfWeek, addDays, isToday, getDay, isSameDay, isTomorrow, isYesterday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { auth } from '@/lib/firebase/config'
 import HabitCard from '@/components/dashboard/HabitCard'
@@ -297,28 +297,16 @@ export default function DashboardPage() {
         return (ov !== undefined && ov !== e.status) ? { ...e, status: ov } : e
       })
       .sort((a, b) => {
-        // Concluído/parcial/falhou sempre vão para o fundo
+        // Pendentes (none/todo) primeiro; resolvidos (done/partial/failed) no fundo
         const aResolved = a.status === 'done' || a.status === 'partial' || a.status === 'failed'
         const bResolved = b.status === 'done' || b.status === 'partial' || b.status === 'failed'
         if (aResolved && !bResolved) return 1
         if (!aResolved && bResolved) return -1
-
-        // Entre pendentes: atrasados depois dos futuros, dentro do mesmo
-        // grupo ordena por horário
-        const now = currentTime
-        const timeA = a.time ? parse(a.time, 'HH:mm', now) : null
-        const timeB = b.time ? parse(b.time, 'HH:mm', now) : null
-
-        if (timeA && timeB) {
-          const passedA = isToday(selectedDate) && isAfter(now, timeA)
-          const passedB = isToday(selectedDate) && isAfter(now, timeB)
-          if (passedA && !passedB) return 1
-          if (!passedA && passedB) return -1
-          return timeA.getTime() - timeB.getTime()
-        }
-        return 0
+        // Dentro de cada grupo: horário crescente; sem horário vai por último
+        const toMin = (t?: string) => { if (!t) return Infinity; const [h, m] = t.split(':').map(Number); return h * 60 + m }
+        return toMin(a.time) - toMin(b.time)
       })
-  }, [eventsToday, eventStatusOverrides, currentTime, selectedDate])
+  }, [eventsToday, eventStatusOverrides])
 
   // Sync AI Insights to Persistent Notifications
   const currentInsights = useMemo(() => generateLocalInsights(habits, tasks), [habits, tasks])
