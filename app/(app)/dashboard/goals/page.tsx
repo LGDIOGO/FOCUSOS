@@ -537,56 +537,56 @@ export default function GoalsPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[10000] bg-black/90 backdrop-blur-3xl border border-white/10 rounded-[40px] px-10 py-5 flex items-center gap-10 shadow-2xl ring-1 ring-white/5"
+            className="fixed bottom-[calc(env(safe-area-inset-bottom)+88px)] lg:bottom-10 left-1/2 lg:left-[calc(50%+128px)] -translate-x-1/2 z-[10000] w-[calc(100vw-1.5rem)] md:w-auto max-w-4xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-3 md:gap-10 shadow-2xl ring-1 ring-white/5"
           >
-            <div className="flex flex-col items-center justify-center min-w-[80px]">
-              <span className="text-3xl font-black text-white leading-none">{selectedIds.length}</span>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">Itens</span>
+            <div className="flex flex-col items-center justify-center min-w-[52px] md:min-w-[80px]">
+              <span className="text-2xl md:text-3xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>
+              <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-1">Itens</span>
             </div>
 
-            <div className="h-12 w-px bg-white/10" />
+            <div className="h-10 md:h-12 w-px bg-[var(--border-subtle)]" />
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 md:gap-6">
               {[
                 { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
               ].map(btn => (
-                <button 
+                <button
                   key={btn.label}
                   onClick={btn.onClick}
                   className="relative flex flex-col items-center group/sel pt-1"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all duration-300">
-                    <btn.icon size={20} />
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-[var(--bg-overlay)] flex items-center justify-center border border-[var(--border-subtle)] group-hover/sel:bg-[var(--text-primary)] group-hover/sel:text-[var(--bg-primary)] transition-all duration-300">
+                    <btn.icon size={18} />
                   </div>
-                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap">
+                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap hidden md:block">
                     {btn.label}
                   </span>
                 </button>
               ))}
             </div>
 
-            <div className="h-12 w-px bg-white/10" />
+            <div className="h-10 md:h-12 w-px bg-[var(--border-subtle)]" />
 
-            <div className="flex items-center gap-6">
-              <button 
+            <div className="flex items-center gap-2 md:gap-6">
+              <button
                 onClick={handleBulkDelete}
                 disabled={selectedIds.length === 0}
                 className="relative flex flex-col items-center group/del disabled:opacity-20"
               >
-                <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all duration-300 text-red-500">
-                  <Trash2 size={20} />
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all duration-300 text-red-500">
+                  <Trash2 size={18} />
                 </div>
-                <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-red-500/40 opacity-0 group-hover/del:opacity-100 transition-all pointer-events-none whitespace-nowrap">
+                <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-red-500/40 opacity-0 group-hover/del:opacity-100 transition-all pointer-events-none whitespace-nowrap hidden md:block">
                   Excluir
                 </span>
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => {
                   setIsSelectionMode(false)
                   setSelectedIds([])
                 }}
-                className="h-12 px-10 bg-white/10 hover:bg-white text-white hover:text-black rounded-2xl font-black uppercase tracking-[0.15em] text-[11px] transition-all duration-300 whitespace-nowrap"
+                className="h-10 md:h-12 px-4 md:px-10 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-xl md:rounded-2xl font-black uppercase tracking-[0.15em] text-[10px] md:text-[11px] transition-all duration-300 whitespace-nowrap border border-[var(--border-subtle)]"
               >
                 Cancelar
               </button>

@@ -772,7 +772,7 @@ function AgendaPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[1000] w-[95%] md:w-auto max-w-5xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-3 md:gap-10 shadow-2xl ring-1 ring-[var(--text-primary)]/5"
+            className="fixed bottom-[calc(env(safe-area-inset-bottom)+88px)] lg:bottom-10 left-1/2 lg:left-[calc(50%+128px)] -translate-x-1/2 z-[10000] w-[calc(100vw-1.5rem)] md:w-auto max-w-5xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-3 md:gap-10 shadow-2xl ring-1 ring-[var(--text-primary)]/5"
           >
             <div className="flex flex-col items-center justify-center min-w-[60px] md:min-w-[80px]">
               <span className="text-2xl md:text-3xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>
