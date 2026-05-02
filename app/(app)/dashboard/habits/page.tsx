@@ -436,63 +436,67 @@ export default function HabitsPage() {
 
       <AnimatePresence>
         {isSelectionMode && (
-          <motion.div 
-            initial={{ y: 100, opacity: 0 }}
+          <motion.div
+            key="sel-bar-habits"
+            initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-[calc(env(safe-area-inset-bottom)+88px)] lg:bottom-10 left-1/2 lg:left-[calc(50%+128px)] -translate-x-1/2 z-[10000] w-[calc(100vw-1.5rem)] md:w-auto max-w-5xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-8 lg:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-3 md:gap-8 lg:gap-10 shadow-2xl ring-1 ring-[var(--text-primary)]/5"
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+            className="fixed inset-x-0 bottom-0 z-[10000] pointer-events-none flex items-end justify-center lg:pl-64 pb-[calc(env(safe-area-inset-bottom)+88px)] lg:pb-10 px-3 lg:px-8"
           >
-            <div className="flex flex-col items-center justify-center min-w-[52px] md:min-w-[80px]">
-              <span className="text-2xl md:text-3xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>
-              <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-1">Itens</span>
-            </div>
+            <div className="pointer-events-auto w-full md:w-auto max-w-2xl bg-[var(--bg-primary)]/95 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[28px] md:rounded-[36px] px-4 md:px-8 py-3.5 md:py-4 flex items-center gap-3 md:gap-5 shadow-2xl ring-1 ring-[var(--text-primary)]/5">
+              {/* Count */}
+              <div className="flex flex-col items-center justify-center min-w-[48px] md:min-w-[60px]">
+                <span className="text-xl md:text-2xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-0.5">Itens</span>
+              </div>
 
-            <div className="h-10 md:h-12 w-px bg-[var(--border-subtle)]" />
+              <div className="h-8 w-px bg-[var(--border-subtle)] flex-shrink-0" />
 
-            <div className="flex items-center gap-2 md:gap-6">
-              {[
-                { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
-                { label: 'Hábitos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
-                { label: 'A Evitar', icon: ShieldAlert, onClick: () => handleSelectGroup('negative') },
-              ].map(btn => (
+              {/* Group selectors */}
+              <div className="flex items-center gap-2 md:gap-3 flex-1 justify-center">
+                {[
+                  { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
+                  { label: 'Hábitos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
+                  { label: 'A Evitar', icon: ShieldAlert, onClick: () => handleSelectGroup('negative') },
+                ].map(btn => (
+                  <button
+                    key={btn.label}
+                    onClick={btn.onClick}
+                    className="flex flex-col items-center gap-1 group/sel"
+                  >
+                    <div className="w-10 h-10 rounded-2xl bg-[var(--bg-overlay)] flex items-center justify-center border border-[var(--border-subtle)] group-hover/sel:bg-[var(--text-primary)] group-hover/sel:text-[var(--bg-primary)] text-[var(--text-muted)] group-hover/sel:border-transparent transition-all duration-200">
+                      <btn.icon size={16} />
+                    </div>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] group-hover/sel:text-[var(--text-primary)] transition-colors hidden md:block whitespace-nowrap">
+                      {btn.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-8 w-px bg-[var(--border-subtle)] flex-shrink-0" />
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
                 <button
-                  key={btn.label}
-                  onClick={btn.onClick}
-                  className="relative flex flex-col items-center group/sel pt-1"
+                  onClick={handleBulkDelete}
+                  disabled={selectedIds.length === 0}
+                  className="flex flex-col items-center gap-1 group/del disabled:opacity-20"
                 >
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-[var(--bg-overlay)] flex items-center justify-center border border-[var(--border-subtle)] group-hover/sel:bg-[var(--text-primary)] group-hover/sel:text-[var(--bg-primary)] transition-all duration-300">
-                    <btn.icon size={18} />
+                  <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white text-red-500 transition-all duration-200">
+                    <Trash2 size={16} />
                   </div>
-                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap hidden md:block">
-                    {btn.label}
-                  </span>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-red-400/60 hidden md:block whitespace-nowrap">Excluir</span>
                 </button>
-              ))}
-            </div>
 
-            <div className="h-10 md:h-12 w-px bg-white/10" />
-
-            <div className="flex items-center gap-2 md:gap-4">
-              <button
-                onClick={handleBulkDelete}
-                disabled={selectedIds.length === 0}
-                className="flex flex-col items-center gap-1.5 text-red-500/40 hover:text-red-500 transition-all disabled:opacity-5 group/del"
-              >
-                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all">
-                  <Trash2 size={18} />
-                </div>
-                <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/del:opacity-60 transition-opacity hidden md:block">Excluir</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setIsSelectionMode(false)
-                  setSelectedIds([])
-                }}
-                className="bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] px-4 md:px-8 py-2.5 md:py-4 rounded-[16px] md:rounded-[20px] font-black uppercase tracking-widest text-[10px] md:text-[11px] transition-all border border-[var(--border-subtle)] whitespace-nowrap"
-              >
-                Cancelar
-              </button>
+                <button
+                  onClick={() => { setIsSelectionMode(false); setSelectedIds([]) }}
+                  className="h-10 px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-[0.12em] text-[9px] md:text-[10px] transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
