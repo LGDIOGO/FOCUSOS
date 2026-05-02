@@ -446,7 +446,7 @@ export default function DashboardPage() {
         <div className="min-w-0">
           <p className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] mb-0.5">FocusOS Dashboard</p>
           <h1 className="text-2xl md:text-4xl font-black tracking-tighter text-[var(--text-primary)] truncate">
-            Olá, {profile?.full_name?.split(' ')[0] || auth.currentUser?.displayName?.split(' ')[0] || 'Usuário'}
+            Olá, {profile?.full_name?.split(' ')[0] || 'Usuário'}
           </h1>
         </div>
 
