@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, db } from '@/lib/firebase/config'
+import { useCurrentUser } from '@/lib/context/AuthContext'
 import { 
   collection, 
   query, 
@@ -15,7 +16,7 @@ import { format } from 'date-fns'
 import { Task } from '@/types'
 
 export function useTasksToday(selectedDate: Date = new Date()) {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['tasks', 'date', format(selectedDate, 'yyyy-MM-dd'), user?.uid],
@@ -64,7 +65,7 @@ export function useTasksToday(selectedDate: Date = new Date()) {
 
 export function useAddTask() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (task: Omit<Task, 'id' | 'user_id' | 'created_at' | 'done' | 'status'>) => {
@@ -87,7 +88,7 @@ export function useAddTask() {
 
 export function useUpdateTask() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation<void, unknown, Partial<Task> & { id: string }>({
     onMutate: async (vars) => {
@@ -135,7 +136,7 @@ export function useUpdateTask() {
 }
 export function useDeleteTask() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -152,7 +153,7 @@ export function useDeleteTask() {
   })
 }
 export function useTasks() {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['tasks', 'all', user?.uid],

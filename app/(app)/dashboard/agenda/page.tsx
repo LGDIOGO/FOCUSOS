@@ -9,8 +9,9 @@ import {
 } from 'lucide-react'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
 import { useEvents, useDeleteEvent } from '@/lib/hooks/useEvents'
-import { db, auth } from '@/lib/firebase/config'
+import { db } from '@/lib/firebase/config'
 import { collection, query, where, getDocs } from 'firebase/firestore'
+import { useCurrentUser } from '@/lib/context/AuthContext'
 import { CalendarEvent, EventType } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import {
@@ -223,7 +224,7 @@ function AgendaPage() {
   const [historyEndDate, setHistoryEndDate] = useState<string>('')
   const [historyPeriod, setHistoryPeriod] = useState<'all' | 'custom'>('all')
 
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   // Update logic for real-time visual alerts
   useEffect(() => {
@@ -245,28 +246,19 @@ function AgendaPage() {
     queryFn: async () => {
       if (!user) return new Map<string, string>()
 
-      // Chunk into 10-date batches, run ALL batches in parallel
-      const chunks: string[][] = []
-      for (let i = 0; i < logDates.length; i += 10) {
-        chunks.push(logDates.slice(i, i + 10))
-      }
-
-      const snapshots = await Promise.all(
-        chunks.map(chunk =>
-          getDocs(query(
-            collection(db, 'event_logs'),
-            where('user_id', '==', user.uid),
-            where('log_date', 'in', chunk)
-          ))
-        )
-      )
+      // Single-field query — no composite index required; filter dates client-side
+      const logDatesSet = new Set(logDates)
+      const snap = await getDocs(query(
+        collection(db, 'event_logs'),
+        where('user_id', '==', user.uid)
+      ))
 
       const m = new Map<string, string>()
-      snapshots.forEach(snap => {
-        snap.docs.forEach(d => {
-          const data = d.data()
+      snap.docs.forEach(d => {
+        const data = d.data()
+        if (logDatesSet.has(data.log_date)) {
           m.set(`${data.event_id}_${data.log_date}`, data.status)
-        })
+        }
       })
       return m
     },

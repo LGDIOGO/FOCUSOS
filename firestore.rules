@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwnerByField() {
+      return isAuth() && request.auth.uid == resource.data.user_id;
+    }
+
+    function isOwnerByFieldOnCreate() {
+      return isAuth() && request.auth.uid == request.resource.data.user_id;
+    }
+
+    // Allow reading a non-existing doc (resource == null) so that getDoc() on
+    // log IDs that haven't been created yet returns "not found" instead of
+    // "permission-denied". When the doc exists, ownership is enforced.
+    function canReadLog() {
+      return isAuth() && (resource == null || request.auth.uid == resource.data.user_id);
+    }
+
+    match /profiles/{uid} {
+      allow read, write: if isAuth() && request.auth.uid == uid;
+    }
+
+    match /settings/{uid} {
+      allow read, write: if isAuth() && request.auth.uid == uid;
+    }
+
+    match /habits/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    // habit_logs use getDoc(id) on potentially non-existing docs
+    match /habit_logs/{docId} {
+      allow read: if canReadLog();
+      allow update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    match /events/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    // event_logs use getDoc(id) on potentially non-existing docs
+    match /event_logs/{docId} {
+      allow read: if canReadLog();
+      allow update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    match /tasks/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    match /goals/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    match /notifications/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    match /categories/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    match /finance_entries/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+  }
+}

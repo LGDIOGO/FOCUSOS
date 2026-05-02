@@ -1,14 +1,15 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { auth, db } from '@/lib/firebase/config'
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore'
+import { db } from '@/lib/firebase/config'
+import { useCurrentUser } from '@/lib/context/AuthContext'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 import { startOfWeek, endOfWeek, format, eachDayOfInterval, isPast, isToday, parseISO, getDay, addDays } from 'date-fns'
 import { Habit, Task, CalendarEvent, HabitStatus } from '@/types'
 import { calculateProgress, calculateWeeklyProgress } from '@/lib/utils/performance'
 
 export function usePerformanceMetrics(weekOffset: number = 0) {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['performance-metrics', user?.uid, weekOffset],
@@ -24,48 +25,39 @@ export function usePerformanceMetrics(weekOffset: number = 0) {
       const endStr = format(end, 'yyyy-MM-dd')
       const todayStr = format(today, 'yyyy-MM-dd')
 
-      // 1. Fetch Habits & Logs for the week
-      const habitsQuery = query(
-        collection(db, 'habits'),
-        where('user_id', '==', user.uid),
-        where('is_archived', '==', false)
-      )
-      const habitsSnap = await getDocs(habitsQuery)
-      const habits = habitsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Habit[]
+      // All queries use a single where('user_id') — no composite indexes needed.
+      // Date/archive filtering happens client-side.
 
-      const logsQuery = query(
-        collection(db, 'habit_logs'),
-        where('user_id', '==', user.uid),
-        where('log_date', '>=', startStr),
-        where('log_date', '<=', endStr)
-      )
-      const logsSnap = await getDocs(logsQuery)
-      
+      // 1. Fetch Habits & Logs for the week
+      const [habitsSnap, logsSnap, tasksSnap, eventsSnap] = await Promise.all([
+        getDocs(query(collection(db, 'habits'), where('user_id', '==', user.uid))),
+        getDocs(query(collection(db, 'habit_logs'), where('user_id', '==', user.uid))),
+        getDocs(query(collection(db, 'tasks'), where('user_id', '==', user.uid))),
+        getDocs(query(collection(db, 'events'), where('user_id', '==', user.uid))),
+      ])
+
+      // Filter archived habits client-side
+      const habits = habitsSnap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter((h: any) => !h.is_archived) as Habit[]
+
+      // Filter logs to the current week client-side
       const logsMap = new Map(
         logsSnap.docs
           .map(d => d.data())
+          .filter(d => d.log_date >= startStr && d.log_date <= endStr)
           .map(d => [`${d.habit_id}_${d.log_date}`, d.status])
       )
 
-      // 2. Fetch Tasks for the week
-      const tasksQuery = query(
-        collection(db, 'tasks'),
-        where('user_id', '==', user.uid),
-        where('due_date', '>=', startStr),
-        where('due_date', '<=', endStr)
-      )
-      const tasksSnap = await getDocs(tasksQuery)
-      const allTasks = tasksSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Task[]
+      // 2. Filter Tasks to the current week client-side
+      const allTasks = tasksSnap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter((t: any) => t.due_date >= startStr && t.due_date <= endStr) as Task[]
 
-      // 3. Fetch Events for the week
-      const eventsQuery = query(
-        collection(db, 'events'),
-        where('user_id', '==', user.uid),
-        where('date', '>=', startStr),
-        where('date', '<=', endStr)
-      )
-      const eventsSnap = await getDocs(eventsQuery)
-      const allEvents = eventsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as CalendarEvent[]
+      // 3. Filter Events to the current week client-side
+      const allEvents = eventsSnap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter((e: any) => e.date >= startStr && e.date <= endStr) as CalendarEvent[]
 
       // Calculate Scores per day
       const dailyScores: Record<string, number> = {}

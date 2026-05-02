@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, db } from '@/lib/firebase/config'
+import { useCurrentUser } from '@/lib/context/AuthContext'
 import {
   collection,
   query,
@@ -21,7 +22,7 @@ function stripUndefinedFields<T extends Record<string, any>>(data: T) {
 // --- Transactions --- //
 
 export function useFinanceTransactions() {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['finance_transactions', user?.uid],
@@ -77,7 +78,7 @@ export function useDeleteFinanceTransaction() {
 // --- Recurring Costs --- //
 
 export function useFinanceRecurringCosts() {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['finance_recurring_costs', user?.uid],
@@ -142,7 +143,7 @@ export function useUpdateFinanceRecurringCost() {
 // --- Potes (Jars) --- //
 
 export function useFinancePotes() {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['finance_potes', user?.uid],
@@ -207,7 +208,7 @@ export function useUpdateFinancePote() {
 // --- Roadmap AI --- //
 
 export function useFinanceRoadmap() {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['finance_roadmap', user?.uid],

@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, db } from '@/lib/firebase/config'
+import { useCurrentUser } from '@/lib/context/AuthContext'
 import { 
   collection, 
   query, 
@@ -21,21 +22,23 @@ import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, differe
 import { Habit } from '@/types'
 
 export function useHabitsHistory(startDate?: string, endDate?: string) {
-  const user = auth.currentUser
+  const user = useCurrentUser()
   return useQuery({
     queryKey: ['habits', 'history', user?.uid, startDate, endDate],
     queryFn: async () => {
       if (!user) return []
-      
+
       const qStart = startDate || '2000-01-01'
       const qEnd = endDate || '2100-12-31'
 
+      // Single-field query — no composite index required
       const q = query(
         collection(db, 'habit_logs'),
         where('user_id', '==', user.uid)
       )
       const snap = await getDocs(q)
       const logs = snap.docs.map(d => d.data())
+      // Filter date range and status client-side
       return logs.filter(l =>
         (l.status === 'done' || l.status === 'partial') &&
         l.log_date >= qStart &&
@@ -49,20 +52,23 @@ export function useHabitsHistory(startDate?: string, endDate?: string) {
 
 // For the management page (full list)
 export function useHabits() {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['habits', 'all', user?.uid],
     queryFn: async () => {
       if (!user) return []
 
+      // Single-field query — no composite index required
       const q = query(
         collection(db, 'habits'),
-        where('user_id', '==', user.uid),
-        where('is_archived', '==', false)
+        where('user_id', '==', user.uid)
       )
       const snap = await getDocs(q)
-      const habits = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Habit[]
+      // Filter archived client-side
+      const habits = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter((h: any) => !h.is_archived) as Habit[]
       return habits.sort((a, b) => {
         if (a.time && b.time) {
           const tCmp = a.time.localeCompare(b.time)
@@ -73,12 +79,13 @@ export function useHabits() {
         return (a.sort_order || 0) - (b.sort_order || 0)
       })
     },
+    enabled: !!user,
     staleTime: 5_000,
   })
 }
 
 export function useHabitsToday(selectedDate: Date = new Date()) {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['habits', 'date', format(selectedDate, 'yyyy-MM-dd'), user?.uid],
@@ -88,14 +95,15 @@ export function useHabitsToday(selectedDate: Date = new Date()) {
       const todayStr = format(selectedDate, 'yyyy-MM-dd')
       const todayDay = getDay(selectedDate)
 
+      // Single-field query — no composite index required; filter archived client-side
       const habitsQuery = query(
         collection(db, 'habits'),
-        where('user_id', '==', user.uid),
-        where('is_archived', '==', false)
+        where('user_id', '==', user.uid)
       )
       const habitsSnap = await getDocs(habitsQuery)
       const allHabits = habitsSnap.docs
-        .map(d => ({ id: d.id, ...d.data() })) as Habit[]
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter((h: any) => !h.is_archived) as Habit[]
       
       const sortedHabits = allHabits.sort((a, b) => {
         if (a.time && b.time) {
@@ -134,13 +142,19 @@ export function useHabitsToday(selectedDate: Date = new Date()) {
         return true
       })
 
-      const logsQuery = query(
-        collection(db, 'habit_logs'),
-        where('user_id', '==', user.uid),
-        where('log_date', '==', todayStr)
+      // Fetch each log by its known document ID — zero composite indexes needed
+      // Use allSettled so a permission-denied on a non-existing doc doesn't abort all
+      const logResults = await Promise.allSettled(
+        filteredHabits.map(h => getDoc(doc(db, 'habit_logs', `${h.id}_${todayStr}`)))
       )
-      const logsSnap = await getDocs(logsQuery)
-      const logsMap = new Map(logsSnap.docs.map(d => [d.data().habit_id, d.data()]))
+      const logDocs = logResults
+        .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+        .map(r => r.value)
+      const logsMap = new Map(
+        logDocs
+          .filter(d => d.exists())
+          .map(d => [d.data()!.habit_id, d.data()])
+      )
 
       return filteredHabits.map(h => ({
         ...h,
@@ -156,7 +170,7 @@ export function useHabitsToday(selectedDate: Date = new Date()) {
 
 export function useAddHabit() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (habit: Omit<Habit, 'id' | 'user_id' | 'created_at' | 'status' | 'streak'> & {
@@ -184,7 +198,7 @@ export function useAddHabit() {
 
 export function useUpdateHabit() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Habit> & { id: string }) => {
@@ -200,7 +214,7 @@ export function useUpdateHabit() {
 
 export function useDeleteHabit() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (id: string) => {

@@ -5,7 +5,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format, startOfWeek, addDays, isToday, getDay, isSameDay, isTomorrow, isYesterday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { auth } from '@/lib/firebase/config'
 import HabitCard from '@/components/dashboard/HabitCard'
 import TaskItem from '@/components/dashboard/TaskItem'
 import ScoreWidget from '@/components/dashboard/ScoreWidget'
@@ -445,9 +444,9 @@ export default function DashboardPage() {
       >
         {/* Left: greeting */}
         <div className="min-w-0">
-          <p className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] mb-0.5">FocusOS</p>
+          <p className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] mb-0.5">FocusOS Dashboard</p>
           <h1 className="text-2xl md:text-4xl font-black tracking-tighter text-[var(--text-primary)] truncate">
-            Olá, {auth.currentUser?.displayName?.split(' ')[0] || 'Usuário'}
+            Olá, {profile?.full_name?.split(' ')[0] || auth.currentUser?.displayName?.split(' ')[0] || 'Usuário'}
           </h1>
         </div>
 

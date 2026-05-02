@@ -2,35 +2,38 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, db } from '@/lib/firebase/config'
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  orderBy, 
-  doc, 
-  updateDoc, 
-  deleteDoc, 
+import { useCurrentUser } from '@/lib/context/AuthContext'
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
   addDoc,
   writeBatch
 } from 'firebase/firestore'
 import { FocusNotification } from '@/types'
 
 export function useNotifications() {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['notifications', user?.uid],
     queryFn: async () => {
       if (!user) return []
 
+      // Single-field query — no composite index required; sort client-side
       const q = query(
         collection(db, 'notifications'),
-        where('user_id', '==', user.uid),
-        orderBy('created_at', 'desc')
+        where('user_id', '==', user.uid)
       )
       const snap = await getDocs(q)
-      return snap.docs.map(d => ({ id: d.id, ...d.data() })) as FocusNotification[]
+      const notifs = snap.docs.map(d => ({ id: d.id, ...d.data() })) as FocusNotification[]
+      return notifs.sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
     },
     enabled: !!user,
     staleTime: 30000, // 30s
@@ -39,7 +42,7 @@ export function useNotifications() {
 
 export function useAddNotification() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (notif: Omit<FocusNotification, 'id' | 'user_id' | 'created_at' | 'is_read'>) => {
@@ -60,7 +63,7 @@ export function useAddNotification() {
 
 export function useMarkAsRead() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -75,7 +78,7 @@ export function useMarkAsRead() {
 
 export function useDeleteNotification() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -89,7 +92,7 @@ export function useDeleteNotification() {
 
 export function useClearAllNotifications() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (ids: string[]) => {

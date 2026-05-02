@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { auth, db } from '@/lib/firebase/config'
+import { db } from '@/lib/firebase/config'
 import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore'
+import { useCurrentUser } from '@/lib/context/AuthContext'
 
 export interface UserProfile {
   id: string
@@ -18,7 +19,7 @@ export interface UserProfile {
 }
 
 export function useProfile() {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['profile', user?.uid],
@@ -30,12 +31,13 @@ export function useProfile() {
       return snap.data() as UserProfile
     },
     enabled: !!user,
+    staleTime: 30_000,
   })
 }
 
 export function useUpdateProfile() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (updates: Partial<UserProfile>) => {

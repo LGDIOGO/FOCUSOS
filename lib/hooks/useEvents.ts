@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, db } from '@/lib/firebase/config'
+import { useCurrentUser } from '@/lib/context/AuthContext'
 import {
   collection,
   query,
@@ -17,7 +18,7 @@ import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, differe
 import { CalendarEvent, HabitStatus } from '@/types'
 
 export function useEvents() {
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useQuery({
     queryKey: ['events', user?.uid],
@@ -52,7 +53,7 @@ export function useEvents() {
 
 export function useAddEvent() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (event: Omit<CalendarEvent, 'id' | 'user_id' | 'created_at'>) => {
@@ -75,7 +76,7 @@ export function useAddEvent() {
 
 export function useUpdateEvent() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     onMutate: async (vars: any) => {
@@ -114,7 +115,7 @@ export function useUpdateEvent() {
 
 export function useDeleteEvent() {
   const qc = useQueryClient()
-  const user = auth.currentUser
+  const user = useCurrentUser()
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -186,7 +187,7 @@ export function useLogEvent() {
 }
 
 export function useEventsToday(selectedDate: Date = new Date()) {
-  const user = auth.currentUser
+  const user = useCurrentUser()
   const dateStr = format(selectedDate, 'yyyy-MM-dd')
 
   return useQuery({
@@ -225,15 +226,17 @@ export function useEventsToday(selectedDate: Date = new Date()) {
       const occurringToday = allEvents.filter(e => occursOnDate(e, dateStr, selectedDate))
 
       // Fetch each log by its known document ID — zero composite indexes needed
+      // Use allSettled so a permission-denied on a non-existing doc doesn't abort all
       const logTodayResults = await Promise.allSettled(
         occurringToday.map(e => getDoc(doc(db, 'event_logs', `${e.id}_${dateStr}`)))
       )
+      const logTodayDocs = logTodayResults
+        .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+        .map(r => r.value)
       const logsTodayMap = new Map(
-        logTodayResults
-          .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
-          .map(r => r.value)
+        logTodayDocs
           .filter(d => d.exists())
-          .map(d => [d.data().event_id, d.data().status])
+          .map(d => [d.data()!.event_id, d.data()!.status])
       )
 
       let todayResults: (CalendarEvent & { isOverdue: boolean })[] = occurringToday.map(e => ({
