@@ -12,6 +12,13 @@ import { cn } from '@/lib/utils/cn'
 
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 
+/** Returns a time string 1 hour ahead of now, snapped to the next full hour. */
+function defaultEventTime(): string {
+  const d = new Date()
+  d.setHours(d.getHours() + 1, 0, 0, 0)
+  return format(d, 'HH:mm')
+}
+
 export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean, onClose: () => void, eventToEdit?: CalendarEvent | null }) {
   const { data: categories } = useCategories()
   const addEvent = useAddEvent()
@@ -26,7 +33,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
     title: '',
     description: '',
     date: format(new Date(), 'yyyy-MM-dd'),
-    time: format(new Date(), 'HH:mm'),
+    time: defaultEventTime(),
     type: 'meeting' as EventType,
     recurrence: {
       frequency: 'none' as RecurrenceFreq | 'none',
@@ -61,7 +68,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
           title: '',
           description: '',
           date: format(new Date(), 'yyyy-MM-dd'),
-          time: format(new Date(), 'HH:mm'),
+          time: defaultEventTime(),
           type: 'meeting',
           recurrence: { frequency: 'none', days_of_week: [], interval: 1 },
           color: '#FF453A',
