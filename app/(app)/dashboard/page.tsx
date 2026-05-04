@@ -274,13 +274,15 @@ export default function DashboardPage() {
         return (ov !== undefined && ov !== h.status) ? { ...h, status: ov } : h
       })
       .sort((a, b) => {
-        // Pendentes (none) primeiro; done/partial/failed vão para o fundo
-        const aPending = a.status === 'none' || !a.status
-        const bPending = b.status === 'none' || !b.status
-        if (aPending && !bPending) return -1
-        if (!aPending && bPending) return 1
-        // Dentro do mesmo grupo: maior streak primeiro
-        return (b.streak || 0) - (a.streak || 0)
+        const tA = a.time
+        const tB = b.time
+        // Com horário antes dos sem horário
+        if (tA && !tB) return -1
+        if (!tA && tB) return 1
+        // Ambos com horário: crescente
+        if (tA && tB) return tA.localeCompare(tB)
+        // Ambos sem horário: sort_order, depois streak
+        return (a.sort_order || 0) - (b.sort_order || 0) || (b.streak || 0) - (a.streak || 0)
       })
   }, [habitsData, habitStatusOverrides])
 

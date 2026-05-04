@@ -190,17 +190,14 @@ export default function HabitsPage() {
     if (!habits) return []
     const MAP = new Map<string, Habit[]>()
 
-    // Sort all habits by streak (desc) then frequency
+    // Sort habits by time ascending, no-time habits go to the end
     const sorted = [...habits].sort((a, b) => {
-      const streakA = a.streak || 0
-      const streakB = b.streak || 0
-      if (streakB !== streakA) return streakB - streakA
-      
-      const freqA = a.recurrence?.frequency || 'daily'
-      const freqB = b.recurrence?.frequency || 'daily'
-      if (freqA === 'daily' && freqB !== 'daily') return -1
-      if (freqB === 'daily' && freqA !== 'daily') return 1
-      return 0
+      const tA = a.time
+      const tB = b.time
+      if (tA && !tB) return -1
+      if (!tA && tB) return 1
+      if (tA && tB) return tA.localeCompare(tB)
+      return (a.sort_order || 0) - (b.sort_order || 0) || (b.streak || 0) - (a.streak || 0)
     })
 
     sorted.forEach(h => {
