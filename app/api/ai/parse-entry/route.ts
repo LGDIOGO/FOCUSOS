@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
     const dayName = currentDetails?.dayName || format(new Date(), 'EEEE', { locale: ptBR })
 
     const systemPrompt = buildSystemPrompt(today, dayName, categories, type)
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
       systemInstruction: systemPrompt
     })
 

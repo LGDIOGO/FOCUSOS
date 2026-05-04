@@ -28,6 +28,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false)
   const [newCategory, setNewCategory] = useState({ name: '', icon: '📅', color: '#e02020' })
   const [isParsing, setIsParsing] = useState(false)
+  const [parseError, setParseError] = useState<string | null>(null)
 
   const [newEvent, setNewEvent] = useState({
     title: '',
@@ -80,8 +81,14 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
   }, [isOpen, eventToEdit])
 
   const handleMagicParse = async () => {
-    if (!newEvent.title || isParsing) return
+    if (isParsing) return
+    if (!newEvent.title) {
+      setParseError('Digite o nome do compromisso primeiro para usar a IA.')
+      setTimeout(() => setParseError(null), 3000)
+      return
+    }
     setIsParsing(true)
+    setParseError(null)
     try {
       const response = await fetch('/api/ai/parse-entry', {
         method: 'POST',
@@ -113,8 +120,15 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
           interval: data.recurrence.interval || prev.recurrence.interval
         } : prev.recurrence
       }))
-    } catch (err) {
+    } catch (err: any) {
       console.error('Magic Parse Fail:', err)
+      const msg = err?.message || 'Falha na IA'
+      setParseError(
+        msg.includes('ausente') || msg.includes('API') || msg.includes('key')
+          ? 'IA não configurada. Verifique GOOGLE_AI_API_KEY.'
+          : `Erro: ${msg}`
+      )
+      setTimeout(() => setParseError(null), 4000)
     } finally {
       setIsParsing(false)
     }
@@ -210,7 +224,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
           <div className="space-y-2 relative">
             <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Nome</label>
             <div className="relative group/input">
-              <input 
+              <input
                 required
                 value={newEvent.title}
                 onChange={e => setNewEvent({ ...newEvent, title: e.target.value })}
@@ -220,16 +234,32 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
               <button
                 type="button"
                 onClick={handleMagicParse}
-                disabled={isParsing || !newEvent.title}
+                disabled={isParsing}
+                title={newEvent.title ? 'Preencher com IA ✨' : 'Digite o nome primeiro'}
                 className={cn(
                   "absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all",
-                  isParsing ? "bg-[var(--bg-overlay)] animate-pulse" : "bg-transparent hover:bg-[var(--bg-overlay)]",
-                  newEvent.title ? "text-red-500 opacity-100" : "text-[var(--text-muted)] opacity-0 pointer-events-none"
+                  isParsing
+                    ? "bg-[var(--bg-overlay)] animate-pulse text-red-500"
+                    : newEvent.title
+                    ? "text-red-500 hover:bg-[var(--bg-overlay)]"
+                    : "text-[var(--text-muted)]/40 hover:bg-[var(--bg-overlay)] hover:text-[var(--text-muted)]"
                 )}
               >
-                {isParsing ? <RefreshCcw size={20} className="animate-spin" /> : <Sparkles size={20} className={cn(newEvent.title && "animate-pulse")} />}
+                {isParsing
+                  ? <RefreshCcw size={20} className="animate-spin" />
+                  : <Sparkles size={20} className={cn(newEvent.title && !isParsing && "animate-pulse")} />}
               </button>
             </div>
+            {parseError && (
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="text-[11px] font-bold text-red-400 px-2 mt-1"
+              >
+                {parseError}
+              </motion.p>
+            )}
           </div>
 
           <div className="space-y-1.5">

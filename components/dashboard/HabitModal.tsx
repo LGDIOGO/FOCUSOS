@@ -24,6 +24,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false)
   const [newCategory, setNewCategory] = useState({ name: '', icon: '📁', color: '#e02020' })
   const [isParsing, setIsParsing] = useState(false)
+  const [parseError, setParseError] = useState<string | null>(null)
 
   const [newHabit, setNewHabit] = useState({
     name: '',
@@ -85,8 +86,14 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
   }, [isOpen, habitToEdit])
 
   const handleMagicParse = async () => {
-    if (!newHabit.name || isParsing) return
+    if (isParsing) return
+    if (!newHabit.name) {
+      setParseError('Digite o nome do hábito primeiro para usar a IA.')
+      setTimeout(() => setParseError(null), 3000)
+      return
+    }
     setIsParsing(true)
+    setParseError(null)
     try {
       const response = await fetch('/api/ai/parse-entry', {
         method: 'POST',
@@ -117,8 +124,15 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
           interval: data.recurrence.interval || prev.recurrence.interval
         } : prev.recurrence
       }))
-    } catch (err) {
+    } catch (err: any) {
       console.error('Magic Parse Fail:', err)
+      const msg = err?.message || 'Falha na IA'
+      setParseError(
+        msg.includes('ausente') || msg.includes('API') || msg.includes('key')
+          ? 'IA não configurada. Verifique GOOGLE_AI_API_KEY.'
+          : `Erro: ${msg}`
+      )
+      setTimeout(() => setParseError(null), 4000)
     } finally {
       setIsParsing(false)
     }
@@ -192,7 +206,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
           <div className="space-y-1.5 relative">
             <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Nome</label>
             <div className="relative group/input">
-              <input 
+              <input
                 required
                 value={newHabit.name}
                 onChange={e => setNewHabit({ ...newHabit, name: e.target.value })}
@@ -202,16 +216,32 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
               <button
                 type="button"
                 onClick={handleMagicParse}
-                disabled={isParsing || !newHabit.name}
+                disabled={isParsing}
+                title={newHabit.name ? 'Preencher com IA ✨' : 'Digite o nome primeiro'}
                 className={cn(
                   "absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all",
-                  isParsing ? "bg-[var(--bg-overlay)] animate-pulse" : "bg-transparent hover:bg-[var(--bg-overlay)]",
-                  newHabit.name ? "text-red-500 opacity-100" : "text-[var(--text-muted)] opacity-0 pointer-events-none"
+                  isParsing
+                    ? "bg-[var(--bg-overlay)] animate-pulse text-red-500"
+                    : newHabit.name
+                    ? "text-red-500 hover:bg-[var(--bg-overlay)]"
+                    : "text-[var(--text-muted)]/40 hover:bg-[var(--bg-overlay)] hover:text-[var(--text-muted)]"
                 )}
               >
-                {isParsing ? <RefreshCcw size={20} className="animate-spin" /> : <Sparkles size={20} className={cn(newHabit.name && "animate-pulse")} />}
+                {isParsing
+                  ? <RefreshCcw size={20} className="animate-spin" />
+                  : <Sparkles size={20} className={cn(newHabit.name && !isParsing && "animate-pulse")} />}
               </button>
             </div>
+            {parseError && (
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="text-[11px] font-bold text-red-400 px-2 mt-1"
+              >
+                {parseError}
+              </motion.p>
+            )}
           </div>
 
           <div className="space-y-1.5">
