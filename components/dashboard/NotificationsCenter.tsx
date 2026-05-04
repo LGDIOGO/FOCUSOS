@@ -51,7 +51,7 @@ export function NotificationsCenter({ isOpen, onClose }: NotificationsCenterProp
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed top-0 right-0 h-screen w-full md:w-[400px] bg-[var(--bg-primary)]/80 backdrop-blur-3xl border-l border-white/[0.08] z-[30001] flex flex-col shadow-2xl"
+            className="fixed top-0 right-0 h-screen w-full md:w-[400px] bg-[var(--bg-primary)]/80 backdrop-blur-3xl border-l border-white/[0.08] z-[30001] flex flex-col shadow-2xl overflow-hidden"
           >
             {/* Glossy top detail */}
             <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
@@ -78,7 +78,7 @@ export function NotificationsCenter({ isOpen, onClose }: NotificationsCenterProp
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-8 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4 space-y-8 custom-scrollbar">
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center h-40 gap-4">
                   <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -165,9 +165,9 @@ function NotificationItem({ notif, onDelete, onMarkRead, styles }: any) {
       exit={{ opacity: 0, x: 20 }}
       onClick={() => !notif.is_read && onMarkRead()}
       className={cn(
-        "group relative p-4 rounded-2xl border transition-all cursor-pointer",
-        notif.is_read 
-          ? "bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04]" 
+        "group relative p-4 rounded-2xl border transition-all cursor-pointer w-full overflow-hidden",
+        notif.is_read
+          ? "bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04]"
           : "bg-white/[0.05] border-white/10 hover:bg-white/[0.08] shadow-lg shadow-black/20"
       )}
     >
@@ -175,14 +175,14 @@ function NotificationItem({ notif, onDelete, onMarkRead, styles }: any) {
         <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", styles.bg, styles.color)}>
           <Icon size={20} />
         </div>
-        <div className="flex-1 min-w-0 pr-4">
-          <div className="flex items-center gap-2 mb-0.5">
-            <h4 className={cn("font-bold text-sm truncate", notif.is_read ? "text-[var(--text-secondary)]" : "text-white")}>
+        <div className="flex-1 min-w-0 overflow-hidden pr-4">
+          <div className="flex items-center gap-2 mb-0.5 overflow-hidden">
+            <h4 className={cn("font-bold text-sm truncate min-w-0", notif.is_read ? "text-[var(--text-secondary)]" : "text-white")}>
               {notif.title}
             </h4>
-            {!notif.is_read && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
+            {!notif.is_read && <div className="w-1.5 h-1.5 shrink-0 rounded-full bg-blue-500 animate-pulse" />}
           </div>
-          <p className="text-xs text-[var(--text-muted)] leading-relaxed line-clamp-3">
+          <p className="text-xs text-[var(--text-muted)] leading-relaxed break-words whitespace-pre-wrap line-clamp-4">
             {notif.body}
           </p>
           <span className="text-[9px] font-bold text-white/10 mt-3 block uppercase tracking-widest">
