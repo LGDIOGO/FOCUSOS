@@ -273,14 +273,8 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState('smileys')
 
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  // Reset search when closing
-  useEffect(() => {
-    if (!isOpen) setSearch('')
-  }, [isOpen])
+  useEffect(() => { setIsMounted(true) }, [])
+  useEffect(() => { if (!isOpen) setSearch('') }, [isOpen])
 
   const filteredEmojis = search
     ? EMOJI_CATEGORIES.flatMap(c => c.emojis).filter(emoji =>
@@ -293,50 +287,47 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
     ? `Resultados para "${search}"`
     : (EMOJI_CATEGORIES.find(c => c.id === activeCategory)?.label || 'Pessoas')
 
-  const triggerButton = (
-    <button
-      type="button"
-      onClick={() => setIsOpen(prev => !prev)}
-      className={cn(
-        "w-16 h-16 md:w-20 md:h-20 bg-white/5 border border-white/10 rounded-[28px] text-3xl flex items-center justify-center hover:bg-white/10 transition-all shadow-xl",
-        isOpen && "border-white/30 bg-white/10 ring-4 ring-white/5"
-      )}
-    >
-      {value || <Smile className="text-white/20" size={32} />}
-    </button>
-  )
-
-  if (!isMounted) {
-    return <div className="relative">{triggerButton}</div>
-  }
-
   return (
     <div className="relative">
-      {triggerButton}
+      {/* Trigger button */}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setIsOpen(prev => !prev) }}
+        className={cn(
+          "w-16 h-16 md:w-20 md:h-20 bg-white/5 border border-white/10 rounded-[28px] text-3xl flex items-center justify-center hover:bg-white/10 transition-all shadow-xl",
+          isOpen && "border-white/30 bg-white/10 ring-4 ring-white/5"
+        )}
+      >
+        {value || <Smile className="text-white/20" size={32} />}
+      </button>
 
-      <AnimatePresence>
-        {isOpen && createPortal(
-          <>
-            {/* Backdrop */}
-            <motion.div
-              key="emoji-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, transition: { duration: 0 } }}
-              className="fixed inset-0 z-[29998] bg-black/40 backdrop-blur-sm"
-              onClick={() => setIsOpen(false)}
-            />
-
-            {/* Picker wrapper — centered */}
-            <div className="fixed inset-0 z-[29999] flex items-center justify-center pointer-events-none">
+      {/* Portal — always mounted when isMounted; AnimatePresence lives INSIDE the portal */}
+      {isMounted && createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <>
+              {/* Backdrop */}
               <motion.div
-                key="emoji-picker"
-                initial={{ opacity: 0, scale: 0.92, y: 16 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.92, y: 16 }}
-                transition={{ type: 'spring', damping: 32, stiffness: 400 }}
-                className="pointer-events-auto bg-[#1A1A1A] border border-white/10 rounded-[32px] overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.7)] w-[340px] max-w-[92vw]"
-              >
+                key="emoji-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="fixed inset-0 z-[29998] bg-black/50 backdrop-blur-sm"
+                onClick={() => setIsOpen(false)}
+              />
+
+              {/* Picker wrapper — centered */}
+              <div className="fixed inset-0 z-[29999] flex items-center justify-center pointer-events-none">
+                <motion.div
+                  key="emoji-picker"
+                  initial={{ opacity: 0, scale: 0.88, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.92, y: 12 }}
+                  transition={{ type: 'spring', damping: 28, stiffness: 380 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="pointer-events-auto bg-[#1A1A1A] border border-white/10 rounded-[32px] overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.7)] w-[340px] max-w-[92vw]"
+                >
                 {/* Category tabs */}
                 <div className="flex bg-white/[0.02] p-2 gap-1 overflow-x-auto border-b border-white/5 no-scrollbar">
                   {EMOJI_CATEGORIES.map(cat => (
@@ -444,10 +435,11 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
                 </div>
               </motion.div>
             </div>
-          </>,
-          document.body
+          </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
     </div>
   )
 }
