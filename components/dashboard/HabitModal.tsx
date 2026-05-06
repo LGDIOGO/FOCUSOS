@@ -140,18 +140,30 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
 
   const handleAddHabit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Build recurrence — never include undefined fields (Firestore throws on undefined)
+    const cleanRecurrence: any = {
+      frequency: newHabit.recurrence.frequency,
+      interval: newHabit.recurrence.interval || 1,
+    }
+    if (newHabit.recurrence.frequency === 'specific_days' && newHabit.recurrence.days_of_week?.length) {
+      cleanRecurrence.days_of_week = newHabit.recurrence.days_of_week
+    }
+
+    const habitPayload = { ...newHabit, recurrence: cleanRecurrence }
+
     if (habitToEdit) {
       updateHabit.mutate({
         ...habitToEdit,
-        ...newHabit
+        ...habitPayload
       }, {
         onSuccess: () => {
           onClose()
         }
       })
     } else {
-       addHabit.mutate({
-        ...newHabit,
+      addHabit.mutate({
+        ...habitPayload,
         is_archived: false,
         sort_order: 999,
         status: 'none',
@@ -374,7 +386,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
                             : [startDay]
                         }})
                       } else {
-                        setNewHabit({ ...newHabit, recurrence: { frequency: freq.id as RecurrenceFreq, interval: 1, days_of_week: undefined } })
+                        setNewHabit({ ...newHabit, recurrence: { frequency: freq.id as RecurrenceFreq, interval: 1, days_of_week: [] } })
                       }
                     }}
                     className={cn("py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all", isActive ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-lg" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--text-primary)]/20")}

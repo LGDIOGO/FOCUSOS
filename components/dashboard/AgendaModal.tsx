@@ -137,13 +137,18 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
   const handleAddEvent = (e: React.FormEvent) => {
     e.preventDefault()
     
-    let recurrenceRule: RecurrenceRule | undefined = undefined;
+    // Build recurrence — never include undefined fields (Firestore throws on undefined)
+    let recurrenceRule: RecurrenceRule | null = null;
     if (newEvent.recurrence.frequency !== 'none') {
-      recurrenceRule = { 
+      const rule: any = {
         frequency: newEvent.recurrence.frequency as RecurrenceFreq,
-        days_of_week: newEvent.recurrence.frequency === 'specific_days' ? newEvent.recurrence.days_of_week : undefined,
-        interval: newEvent.recurrence.interval
-      };
+        interval: newEvent.recurrence.interval || 1,
+      }
+      // Only include days_of_week for specific_days and only when non-empty
+      if (newEvent.recurrence.frequency === 'specific_days' && newEvent.recurrence.days_of_week?.length) {
+        rule.days_of_week = newEvent.recurrence.days_of_week
+      }
+      recurrenceRule = rule as RecurrenceRule
     }
 
     const eventData: any = {
@@ -155,8 +160,8 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
       color: newEvent.color,
       emoji: newEvent.emoji || null,
       category_id: newEvent.category_id || null,
-      // Always set recurrence — null explicitly clears it when editing
-      recurrence: recurrenceRule || null
+      // Always set — null explicitly clears stale recurrence when editing
+      recurrence: recurrenceRule,
     }
 
     if (eventToEdit) {
