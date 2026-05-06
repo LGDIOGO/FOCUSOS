@@ -128,7 +128,13 @@ export function useHabitsToday(selectedDate: Date = new Date()) {
         const interval = h.recurrence.interval || 1
         
         if (freq === 'daily') return true
-        if (freq === 'specific_days') return h.recurrence.days_of_week?.includes(todayDay) ?? false
+        if (freq === 'specific_days') {
+          if (interval > 1) {
+            const diffWeeks = Math.abs(differenceInWeeks(selectedDate, evDate))
+            if (diffWeeks % interval !== 0) return false
+          }
+          return h.recurrence.days_of_week?.includes(todayDay) ?? false
+        }
         if (freq === 'weekly') {
            if (interval > 1) {
               const diffWeeks = Math.abs(differenceInWeeks(selectedDate, evDate));

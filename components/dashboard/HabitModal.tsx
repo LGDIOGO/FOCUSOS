@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Sparkles, ShieldAlert, RefreshCcw, ChevronDown } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, getDay, parseISO, getDate } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { EmojiPicker } from './EmojiPicker'
 import { CustomDateTimePicker } from './CustomDateTimePicker'
@@ -350,33 +350,73 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
 
           <div className="space-y-1.5">
             <label className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Repetir</label>
-            <div className="grid grid-cols-3 gap-2">
-              {[{ id: 'daily', label: 'Diário' }, { id: 'weekly', label: 'Semanal' }, { id: 'monthly', label: 'Mensal' }, { id: 'yearly', label: 'Anual' }, { id: 'specific_days', label: 'Personalizado' }].map(freq => (
-                <button
-                  key={freq.id} type="button"
-                  onClick={() => setNewHabit({ ...newHabit, recurrence: { frequency: (freq.id === 'quinzenal' ? 'weekly' : freq.id as RecurrenceFreq), interval: freq.id === 'quinzenal' ? 2 : 1, days_of_week: freq.id === 'specific_days' ? (newHabit.recurrence.days_of_week && newHabit.recurrence.days_of_week.length > 0 ? newHabit.recurrence.days_of_week : [1,2,3,4,5]) : [0,1,2,3,4,5,6] } })}
-                  className={cn("py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all", (newHabit.recurrence.frequency === freq.id || (freq.id === 'quinzenal' && newHabit.recurrence.interval === 2 && newHabit.recurrence.frequency === 'weekly')) ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-lg" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--text-primary)]/20")}
-                >
-                  {freq.label}
-                </button>
-              ))}
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { id: 'daily', label: 'Diário' },
+                { id: 'semanal', label: 'Semanal' },
+                { id: 'monthly', label: 'Mensal' },
+                { id: 'yearly', label: 'Anual' }
+              ].map(freq => {
+                const isActive = freq.id === 'semanal'
+                  ? newHabit.recurrence.frequency === 'specific_days'
+                  : newHabit.recurrence.frequency === freq.id
+                return (
+                  <button
+                    key={freq.id} type="button"
+                    onClick={() => {
+                      if (freq.id === 'semanal') {
+                        const startDay = getDay(parseISO(newHabit.start_date || format(new Date(), 'yyyy-MM-dd')))
+                        setNewHabit({ ...newHabit, recurrence: {
+                          frequency: 'specific_days',
+                          interval: newHabit.recurrence.frequency === 'specific_days' ? (newHabit.recurrence.interval || 1) : 1,
+                          days_of_week: newHabit.recurrence.frequency === 'specific_days'
+                            ? newHabit.recurrence.days_of_week
+                            : [startDay]
+                        }})
+                      } else {
+                        setNewHabit({ ...newHabit, recurrence: { frequency: freq.id as RecurrenceFreq, interval: 1, days_of_week: undefined } })
+                      }
+                    }}
+                    className={cn("py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all", isActive ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-lg" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--text-primary)]/20")}
+                  >
+                    {freq.label}
+                  </button>
+                )
+              })}
             </div>
+
+            {/* Day picker — shown for Semanal (specific_days) */}
             {newHabit.recurrence.frequency === 'specific_days' && (
-              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] p-6 rounded-[32px] mt-4">
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] p-6 rounded-[32px] mt-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Dias da semana</p>
                 <div className="flex justify-between gap-1">
                   {DAYS.map((day, i) => (
-                    <button key={i} type="button" onClick={() => toggleDay(i)} className={cn("w-10 h-10 rounded-xl font-black text-base transition-all flex items-center justify-center", newHabit.recurrence.days_of_week?.includes(i) ? "bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-lg" : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] border border-[var(--border-subtle)]")}>{day}</button>
+                    <button key={i} type="button" onClick={() => toggleDay(i)} className={cn("w-10 h-10 rounded-xl font-black text-sm transition-all flex items-center justify-center", newHabit.recurrence.days_of_week?.includes(i) ? "bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-lg" : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] border border-[var(--border-subtle)]")}>{day}</button>
                   ))}
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
-                  <span className="text-[12px] font-black uppercase text-[var(--text-muted)] tracking-widest">Intervalo</span>
+                  <span className="text-[11px] font-black uppercase text-[var(--text-muted)] tracking-widest">Frequência</span>
                   <div className="flex gap-2">
-                    {[1, 2].map(int => (
-                      <button key={int} type="button" onClick={() => setNewHabit({ ...newHabit, recurrence: { ...newHabit.recurrence, interval: int } })} className={cn("px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all", newHabit.recurrence.interval === int ? "bg-[var(--text-primary)] text-[var(--bg-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] transition-colors")}>{int === 1 ? 'Toda Semana' : 'Quinzenal'}</button>
+                    {[{ v: 1, label: 'Toda semana' }, { v: 2, label: 'Quinzenal' }].map(({ v, label }) => (
+                      <button key={v} type="button" onClick={() => setNewHabit({ ...newHabit, recurrence: { ...newHabit.recurrence, interval: v } })} className={cn("px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all", newHabit.recurrence.interval === v ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]" : "text-[var(--text-muted)] border-[var(--border-subtle)] hover:bg-[var(--bg-overlay)]")}>{label}</button>
                     ))}
                   </div>
                 </div>
               </motion.div>
+            )}
+
+            {/* Monthly helper */}
+            {newHabit.recurrence.frequency === 'monthly' && (
+              <p className="text-[11px] font-bold text-[var(--text-muted)] px-2 mt-2">
+                Repete todo dia <span className="text-[var(--text-primary)]">{getDate(parseISO(newHabit.start_date || format(new Date(), 'yyyy-MM-dd')))}</span> de cada mês
+              </p>
+            )}
+
+            {/* Yearly helper */}
+            {newHabit.recurrence.frequency === 'yearly' && (
+              <p className="text-[11px] font-bold text-[var(--text-muted)] px-2 mt-2">
+                Repete todo ano em <span className="text-[var(--text-primary)]">{format(parseISO(newHabit.start_date || format(new Date(), 'yyyy-MM-dd')), "d 'de' MMMM", { locale: ptBR })}</span>
+              </p>
             )}
           </div>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Sparkles, RefreshCcw } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, getDay, parseISO, getDate } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { EmojiPicker } from './EmojiPicker'
 import { CustomDateTimePicker } from './CustomDateTimePicker'
@@ -154,11 +154,9 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
       type: newEvent.type,
       color: newEvent.color,
       emoji: newEvent.emoji || null,
-      category_id: newEvent.category_id || null
-    }
-
-    if (recurrenceRule) {
-      eventData.recurrence = recurrenceRule
+      category_id: newEvent.category_id || null,
+      // Always set recurrence — null explicitly clears it when editing
+      recurrence: recurrenceRule || null
     }
 
     if (eventToEdit) {
@@ -339,40 +337,52 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
               {[
                 { id: 'none', label: 'Uma vez' },
                 { id: 'daily', label: 'Diário' },
-                { id: 'weekly', label: 'Semanal' },
+                { id: 'semanal', label: 'Semanal' },
                 { id: 'monthly', label: 'Mensal' },
-                { id: 'yearly', label: 'Anual' },
-                { id: 'specific_days', label: 'Personalizado' }
-              ].map(freq => (
-                <button
-                  key={freq.id}
-                  type="button"
-                  onClick={() => setNewEvent({ 
-                    ...newEvent, 
-                    recurrence: { 
-                      frequency: (freq.id === 'quinzenal' ? 'weekly' : freq.id as any),
-                      interval: freq.id === 'quinzenal' ? 2 : 1,
-                      days_of_week: freq.id === 'specific_days' ? (newEvent.recurrence.days_of_week.length > 0 ? newEvent.recurrence.days_of_week : [1,2,3,4,5]) : []
-                    } 
-                  })}
-                  className={cn(
-                    "py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all",
-                    (newEvent.recurrence.frequency === freq.id || (freq.id === 'quinzenal' && newEvent.recurrence.interval === 2 && newEvent.recurrence.frequency === 'weekly')) 
-                       ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-lg" 
-                       : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--text-primary)]/20"
-                  )}
-                >
-                  {freq.label}
-                </button>
-              ))}
+                { id: 'yearly', label: 'Anual' }
+              ].map(freq => {
+                const isActive = freq.id === 'semanal'
+                  ? newEvent.recurrence.frequency === 'specific_days'
+                  : newEvent.recurrence.frequency === freq.id
+                return (
+                  <button
+                    key={freq.id}
+                    type="button"
+                    onClick={() => {
+                      if (freq.id === 'semanal') {
+                        const startDay = getDay(parseISO(newEvent.date || format(new Date(), 'yyyy-MM-dd')))
+                        setNewEvent({ ...newEvent, recurrence: {
+                          frequency: 'specific_days',
+                          interval: newEvent.recurrence.frequency === 'specific_days' ? (newEvent.recurrence.interval || 1) : 1,
+                          days_of_week: newEvent.recurrence.frequency === 'specific_days'
+                            ? newEvent.recurrence.days_of_week
+                            : [startDay]
+                        }})
+                      } else {
+                        setNewEvent({ ...newEvent, recurrence: { frequency: freq.id as any, interval: 1, days_of_week: [] } })
+                      }
+                    }}
+                    className={cn(
+                      "py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all",
+                      isActive
+                        ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-lg"
+                        : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--text-primary)]/20"
+                    )}
+                  >
+                    {freq.label}
+                  </button>
+                )
+              })}
             </div>
 
+            {/* Day picker — shown for Semanal (specific_days) */}
             {newEvent.recurrence.frequency === 'specific_days' && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="space-y-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] p-6 rounded-[32px] mt-4"
+                className="space-y-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] p-6 rounded-[32px] mt-3"
               >
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Dias da semana</p>
                 <div className="flex justify-between gap-1">
                   {DAYS.map((day, i) => (
                     <button
@@ -380,9 +390,9 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                       type="button"
                       onClick={() => toggleDay(i)}
                       className={cn(
-                        "w-10 h-10 rounded-xl font-black text-base transition-all flex items-center justify-center",
-                        newEvent.recurrence.days_of_week?.includes(i) 
-                          ? "bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-lg" 
+                        "w-10 h-10 rounded-xl font-black text-sm transition-all flex items-center justify-center",
+                        newEvent.recurrence.days_of_week?.includes(i)
+                          ? "bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-lg"
                           : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] border border-[var(--border-subtle)]"
                       )}
                     >
@@ -390,26 +400,39 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                     </button>
                   ))}
                 </div>
-                
                 <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
-                  <span className="text-[12px] font-black uppercase text-[var(--text-muted)] tracking-widest">Intervalo</span>
+                  <span className="text-[11px] font-black uppercase text-[var(--text-muted)] tracking-widest">Frequência</span>
                   <div className="flex gap-2">
-                     {[1, 2].map(int => (
-                       <button
-                         key={int}
-                         type="button"
-                         onClick={() => setNewEvent({ ...newEvent, recurrence: { ...newEvent.recurrence, interval: int } })}
-                         className={cn(
-                           "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
-                           newEvent.recurrence.interval === int ? "bg-[var(--text-primary)] text-[var(--bg-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] transition-colors"
-                         )}
-                       >
-                         {int === 1 ? 'Toda Semana' : 'Quinzenal'}
-                       </button>
-                     ))}
+                    {[{ v: 1, label: 'Toda semana' }, { v: 2, label: 'Quinzenal' }].map(({ v, label }) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setNewEvent({ ...newEvent, recurrence: { ...newEvent.recurrence, interval: v } })}
+                        className={cn(
+                          "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all",
+                          newEvent.recurrence.interval === v ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]" : "text-[var(--text-muted)] border-[var(--border-subtle)] hover:bg-[var(--bg-overlay)]"
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </motion.div>
+            )}
+
+            {/* Monthly helper */}
+            {newEvent.recurrence.frequency === 'monthly' && (
+              <p className="text-[11px] font-bold text-[var(--text-muted)] px-2 mt-2">
+                Repete todo dia <span className="text-[var(--text-primary)]">{getDate(parseISO(newEvent.date || format(new Date(), 'yyyy-MM-dd')))}</span> de cada mês
+              </p>
+            )}
+
+            {/* Yearly helper */}
+            {newEvent.recurrence.frequency === 'yearly' && (
+              <p className="text-[11px] font-bold text-[var(--text-muted)] px-2 mt-2">
+                Repete todo ano em <span className="text-[var(--text-primary)]">{format(parseISO(newEvent.date || format(new Date(), 'yyyy-MM-dd')), "d 'de' MMMM", { locale: ptBR })}</span>
+              </p>
             )}
           </div>
 
