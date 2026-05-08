@@ -118,11 +118,32 @@ export function useDeleteEvent() {
   const user = useCurrentUser()
 
   return useMutation({
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: ['events'] })
+      await qc.cancelQueries({ queryKey: ['eventsToday'] })
+      // Snapshot both cache groups for rollback
+      const eventSnaps = qc.getQueriesData<any[]>({ queryKey: ['events'] })
+      const todaySnaps = qc.getQueriesData<any[]>({ queryKey: ['eventsToday'] })
+      // Optimistically remove from every cached list immediately
+      eventSnaps.forEach(([key, old]) => {
+        if (old) qc.setQueryData(key, old.filter((e: any) => e.id !== id))
+      })
+      todaySnaps.forEach(([key, old]) => {
+        if (old) qc.setQueryData(key, old.filter((e: any) => e.id !== id))
+      })
+      return { eventSnaps, todaySnaps }
+    },
+    onError: (_err, _id, context: any) => {
+      context?.eventSnaps?.forEach(([key, old]: [unknown, unknown]) => qc.setQueryData(key as any, old))
+      context?.todaySnaps?.forEach(([key, old]: [unknown, unknown]) => qc.setQueryData(key as any, old))
+    },
     mutationFn: async (id: string) => {
       await deleteDoc(doc(db, 'events', id))
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['events', user?.uid] })
+      // Invalidate both — ['eventsToday'] was missing before (key mismatch with useEventsToday)
+      qc.invalidateQueries({ queryKey: ['events'] })
+      qc.invalidateQueries({ queryKey: ['eventsToday'] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
@@ -192,6 +213,7 @@ export function useEventsToday(selectedDate: Date = new Date()) {
 
   return useQuery({
     queryKey: ['eventsToday', dateStr, user?.uid],
+    staleTime: 30_000,
     queryFn: async () => {
       if (!user) return []
 

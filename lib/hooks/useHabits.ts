@@ -89,6 +89,7 @@ export function useHabitsToday(selectedDate: Date = new Date()) {
 
   return useQuery({
     queryKey: ['habits', 'date', format(selectedDate, 'yyyy-MM-dd'), user?.uid],
+    staleTime: 30_000,
     queryFn: async () => {
       if (!user) return []
 
@@ -223,6 +224,19 @@ export function useDeleteHabit() {
   const user = useCurrentUser()
 
   return useMutation({
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: ['habits'] })
+      // Snapshot all habits caches for rollback
+      const snapshots = qc.getQueriesData<any[]>({ queryKey: ['habits'] })
+      // Optimistically remove the habit from every cached list immediately
+      snapshots.forEach(([key, old]) => {
+        if (old) qc.setQueryData(key, old.filter((h: any) => h.id !== id))
+      })
+      return { snapshots }
+    },
+    onError: (_err, _id, context: any) => {
+      context?.snapshots?.forEach(([key, old]: [unknown, unknown]) => qc.setQueryData(key as any, old))
+    },
     mutationFn: async (id: string) => {
       await deleteDoc(doc(db, 'habits', id))
     },

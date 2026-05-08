@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyCygZqrfMcMXZXAMoVEAKz30GWmCmsMi4I",
@@ -30,7 +30,14 @@ try {
   
   if (app) {
     auth = getAuth(app);
-    db = getFirestore(app);
+    // ignoreUndefinedProperties prevents silent write failures when any
+    // field resolves to undefined (Firestore SDK v9 throws by default).
+    try {
+      db = initializeFirestore(app, { ignoreUndefinedProperties: true });
+    } catch {
+      // Already initialised (e.g. HMR) — reuse existing instance
+      db = getFirestore(app);
+    }
   }
 } catch (error) {
   console.error('Firebase initialization error:', error);

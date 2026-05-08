@@ -59,7 +59,7 @@ export function useTasksToday(selectedDate: Date = new Date()) {
       })
     },
     enabled: !!user,
-    staleTime: 5_000,
+    staleTime: 30_000,
   })
 }
 
@@ -139,9 +139,19 @@ export function useDeleteTask() {
   const user = useCurrentUser()
 
   return useMutation({
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: ['tasks'] })
+      const snapshots = qc.getQueriesData<any[]>({ queryKey: ['tasks'] })
+      snapshots.forEach(([key, old]) => {
+        if (old) qc.setQueryData(key, old.filter((t: any) => t.id !== id))
+      })
+      return { snapshots }
+    },
+    onError: (_err, _id, context: any) => {
+      context?.snapshots?.forEach(([key, old]: [unknown, unknown]) => qc.setQueryData(key as any, old))
+    },
     mutationFn: async (id: string) => {
       if (!user) throw new Error('Not authenticated')
-      
       const taskRef = doc(db, 'tasks', id)
       const { deleteDoc } = await import('firebase/firestore')
       await deleteDoc(taskRef)
