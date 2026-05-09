@@ -118,6 +118,42 @@ input, textarea, button, select {
   background: rgba(0, 0, 0, 0.25);
 }
 
+/* ─── Mobile-friendly action buttons ────────────────────────────────────────
+   Touch devices (no real hover): buttons are always visible at 55% opacity.
+   Desktop with real mouse: buttons are hidden, revealed when parent is hovered.
+   Usage: add class `action-btn` to any button that was using the pattern
+          `opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto`
+──────────────────────────────────────────────────────────────────────────── */
+.action-btn {
+  /* Touch default: always visible & tappable */
+  opacity: 0.55;
+  pointer-events: auto;
+  transition: opacity 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* Real-mouse desktop: hide by default, reveal on card hover */
+  .action-btn {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .group:hover .action-btn {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* ─── Minimum 44px touch targets for mobile action buttons ──────────────── */
+@media not all and (hover: hover) {
+  .action-btn {
+    min-width: 40px;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;

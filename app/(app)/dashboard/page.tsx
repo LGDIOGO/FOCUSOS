@@ -485,7 +485,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setWeekOffset(prev => prev - 1)}
-                  className="p-1 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-white"
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-white touch-manipulation active:scale-90"
                 >
                   <ArrowLeft size={12} />
                 </button>
@@ -497,7 +497,7 @@ export default function DashboardPage() {
                 </button>
                 <button
                   onClick={() => setWeekOffset(prev => prev + 1)}
-                  className="p-1 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-white"
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-white touch-manipulation active:scale-90"
                 >
                   <ChevronRight size={12} className="rotate-0" />
                 </button>
@@ -563,7 +563,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
               <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Compromissos</p>
               <div className="flex items-center gap-3">
-                <Link href="/dashboard/agenda?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
+                <Link href="/dashboard/agenda?add=true" className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all active:scale-90 touch-manipulation">
                   <Plus size={14} />
                 </Link>
                 <Link href="/dashboard/agenda" className="text-sm text-white/60 hover:text-white flex items-center gap-0.5 transition-colors">
@@ -618,7 +618,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-3">
               <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Hábitos</p>
               <div className="flex items-center gap-3">
-                <Link href="/dashboard/habits?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
+                <Link href="/dashboard/habits?add=true" className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all active:scale-90 touch-manipulation">
                   <Plus size={14} />
                 </Link>
                 <Link href="/dashboard/habits" className="text-sm text-white/60 hover:text-white flex items-center gap-0.5 transition-colors">
@@ -708,7 +708,7 @@ export default function DashboardPage() {
                 />
                 <button
                   type="submit"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white text-white hover:text-black transition-all active:scale-90"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white text-white hover:text-black transition-all active:scale-90 touch-manipulation"
                 >
                   <Plus size={16} />
                 </button>

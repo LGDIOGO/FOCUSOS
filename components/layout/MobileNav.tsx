@@ -19,24 +19,26 @@ export default function MobileNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-t border-[var(--border-subtle)] px-1 pt-3 pb-safe flex justify-around items-center z-[5000] transition-colors duration-300">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)]/92 backdrop-blur-xl border-t border-[var(--border-subtle)] px-0.5 pt-2 pb-safe flex justify-around items-center z-[5000] transition-colors duration-300">
       {NAV_ITEMS.map((item) => {
         const active = pathname === item.href
         return (
           <Link
             key={item.href}
             href={item.href}
+            // min-h-[48px] ensures Apple/Google 44-48px tap target requirement
             className={cn(
-              "relative flex flex-col items-center gap-1 py-1 px-2 transition-all duration-300 flex-1 min-w-0",
-              active ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+              "relative flex flex-col items-center justify-center gap-0.5 py-1 px-1 transition-all duration-300 flex-1 min-w-0 min-h-[48px] touch-manipulation select-none",
+              active ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] active:text-[var(--text-secondary)]"
             )}
           >
             <item.icon
-              size={22}
-              className={cn("transition-all duration-300 shrink-0", active ? "scale-110 text-red-500" : "")}
+              size={20}
+              strokeWidth={active ? 2.5 : 1.75}
+              className={cn("transition-all duration-300 shrink-0", active ? "text-red-500" : "")}
             />
             <span className={cn(
-              "text-[9px] font-bold uppercase tracking-wider transition-colors truncate w-full text-center",
+              "text-[8px] font-bold uppercase tracking-wider transition-colors truncate w-full text-center leading-none",
               active ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"
             )}>
               {item.label}
@@ -45,7 +47,7 @@ export default function MobileNav() {
             {active && (
               <motion.div
                 layoutId="active-nav-dot"
-                className="absolute -top-0.5 w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+                className="absolute top-0.5 w-1 h-1 bg-red-500 rounded-full shadow-[0_0_6px_rgba(239,68,68,0.7)]"
                 transition={{ type: "spring", stiffness: 380, damping: 30 }}
               />
             )}
