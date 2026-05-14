@@ -252,15 +252,48 @@ export function useLogHabit() {
 
   return useMutation({
     onMutate: async (vars: any) => {
-      // Lê auth fresco — evita closure com user null da hidratação inicial
       const user = auth.currentUser
       if (!user) return
       const targetDate = vars.logDate || format(new Date(), 'yyyy-MM-dd')
-      const queryKey = ['habits', 'date', targetDate, user.uid]
-      await qc.cancelQueries({ queryKey })
-      const previousHabits = qc.getQueryData(queryKey)
+      const todayKey = ['habits', 'date', targetDate, user.uid]
+      const allKey = ['habits', 'all', user.uid]
 
-      qc.setQueryData(queryKey, (old: Habit[] | undefined) => {
+      await qc.cancelQueries({ queryKey: todayKey })
+      await qc.cancelQueries({ queryKey: allKey })
+
+      const previousHabits = qc.getQueryData(todayKey)
+      const previousAllHabits = qc.getQueryData(allKey)
+
+      // Compute new streak once from the today-cache snapshot
+      const prevHabit = (previousHabits as Habit[] | undefined)?.find(h => h.id === vars.habitId)
+      const newStatus = vars.status
+      const prevStatus = (prevHabit as any)?.status || 'none'
+      let newStreak = prevHabit?.streak || 0
+      let newLastDate: string | null | undefined = prevHabit?.last_completed_date as string | null | undefined ?? null
+
+      if (newStatus === 'failed') {
+        newStreak = 0
+      } else if (newStatus === 'done' && prevStatus !== 'done') {
+        if (!newLastDate) {
+          newStreak = 1
+          newLastDate = targetDate
+        } else {
+          const diff = differenceInDays(parseISO(targetDate), parseISO(newLastDate))
+          if (diff === 0) { if (newStreak === 0) newStreak = 1; newLastDate = targetDate }
+          else if (diff === 1) { newStreak += 1; newLastDate = targetDate }
+          else { newStreak = 1; newLastDate = targetDate }
+        }
+      } else if (prevStatus === 'done' && newStatus !== 'done' && newStatus !== 'failed') {
+        if (newLastDate === targetDate) {
+          newStreak = Math.max(0, newStreak - 1)
+          newLastDate = newStreak > 0
+            ? format(subDays(parseISO(targetDate), 1), 'yyyy-MM-dd')
+            : null
+        }
+      }
+
+      // Update today's habit list (Resumo tab)
+      qc.setQueryData(todayKey, (old: Habit[] | undefined) => {
         if (!old) return old
         return old.map(h => {
           if (h.id !== vars.habitId) return h
@@ -297,10 +330,20 @@ export function useLogHabit() {
         })
       })
 
-      return { previousHabits, queryKey }
+      // Update all-habits list (Hábitos management tab)
+      qc.setQueryData(allKey, (old: Habit[] | undefined) => {
+        if (!old) return old
+        return old.map(h => {
+          if (h.id !== vars.habitId) return h
+          return { ...h, streak: newStreak, last_completed_date: newLastDate }
+        })
+      })
+
+      return { previousHabits, previousAllHabits, todayKey, allKey }
     },
-    onError: (err, newTodo, context) => {
-      if (context?.previousHabits) qc.setQueryData(context.queryKey, context.previousHabits)
+    onError: (err, newTodo, context: any) => {
+      if (context?.previousHabits) qc.setQueryData(context.todayKey, context.previousHabits)
+      if (context?.previousAllHabits) qc.setQueryData(context.allKey, context.previousAllHabits)
     },
     mutationFn: async ({ habitId, status, logDate, note, linkedGoalId, goalImpact = 1 }: {
       habitId: string;

@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { format, startOfWeek, addDays, isToday, getDay, isSameDay, isTomorrow, isYesterday } from 'date-fns'
+import { format, startOfWeek, addDays, isToday, getDay, isSameDay, isTomorrow, isYesterday, differenceInDays, parseISO, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import HabitCard from '@/components/dashboard/HabitCard'
 import TaskItem from '@/components/dashboard/TaskItem'
@@ -146,9 +146,9 @@ export default function DashboardPage() {
 
   // ── Overrides de status local ─────────────────────────────────────────────
   // Garante feedback visual imediato independente do React Query cache.
-  // Não limpamos explicitamente: o override "se dissolve" sozinho quando
-  // o servidor retorna o dado correto (override !== h.status deixa de ser true).
-  const [habitStatusOverrides, setHabitStatusOverrides] = useState<Record<string, HabitStatus>>({})
+  // Armazena status + streak para que o badge 🔥 apareça já no primeiro render.
+  type HabitOverride = { status: HabitStatus; streak: number; last_completed_date: string | null }
+  const [habitStatusOverrides, setHabitStatusOverrides] = useState<Record<string, HabitOverride>>({})
   const [eventStatusOverrides, setEventStatusOverrides] = useState<Record<string, string>>({})
 
   // Dispara tutorial apenas na primeira vez
@@ -265,8 +265,10 @@ export default function DashboardPage() {
     return [...habitsData]
       .map(h => {
         const ov = habitStatusOverrides[h.id]
-        // Aplica override só se o servidor ainda não retornou o status novo
-        return (ov !== undefined && ov !== h.status) ? { ...h, status: ov } : h
+        if (ov !== undefined && ov.status !== h.status) {
+          return { ...h, status: ov.status, streak: ov.streak, last_completed_date: ov.last_completed_date }
+        }
+        return h
       })
       .sort((a, b) => {
         const tA = a.time
@@ -285,6 +287,13 @@ export default function DashboardPage() {
 
   const todayEvents = useMemo(() => {
     if (!eventsToday) return []
+
+    const timeToMin = (t?: string) => {
+      if (!t) return Infinity
+      const [h, m] = t.split(':').map(Number)
+      return (h || 0) * 60 + (m || 0)
+    }
+
     return [...eventsToday]
       .map(e => {
         const key = `${e.id}_${e.date}`
@@ -293,14 +302,13 @@ export default function DashboardPage() {
         return (ov !== undefined && ov !== e.status) ? { ...e, status: ov } : e
       })
       .sort((a, b) => {
-        // Pendentes (none/todo) primeiro; resolvidos (done/partial/failed) no fundo
+        // Pendentes primeiro, resolvidos (concluído/parcial/falhou) no fundo
         const aResolved = a.status === 'done' || a.status === 'partial' || a.status === 'failed'
         const bResolved = b.status === 'done' || b.status === 'partial' || b.status === 'failed'
         if (aResolved && !bResolved) return 1
         if (!aResolved && bResolved) return -1
-        // Dentro de cada grupo: horário crescente; sem horário vai por último
-        const toMin = (t?: string) => { if (!t) return Infinity; const [h, m] = t.split(':').map(Number); return h * 60 + m }
-        return toMin(a.time) - toMin(b.time)
+        // Dentro de cada grupo: horário crescente (sem horário vai por último)
+        return timeToMin(a.time) - timeToMin(b.time)
       })
   }, [eventsToday, eventStatusOverrides])
 
@@ -343,10 +351,33 @@ export default function DashboardPage() {
 
   // Set habit status directly: none, done, partial, failed
   function setHabitStatus(id: string, nextStatus: HabitStatus) {
-    // Override local imediato — UI atualiza antes de ir ao servidor
-    setHabitStatusOverrides(prev => ({ ...prev, [id]: nextStatus }))
-
     const habit = habitsData?.find(h => h.id === id)
+    const currentOv = habitStatusOverrides[id]
+    const prevStatus: HabitStatus = currentOv?.status ?? (habit?.status as HabitStatus) ?? 'none'
+    let newStreak: number = currentOv?.streak ?? habit?.streak ?? 0
+    let newLastDate: string | null = currentOv?.last_completed_date ?? (habit?.last_completed_date as string | null) ?? null
+
+    if (nextStatus === 'failed') {
+      newStreak = 0
+    } else if (nextStatus === 'done' && prevStatus !== 'done') {
+      if (!newLastDate) {
+        newStreak = 1
+        newLastDate = todayStr
+      } else {
+        const diff = differenceInDays(parseISO(todayStr), parseISO(newLastDate))
+        if (diff === 0) { if (newStreak === 0) newStreak = 1; newLastDate = todayStr }
+        else if (diff === 1) { newStreak += 1; newLastDate = todayStr }
+        else { newStreak = 1; newLastDate = todayStr }
+      }
+    } else if (prevStatus === 'done' && nextStatus !== 'done' && nextStatus !== 'failed') {
+      if (newLastDate === todayStr) {
+        newStreak = Math.max(0, newStreak - 1)
+        newLastDate = newStreak > 0 ? format(subDays(parseISO(todayStr), 1), 'yyyy-MM-dd') : null
+      }
+    }
+
+    setHabitStatusOverrides(prev => ({ ...prev, [id]: { status: nextStatus, streak: newStreak, last_completed_date: newLastDate } }))
+
     logHabit({
       habitId: id,
       status: nextStatus,
@@ -381,15 +412,19 @@ export default function DashboardPage() {
   // Toggle task done/undone
   function toggleTask(id: string, isDone: boolean) {
     const nextStatus = isDone ? 'todo' : 'done'
-    updateTask({ id, status: nextStatus, completed_at: nextStatus === 'done' ? new Date().toISOString() : undefined })
+    // null clears completed_at in Firestore; undefined would leave the old value
+    updateTask({ id, status: nextStatus, completed_at: nextStatus === 'done' ? new Date().toISOString() : null })
     setToast(isDone ? 'Marcado como pendente.' : '✓ Tarefa concluída!')
   }
   // Update task status: done, todo, partial, failed
   function updateTaskStatus(id: string, nextStatus: TaskStatus) {
+    const isResolved = nextStatus === 'done' || nextStatus === 'partial' || nextStatus === 'failed'
     updateTask({
       id,
       status: nextStatus,
-      completed_at: nextStatus === 'done' ? new Date().toISOString() : undefined,
+      // Set timestamp for any resolved status so history filter can detect "resolved today"
+      // null clears completed_at in Firestore when reverting to todo
+      completed_at: isResolved ? new Date().toISOString() : null,
       done: nextStatus === 'done'
     })
 

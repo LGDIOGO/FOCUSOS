@@ -37,21 +37,23 @@ export function useTasksToday(selectedDate: Date = new Date()) {
         done: d.data().status === 'done'
       })) as any[]
 
-      // Filter tasks for the selected day:
-      // - due_date === today → always show (the task belongs to this day)
-      // - due_date in the past → show only if not yet completed (overdue)
-      // - due_date in the future → never show
-      // - no due_date → show only if pending (not done/partial/failed)
+      // Filter rules:
+      //  - Future tasks (due_date > today): never show
+      //  - Everything else (today, past, inbox): always show regardless of status
+      //    so that marking done/partial/failed never removes the task from the day's view.
+      //    Users delete tasks explicitly when they want to remove them.
       const isCompleted = (t: any) => t.status === 'done' || t.status === 'partial' || t.status === 'failed'
       const filtered = tasks.filter(t => {
-        if (!t.due_date) return !isCompleted(t)           // inbox: só pendentes
-        if (t.due_date === targetDay) return true          // hoje: sempre mostra
-        if (t.due_date < targetDay) return !isCompleted(t) // atrasado: só se pendente
-        return false                                        // futuro: nunca mostra
+        if (t.due_date && t.due_date > targetDay) return false  // futuro: nunca mostra
+        return true                                              // hoje, passado, inbox: sempre mostra
       }) as Task[]
-      
-      // Sort chronologically by due_time. Items without time go to the end.
+
+      // Sort: pending first, completed/resolved at the bottom; within each group by due_time.
       return filtered.sort((a, b) => {
+        const aResolved = isCompleted(a)
+        const bResolved = isCompleted(b)
+        if (!aResolved && bResolved) return -1
+        if (aResolved && !bResolved) return 1
         if (a.due_time && b.due_time) return a.due_time.localeCompare(b.due_time)
         if (a.due_time) return -1
         if (b.due_time) return 1

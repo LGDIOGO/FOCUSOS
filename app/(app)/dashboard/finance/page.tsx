@@ -315,10 +315,18 @@ export default function FinancePage() {
   // ONBOARDING WIZARD STATE
   const [showWizard, setShowWizard] = useState(false)
   const [wizardStep, setWizardStep] = useState(1)
-  
-  // Verify if it's a completely new user
+  const [wizardError, setWizardError] = useState<string | null>(null)
+
+  function dismissWizard() {
+    localStorage.setItem('finance_wizard_done', 'true')
+    setShowWizard(false)
+  }
+
+  // Verify if it's a completely new user (check localStorage so wizard never re-shows
+  // after being completed or skipped, even if the user later deletes all their data)
   useEffect(() => {
-    if (!dataIsLoading && transactions.length === 0 && costs.length === 0 && potes.length === 0) {
+    const alreadyDone = typeof window !== 'undefined' && localStorage.getItem('finance_wizard_done') === 'true'
+    if (!dataIsLoading && !alreadyDone && transactions.length === 0 && costs.length === 0 && potes.length === 0) {
       setShowWizard(true)
     } else {
       setShowWizard(false)
@@ -557,15 +565,24 @@ export default function FinancePage() {
                 
                 <form onSubmit={async (e) => {
                   e.preventDefault();
+                  setWizardError(null);
                   const fd = new FormData(e.currentTarget);
-                  await addTransaction.mutateAsync({
-                    title: fd.get('title') as string,
-                    amount: parseFloat(fd.get('amount') as string),
-                    type: 'income',
-                    category: 'fixed',
-                    date: new Date().toISOString().split('T')[0]
-                  });
-                  setWizardStep(2);
+                  const title = (fd.get('title') as string || '').trim()
+                  const amount = parseFloat(fd.get('amount') as string)
+                  if (!title) { setWizardError('Informe o nome da renda.'); return }
+                  if (isNaN(amount) || amount <= 0) { setWizardError('Informe um valor válido maior que zero.'); return }
+                  try {
+                    await addTransaction.mutateAsync({
+                      title,
+                      amount,
+                      type: 'income',
+                      category: 'fixed',
+                      date: new Date().toISOString().split('T')[0]
+                    });
+                    setWizardStep(2);
+                  } catch (err: any) {
+                    setWizardError('Erro ao salvar. Verifique sua conexão e tente novamente.')
+                  }
                 }} className="space-y-4">
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Nome da Renda (Ex: Salário, Business Principal)</label>
@@ -575,8 +592,14 @@ export default function FinancePage() {
                     <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1 block">Valor Médio (R$)</label>
                     <input name="amount" type="number" step="0.01" required placeholder="0.00" className="w-full bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-xl px-4 py-4 text-white font-black text-xl" />
                   </div>
-                  <button type="submit" disabled={addTransaction.isPending} className="w-full py-4 bg-green-500 hover:bg-green-400 text-black font-black text-sm uppercase tracking-widest rounded-xl mt-4 flex items-center justify-center gap-2 transition-all">
-                    Continuar <ArrowRight size={18}/>
+                  {wizardError && (
+                    <p className="text-red-400 text-sm font-medium">{wizardError}</p>
+                  )}
+                  <button type="submit" disabled={addTransaction.isPending} className="w-full py-4 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black font-black text-sm uppercase tracking-widest rounded-xl mt-4 flex items-center justify-center gap-2 transition-all">
+                    {addTransaction.isPending ? 'Salvando...' : <><span>Continuar</span><ArrowRight size={18}/></>}
+                  </button>
+                  <button type="button" onClick={dismissWizard} className="w-full text-sm text-white/30 hover:text-white/60 text-center py-2 transition-colors">
+                    Pular configuração inicial
                   </button>
                 </form>
               </motion.div>
@@ -593,14 +616,19 @@ export default function FinancePage() {
                 
                 <form onSubmit={async (e) => {
                   e.preventDefault();
+                  setWizardError(null);
                   const fd = new FormData(e.currentTarget);
-                  await addCost.mutateAsync({
-                    title: fd.get('title') as string,
-                    amount: parseFloat(fd.get('amount') as string),
-                    category: 'basico',
-                    billing_cycle: 'monthly'
-                  });
-                  setWizardStep(3);
+                  try {
+                    await addCost.mutateAsync({
+                      title: fd.get('title') as string,
+                      amount: parseFloat(fd.get('amount') as string),
+                      category: 'basico',
+                      billing_cycle: 'monthly'
+                    });
+                    setWizardStep(3);
+                  } catch {
+                    setWizardError('Erro ao salvar custo. Tente novamente ou pule esta etapa.')
+                  }
                 }} className="space-y-4">
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-widest text-red-500/70 mb-1 block">Nome do Custo (Ex: Aluguel, Prestação do Carro)</label>
@@ -611,10 +639,13 @@ export default function FinancePage() {
                     <input name="amount" type="number" step="0.01" required placeholder="0.00" className="w-full bg-[var(--bg-primary)] border border-red-500/20 focus:border-red-500 rounded-xl px-4 py-4 text-white font-black text-xl" />
                   </div>
                   
+                  {wizardError && (
+                    <p className="text-red-400 text-sm font-medium">{wizardError}</p>
+                  )}
                   <div className="flex gap-3 mt-4">
-                    <button type="button" onClick={() => setWizardStep(3)} className="px-6 py-4 bg-transparent border border-[var(--border-subtle)] text-[var(--text-secondary)] font-bold text-sm rounded-xl transition-all hover:bg-white/5">Pular (Adiciono depois)</button>
-                    <button type="submit" disabled={addCost.isPending} className="flex-1 py-4 bg-red-500 hover:bg-red-400 text-white font-black text-sm uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 transition-all">
-                      Adicionar <ArrowRight size={18}/>
+                    <button type="button" onClick={() => { setWizardError(null); setWizardStep(3) }} className="px-6 py-4 bg-transparent border border-[var(--border-subtle)] text-[var(--text-secondary)] font-bold text-sm rounded-xl transition-all hover:bg-white/5">Pular (Adiciono depois)</button>
+                    <button type="submit" disabled={addCost.isPending} className="flex-1 py-4 bg-red-500 hover:bg-red-400 disabled:opacity-50 text-white font-black text-sm uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 transition-all">
+                      {addCost.isPending ? 'Salvando...' : <><span>Adicionar</span><ArrowRight size={18}/></>}
                     </button>
                   </div>
                 </form>
@@ -633,16 +664,18 @@ export default function FinancePage() {
                 <form onSubmit={async (e) => {
                   e.preventDefault();
                   const fd = new FormData(e.currentTarget);
-                  await addPote.mutateAsync({
-                    title: fd.get('title') as string,
-                    target_amount: 0,
-                    saved_amount: 0,
-                    allocation_type: 'percentage',
-                    allocation_value: parseFloat(fd.get('percentage') as string),
-                    emoji: '🎯',
-                    color: 'text-blue-500'
-                  });
-                  setShowWizard(false); // Done
+                  try {
+                    await addPote.mutateAsync({
+                      title: fd.get('title') as string,
+                      target_amount: 0,
+                      saved_amount: 0,
+                      allocation_type: 'percentage',
+                      allocation_value: parseFloat(fd.get('percentage') as string),
+                      emoji: '🎯',
+                      color: 'text-blue-500'
+                    });
+                  } catch { /* non-blocking — dismiss wizard regardless */ }
+                  dismissWizard(); // Mark done so wizard never re-shows
                 }} className="space-y-4">
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-widest text-blue-500/70 mb-1 block">Objetivo (Ex: Reserva de Emergência, Viagem)</label>
