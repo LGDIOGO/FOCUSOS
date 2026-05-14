@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle, History
+  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle, History, Search, X
 } from 'lucide-react'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
 import { useEvents, useDeleteEvent } from '@/lib/hooks/useEvents'
@@ -223,6 +223,7 @@ function AgendaPage() {
   const [historyStartDate, setHistoryStartDate] = useState<string>('')
   const [historyEndDate, setHistoryEndDate] = useState<string>('')
   const [historyPeriod, setHistoryPeriod] = useState<'all' | 'custom'>('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
   const user = useCurrentUser()
 
@@ -480,6 +481,30 @@ function AgendaPage() {
     )
   }, [events, logs, historyPeriod, historyStartDate, historyEndDate])
 
+  // ── Search results — null when search is empty (shows normal view) ──────────
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q || !events) return null
+
+    const filtered = events.filter(e => {
+      const title = (e.title || '').toLowerCase()
+      const desc = (e.description || '').toLowerCase()
+      const typeLabel = (EVENT_TYPES.find(t => t.type === e.type)?.label || '').toLowerCase()
+      let dateLabel = ''
+      if (e.date) {
+        try { dateLabel = format(parseISO(e.date), "dd/MM/yyyy EEEE MMMM", { locale: ptBR }).toLowerCase() } catch {}
+      }
+      return title.includes(q) || desc.includes(q) || typeLabel.includes(q) || dateLabel.includes(q)
+    })
+
+    return filtered
+      .map(e => ({
+        ...e,
+        status: (logs.get(`${e.id}_${e.date}`) || 'none') as CalendarEvent['status']
+      }))
+      .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+  }, [searchQuery, events, logs])
+
   return (
     <div className="p-4 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-6 md:space-y-10 lg:space-y-14 pb-24 lg:pb-10">
       {/* Header */}
@@ -524,8 +549,128 @@ function AgendaPage() {
         </button>
       </motion.div>
 
+      {/* ── Search bar ──────────────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="relative"
+      >
+        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Pesquisar compromissos por título, tipo ou data..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl pl-11 pr-10 py-3.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-white/20 transition-all font-medium text-sm"
+        />
+        <AnimatePresence>
+          {searchQuery && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.7 }}
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-xl hover:bg-white/10 active:scale-90 transition-all text-[var(--text-muted)] touch-manipulation"
+            >
+              <X size={14} />
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
-        <div className="lg:col-span-2 space-y-10 md:space-y-14">
+        <div className={cn("space-y-10 md:space-y-14", searchResults !== null ? "lg:col-span-3" : "lg:col-span-2")}>
+          {/* ── Search results ───────────────────────────────────────────── */}
+          <AnimatePresence mode="wait">
+            {searchResults !== null && (
+              <motion.div
+                key="search-results"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
+              >
+                {/* Result count badge */}
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                    {searchResults.length === 0
+                      ? 'Nenhum resultado'
+                      : `${searchResults.length} compromisso${searchResults.length !== 1 ? 's' : ''} encontrado${searchResults.length !== 1 ? 's' : ''}`}
+                  </span>
+                  <div className="px-2.5 py-0.5 bg-red-500/10 border border-red-500/20 rounded-full text-[10px] font-black text-red-400 truncate max-w-[200px]">
+                    "{searchQuery}"
+                  </div>
+                </div>
+
+                {searchResults.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+                    <div className="w-16 h-16 rounded-[24px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)] flex items-center justify-center">
+                      <Search size={22} className="text-[var(--text-muted)]" />
+                    </div>
+                    <div>
+                      <p className="font-black text-[var(--text-primary)]">Nenhum compromisso encontrado</p>
+                      <p className="text-sm text-[var(--text-muted)] mt-1">Tente outros termos ou verifique a grafia</p>
+                    </div>
+                  </div>
+                ) : (
+                  // Group search results by date
+                  Object.entries(
+                    searchResults.reduce<Record<string, typeof searchResults>>((acc, e) => {
+                      const key = e.date || 'sem-data'
+                      if (!acc[key]) acc[key] = []
+                      acc[key].push(e)
+                      return acc
+                    }, {})
+                  )
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([date, eventList]) => {
+                      const isPast = date !== 'sem-data' && date < todayStr
+                      return (
+                        <div key={date} className={cn("space-y-3", isPast && "opacity-60 hover:opacity-100 transition-opacity")}>
+                          <div className="flex items-center gap-4 px-2">
+                            <h2 className={cn(
+                              "text-[12px] font-black uppercase tracking-widest shrink-0",
+                              date === todayStr ? "text-white" : isPast ? "text-white/30" : "text-white/60"
+                            )}>
+                              {date === 'sem-data' ? 'Sem data' :
+                               isToday(parseISO(date)) ? `Hoje • ${format(parseISO(date), 'dd/MM/yyyy')}` :
+                               isTomorrow(parseISO(date)) ? `Amanhã • ${format(parseISO(date), 'dd/MM/yyyy')}` :
+                               isPast ? format(parseISO(date), "dd/MM/yyyy • EEEE", { locale: ptBR }) :
+                               format(parseISO(date), "dd/MM/yyyy • EEEE", { locale: ptBR })}
+                            </h2>
+                            <div className="flex-1 border-t border-white/[0.03]" />
+                            {isPast && (
+                              <span className="text-[9px] font-black uppercase tracking-widest text-white/20 shrink-0">passado</span>
+                            )}
+                          </div>
+                          <div className="space-y-3">
+                            {eventList.map(event => (
+                              <EventItem
+                                key={`search_${event.id}_${event.date}`}
+                                event={event}
+                                isSelectionMode={isSelectionMode}
+                                isSelected={selectedIds.includes(event.id)}
+                                toggleSelection={toggleSelection}
+                                openEditModal={openEditModal}
+                                setIsSelectionMode={setIsSelectionMode}
+                                onDelete={id => deleteEvent.mutate(id)}
+                                currentTime={currentTime}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Normal view (history + upcoming) — hidden while searching ─── */}
+          {searchResults === null && (
+            <>
           {/* Aba de Compromissos Passados (Histórico) */}
           {!isLoading && Object.keys(pastEventsGrouped).length > 0 && (
             <div className="space-y-4">
@@ -717,8 +862,12 @@ function AgendaPage() {
               </motion.div>
             ))}
           </AnimatePresence>
+            </>
+          )}
         </div>
 
+        {/* Sidebar — hidden while searching */}
+        {searchResults === null && (
         <div className="space-y-8 lg:sticky lg:top-14 h-fit">
            <div className="p-6 md:p-8 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-[32px] space-y-6">
               <h3 className="font-black text-base uppercase tracking-widest text-white/60">Próximos Dias</h3>
@@ -743,6 +892,7 @@ function AgendaPage() {
               </div>
            </div>
         </div>
+        )}
       </div>
 
 
