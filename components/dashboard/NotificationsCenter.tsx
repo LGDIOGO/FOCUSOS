@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, X, Trash2, Calendar, RefreshCcw, Brain, Info, Check } from 'lucide-react'
+import { Bell, X, Trash2, Calendar, RefreshCcw, Info, Check } from 'lucide-react'
 import { useNotifications, useDeleteNotification, useClearAllNotifications, useMarkAsRead } from '@/lib/hooks/useNotifications'
 import { format, isToday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -18,16 +18,15 @@ export function NotificationsCenter({ isOpen, onClose }: NotificationsCenterProp
   const { mutate: markRead } = useMarkAsRead()
   const { mutate: clearAll } = useClearAllNotifications()
 
-  const unreadCount = notifications?.filter(n => !n.is_read).length || 0
-
-  const todayNotifs = notifications?.filter(n => isToday(new Date(n.created_at))) || []
-  const olderNotifs = notifications?.filter(n => !isToday(new Date(n.created_at))) || []
+  const visibleNotifs = notifications?.filter(n => n.type !== 'insight') || []
+  const unreadCount = visibleNotifs.filter(n => !n.is_read).length
+  const todayNotifs = visibleNotifs.filter(n => isToday(new Date(n.created_at)))
+  const olderNotifs = visibleNotifs.filter(n => !isToday(new Date(n.created_at)))
 
   const getTypeStyles = (type: string) => {
     switch (type) {
       case 'agenda': return { icon: Calendar, color: 'text-red-400', bg: 'bg-red-400/10' }
       case 'habit': return { icon: RefreshCcw, color: 'text-orange-400', bg: 'bg-orange-400/10' }
-      case 'insight': return { icon: Brain, color: 'text-blue-400', bg: 'bg-blue-400/10' }
       default: return { icon: Info, color: 'text-gray-400', bg: 'bg-gray-400/10' }
     }
   }
@@ -65,7 +64,7 @@ export function NotificationsCenter({ isOpen, onClose }: NotificationsCenterProp
                 <div>
                   <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Notificações</h2>
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-0.5">
-                    {unreadCount > 0 ? `${unreadCount} novas mensagens` : 'Centro de Insights'}
+                    {unreadCount > 0 ? `${unreadCount} novas` : 'Tudo em dia'}
                   </p>
                 </div>
               </div>
@@ -82,15 +81,15 @@ export function NotificationsCenter({ isOpen, onClose }: NotificationsCenterProp
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center h-40 gap-4">
                   <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  <p className="text-xs text-[var(--text-muted)] font-medium">Sincronizando insights...</p>
+                  <p className="text-xs text-[var(--text-muted)] font-medium">Carregando...</p>
                 </div>
-              ) : notifications?.length === 0 ? (
+              ) : visibleNotifs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center py-20 opacity-30">
                   <div className="w-20 h-20 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center mb-6">
                      <Bell size={32} />
                   </div>
                   <h3 className="text-lg font-bold">Tudo limpo por aqui</h3>
-                  <p className="text-sm mt-2 max-w-[200px]">Sua caixa está vazia. Novos insights aparecerão aqui.</p>
+                  <p className="text-sm mt-2 max-w-[200px]">Nenhuma notificação por enquanto.</p>
                 </div>
               ) : (
                 <>
@@ -99,8 +98,8 @@ export function NotificationsCenter({ isOpen, onClose }: NotificationsCenterProp
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">Hoje</h3>
-                        <button 
-                          onClick={() => clearAll(notifications?.map(n => n.id) || [])}
+                        <button
+                          onClick={() => clearAll(visibleNotifs.map(n => n.id))}
                           className="text-[10px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 transition-colors"
                         >
                           Limpar tudo
@@ -141,12 +140,6 @@ export function NotificationsCenter({ isOpen, onClose }: NotificationsCenterProp
               )}
             </div>
 
-            {/* Footer */}
-            <div className="p-6 border-t border-white/[0.05] bg-black/20">
-               <p className="text-[10px] text-center text-[var(--text-muted)] font-medium italic">
-                 Dica: Insights da IA ajudam a manter sua consistência diária.
-               </p>
-            </div>
           </motion.div>
         </>
       )}

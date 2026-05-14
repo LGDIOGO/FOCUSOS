@@ -8,19 +8,15 @@ import { ptBR } from 'date-fns/locale'
 import HabitCard from '@/components/dashboard/HabitCard'
 import TaskItem from '@/components/dashboard/TaskItem'
 import ScoreWidget from '@/components/dashboard/ScoreWidget'
-import AIInsightBanner from '@/components/dashboard/AIInsightBanner'
 import { useHabitsToday, useLogHabit, useDeleteHabit } from '@/lib/hooks/useHabits'
 import { useTasksToday, useUpdateTask, useAddTask, useDeleteTask } from '@/lib/hooks/useTasks'
 import { useProfile } from '@/lib/hooks/useProfile'
-import { useGoals } from '@/lib/hooks/useGoals'
 import { RealTimeClock } from '@/components/dashboard/RealTimeClock'
 import { useEventsToday, useLogEvent, useUpdateEvent, useDeleteEvent } from '@/lib/hooks/useEvents'
 import { HabitStatus, Habit, Task, CalendarEvent, TaskStatus } from '@/types'
 import { TaskModal } from '@/components/dashboard/TaskModal'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
 import { HabitModal } from '@/components/dashboard/HabitModal'
-import { generateLocalInsights } from '@/lib/services/aiService'
-import SeedData from '@/components/dashboard/SeedData'
 import {
   Zap, TrendingUp, Target, Clock, Calendar, Trash2, Plus,
   ChevronRight, ArrowLeft, ArrowRight, RefreshCcw,
@@ -36,7 +32,7 @@ import { TutorialModal } from '@/components/dashboard/TutorialModal'
 import { calculateProgress } from '@/lib/utils/performance'
 import { usePerformanceMetrics } from '@/lib/hooks/usePerformance'
 import { NotificationsCenter } from '@/components/dashboard/NotificationsCenter'
-import { useNotifications, useAddNotification } from '@/lib/hooks/useNotifications'
+import { useNotifications } from '@/lib/hooks/useNotifications'
 
 // ─── Utilidades ─────────────────────────────────────────────
 const CYCLE: HabitStatus[] = ['none', 'done', 'partial', 'failed']
@@ -120,7 +116,6 @@ export default function DashboardPage() {
 
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { data: persistentNotifs } = useNotifications();
-  const { mutate: addPersistentNotif } = useAddNotification();
   const unreadCount = persistentNotifs?.filter(n => !n.is_read).length || 0;
 
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -309,31 +304,7 @@ export default function DashboardPage() {
       })
   }, [eventsToday, eventStatusOverrides])
 
-  // Sync AI Insights to Persistent Notifications
-  const currentInsights = useMemo(() => generateLocalInsights(habits, tasks), [habits, tasks])
-  
-  useEffect(() => {
-    if (!currentInsights.length || !persistentNotifs) return
 
-    // Solo agregar si el insight no existe ya hoy (evitar spam)
-    currentInsights.forEach(insight => {
-       const alreadyExists = persistentNotifs.some(n => 
-         n.title === insight.title && 
-         isToday(new Date(n.created_at))
-       )
-
-       if (!alreadyExists) {
-         addPersistentNotif({
-           title: insight.title,
-           body: insight.body,
-           type: 'insight'
-         })
-       }
-    })
-  }, [currentInsights, persistentNotifs, addPersistentNotif])
-
-  const { data: allGoals, isLoading: loadingGoals } = useGoals()
-  const goals = useMemo(() => allGoals || [], [allGoals])
 
   // Gera strip de 7 dias com base no offset
   const weekStart = useMemo(() => {
@@ -752,17 +723,6 @@ export default function DashboardPage() {
           </section>
         </div>
 
-        {/* ─── AI Insight ─── */}
-
-        <SeedData />
-
-        <AIInsightBanner
-          habits={habits}
-          tasks={tasks}
-          events={todayEvents}
-          goals={goals}
-          score={score}
-        />
 
         <TaskModal
           isOpen={showTaskModal}
