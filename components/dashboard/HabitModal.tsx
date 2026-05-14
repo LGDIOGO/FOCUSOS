@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Sparkles, ShieldAlert, RefreshCcw, ChevronDown } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, getDay, parseISO, getDate } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { EmojiPicker } from './EmojiPicker'
 import { CustomDateTimePicker } from './CustomDateTimePicker'
@@ -24,6 +24,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false)
   const [newCategory, setNewCategory] = useState({ name: '', icon: '📁', color: '#e02020' })
   const [isParsing, setIsParsing] = useState(false)
+  const [parseError, setParseError] = useState<string | null>(null)
 
   const [newHabit, setNewHabit] = useState({
     name: '',
@@ -85,8 +86,14 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
   }, [isOpen, habitToEdit])
 
   const handleMagicParse = async () => {
-    if (!newHabit.name || isParsing) return
+    if (isParsing) return
+    if (!newHabit.name) {
+      setParseError('Digite o nome do hábito primeiro para usar a IA.')
+      setTimeout(() => setParseError(null), 3000)
+      return
+    }
     setIsParsing(true)
+    setParseError(null)
     try {
       const response = await fetch('/api/ai/parse-entry', {
         method: 'POST',
@@ -117,8 +124,15 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
           interval: data.recurrence.interval || prev.recurrence.interval
         } : prev.recurrence
       }))
-    } catch (err) {
+    } catch (err: any) {
       console.error('Magic Parse Fail:', err)
+      const msg = err?.message || 'Falha na IA'
+      setParseError(
+        msg.includes('ausente') || msg.includes('API') || msg.includes('key')
+          ? 'IA não configurada. Verifique GOOGLE_AI_API_KEY.'
+          : `Erro: ${msg}`
+      )
+      setTimeout(() => setParseError(null), 4000)
     } finally {
       setIsParsing(false)
     }
@@ -126,18 +140,30 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
 
   const handleAddHabit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Build recurrence — never include undefined fields (Firestore throws on undefined)
+    const cleanRecurrence: any = {
+      frequency: newHabit.recurrence.frequency,
+      interval: newHabit.recurrence.interval || 1,
+    }
+    if (newHabit.recurrence.frequency === 'specific_days' && newHabit.recurrence.days_of_week?.length) {
+      cleanRecurrence.days_of_week = newHabit.recurrence.days_of_week
+    }
+
+    const habitPayload = { ...newHabit, recurrence: cleanRecurrence }
+
     if (habitToEdit) {
       updateHabit.mutate({
         ...habitToEdit,
-        ...newHabit
+        ...habitPayload
       }, {
         onSuccess: () => {
           onClose()
         }
       })
     } else {
-       addHabit.mutate({
-        ...newHabit,
+      addHabit.mutate({
+        ...habitPayload,
         is_archived: false,
         sort_order: 999,
         status: 'none',
@@ -164,23 +190,27 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6">
-      <motion.div 
+    <div className="fixed inset-0 z-[10000] flex items-end md:items-center md:justify-center md:p-6">
+      <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
         className="fixed inset-0 bg-black/60 text-left backdrop-blur-xl"
       />
-      
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-lg bg-[var(--bg-primary)] border text-left border-[var(--border-subtle)] rounded-[40px] md:rounded-[48px] p-4 md:p-7 overflow-y-auto max-h-[90vh] shadow-2xl z-[10001] transition-colors duration-300"
+
+      <motion.div
+        initial={{ y: '100%', opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: '100%', opacity: 0 }}
+        transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+        className="relative w-full md:max-w-lg bg-[var(--bg-primary)] border text-left border-[var(--border-subtle)] rounded-t-[32px] md:rounded-[48px] p-5 md:p-7 overflow-y-auto max-h-[92dvh] md:max-h-[90vh] shadow-2xl z-[10001] transition-colors duration-300"
       >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-4xl font-black tracking-tightest text-[var(--text-primary)] transition-colors">{habitToEdit ? 'Editar Hábito' : 'Novo Hábito'}</h2>
-          <button onClick={onClose} className="p-3 hover:bg-[var(--bg-overlay)] rounded-2xl transition-all">
-            <X className="text-[var(--text-muted)]" />
+        {/* Drag handle — mobile only */}
+        <div className="w-10 h-1 bg-[var(--border-subtle)] rounded-full mx-auto mb-4 md:hidden" />
+
+        <div className="flex justify-between items-center mb-5 md:mb-6">
+          <h2 className="text-2xl md:text-4xl font-black tracking-tightest text-[var(--text-primary)] transition-colors">{habitToEdit ? 'Editar Hábito' : 'Novo Hábito'}</h2>
+          <button onClick={onClose} className="p-2.5 md:p-3 hover:bg-[var(--bg-overlay)] rounded-2xl transition-all">
+            <X size={20} className="text-[var(--text-muted)]" />
           </button>
         </div>
 
@@ -188,7 +218,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
           <div className="space-y-1.5 relative">
             <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Nome</label>
             <div className="relative group/input">
-              <input 
+              <input
                 required
                 value={newHabit.name}
                 onChange={e => setNewHabit({ ...newHabit, name: e.target.value })}
@@ -198,16 +228,32 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
               <button
                 type="button"
                 onClick={handleMagicParse}
-                disabled={isParsing || !newHabit.name}
+                disabled={isParsing}
+                title={newHabit.name ? 'Preencher com IA ✨' : 'Digite o nome primeiro'}
                 className={cn(
                   "absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all",
-                  isParsing ? "bg-[var(--bg-overlay)] animate-pulse" : "bg-transparent hover:bg-[var(--bg-overlay)]",
-                  newHabit.name ? "text-red-500 opacity-100" : "text-[var(--text-muted)] opacity-0 pointer-events-none"
+                  isParsing
+                    ? "bg-[var(--bg-overlay)] animate-pulse text-red-500"
+                    : newHabit.name
+                    ? "text-red-500 hover:bg-[var(--bg-overlay)]"
+                    : "text-[var(--text-muted)]/40 hover:bg-[var(--bg-overlay)] hover:text-[var(--text-muted)]"
                 )}
               >
-                {isParsing ? <RefreshCcw size={20} className="animate-spin" /> : <Sparkles size={20} className={cn(newHabit.name && "animate-pulse")} />}
+                {isParsing
+                  ? <RefreshCcw size={20} className="animate-spin" />
+                  : <Sparkles size={20} className={cn(newHabit.name && !isParsing && "animate-pulse")} />}
               </button>
             </div>
+            {parseError && (
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="text-[11px] font-bold text-red-400 px-2 mt-1"
+              >
+                {parseError}
+              </motion.p>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -316,33 +362,73 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
 
           <div className="space-y-1.5">
             <label className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Repetir</label>
-            <div className="grid grid-cols-3 gap-2">
-              {[{ id: 'daily', label: 'Diário' }, { id: 'weekly', label: 'Semanal' }, { id: 'monthly', label: 'Mensal' }, { id: 'yearly', label: 'Anual' }, { id: 'specific_days', label: 'Personalizado' }].map(freq => (
-                <button
-                  key={freq.id} type="button"
-                  onClick={() => setNewHabit({ ...newHabit, recurrence: { frequency: (freq.id === 'quinzenal' ? 'weekly' : freq.id as RecurrenceFreq), interval: freq.id === 'quinzenal' ? 2 : 1, days_of_week: freq.id === 'specific_days' ? (newHabit.recurrence.days_of_week && newHabit.recurrence.days_of_week.length > 0 ? newHabit.recurrence.days_of_week : [1,2,3,4,5]) : [0,1,2,3,4,5,6] } })}
-                  className={cn("py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all", (newHabit.recurrence.frequency === freq.id || (freq.id === 'quinzenal' && newHabit.recurrence.interval === 2 && newHabit.recurrence.frequency === 'weekly')) ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-lg" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--text-primary)]/20")}
-                >
-                  {freq.label}
-                </button>
-              ))}
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { id: 'daily', label: 'Diário' },
+                { id: 'semanal', label: 'Semanal' },
+                { id: 'monthly', label: 'Mensal' },
+                { id: 'yearly', label: 'Anual' }
+              ].map(freq => {
+                const isActive = freq.id === 'semanal'
+                  ? newHabit.recurrence.frequency === 'specific_days'
+                  : newHabit.recurrence.frequency === freq.id
+                return (
+                  <button
+                    key={freq.id} type="button"
+                    onClick={() => {
+                      if (freq.id === 'semanal') {
+                        const startDay = getDay(parseISO(newHabit.start_date || format(new Date(), 'yyyy-MM-dd')))
+                        setNewHabit({ ...newHabit, recurrence: {
+                          frequency: 'specific_days',
+                          interval: newHabit.recurrence.frequency === 'specific_days' ? (newHabit.recurrence.interval || 1) : 1,
+                          days_of_week: newHabit.recurrence.frequency === 'specific_days'
+                            ? newHabit.recurrence.days_of_week
+                            : [startDay]
+                        }})
+                      } else {
+                        setNewHabit({ ...newHabit, recurrence: { frequency: freq.id as RecurrenceFreq, interval: 1, days_of_week: [] } })
+                      }
+                    }}
+                    className={cn("py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all", isActive ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-lg" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--text-primary)]/20")}
+                  >
+                    {freq.label}
+                  </button>
+                )
+              })}
             </div>
+
+            {/* Day picker — shown for Semanal (specific_days) */}
             {newHabit.recurrence.frequency === 'specific_days' && (
-              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] p-6 rounded-[32px] mt-4">
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] p-6 rounded-[32px] mt-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Dias da semana</p>
                 <div className="flex justify-between gap-1">
                   {DAYS.map((day, i) => (
-                    <button key={i} type="button" onClick={() => toggleDay(i)} className={cn("w-10 h-10 rounded-xl font-black text-base transition-all flex items-center justify-center", newHabit.recurrence.days_of_week?.includes(i) ? "bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-lg" : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] border border-[var(--border-subtle)]")}>{day}</button>
+                    <button key={i} type="button" onClick={() => toggleDay(i)} className={cn("w-10 h-10 rounded-xl font-black text-sm transition-all flex items-center justify-center", newHabit.recurrence.days_of_week?.includes(i) ? "bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-lg" : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] border border-[var(--border-subtle)]")}>{day}</button>
                   ))}
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
-                  <span className="text-[12px] font-black uppercase text-[var(--text-muted)] tracking-widest">Intervalo</span>
+                  <span className="text-[11px] font-black uppercase text-[var(--text-muted)] tracking-widest">Frequência</span>
                   <div className="flex gap-2">
-                    {[1, 2].map(int => (
-                      <button key={int} type="button" onClick={() => setNewHabit({ ...newHabit, recurrence: { ...newHabit.recurrence, interval: int } })} className={cn("px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all", newHabit.recurrence.interval === int ? "bg-[var(--text-primary)] text-[var(--bg-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] transition-colors")}>{int === 1 ? 'Toda Semana' : 'Quinzenal'}</button>
+                    {[{ v: 1, label: 'Toda semana' }, { v: 2, label: 'Quinzenal' }].map(({ v, label }) => (
+                      <button key={v} type="button" onClick={() => setNewHabit({ ...newHabit, recurrence: { ...newHabit.recurrence, interval: v } })} className={cn("px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all", newHabit.recurrence.interval === v ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]" : "text-[var(--text-muted)] border-[var(--border-subtle)] hover:bg-[var(--bg-overlay)]")}>{label}</button>
                     ))}
                   </div>
                 </div>
               </motion.div>
+            )}
+
+            {/* Monthly helper */}
+            {newHabit.recurrence.frequency === 'monthly' && (
+              <p className="text-[11px] font-bold text-[var(--text-muted)] px-2 mt-2">
+                Repete todo dia <span className="text-[var(--text-primary)]">{getDate(parseISO(newHabit.start_date || format(new Date(), 'yyyy-MM-dd')))}</span> de cada mês
+              </p>
+            )}
+
+            {/* Yearly helper */}
+            {newHabit.recurrence.frequency === 'yearly' && (
+              <p className="text-[11px] font-bold text-[var(--text-muted)] px-2 mt-2">
+                Repete todo ano em <span className="text-[var(--text-primary)]">{format(parseISO(newHabit.start_date || format(new Date(), 'yyyy-MM-dd')), "d 'de' MMMM", { locale: ptBR })}</span>
+              </p>
             )}
           </div>
 

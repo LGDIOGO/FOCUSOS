@@ -196,7 +196,7 @@ export function HabitCard({
             onPointerUp={(eventData) => eventData.stopPropagation()}
             onTouchStart={(eventData) => eventData.stopPropagation()}
             onTouchEnd={(eventData) => eventData.stopPropagation()}
-            className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white/30 hover:text-white hover:bg-white/10 transition-all active:scale-90 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+            className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white/30 hover:text-white hover:bg-white/10 transition-all active:scale-90 action-btn"
             title="Editar Habito"
           >
             <Pencil size={13} />

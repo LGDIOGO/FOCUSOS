@@ -80,23 +80,23 @@ function HabitGridItem({
         onToggleSelection(habit.id)
       }}
       className={cn(
-        "group relative bg-[var(--bg-overlay)] border rounded-[32px] p-6 md:p-8 hover:bg-[var(--bg-overlay)]/80 transition-all flex flex-col justify-between overflow-hidden cursor-pointer h-full transition-colors duration-300",
+        "group relative bg-[var(--bg-overlay)] border rounded-[24px] md:rounded-[32px] p-4 md:p-6 hover:bg-[var(--bg-overlay)]/80 transition-all flex flex-col justify-between overflow-hidden cursor-pointer h-full transition-colors duration-300",
         isSelected ? "border-red-500/50 bg-red-500/[0.05] ring-1 ring-red-500/20" : "border-[var(--border-subtle)] hover:border-white/10"
       )}
     >
 
 
       <div className="relative z-10 flex justify-between items-start">
-        <div className="flex items-center gap-4">
-          <div 
-            className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-110"
+        <div className="flex items-center gap-2 md:gap-4">
+          <div
+            className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center text-lg md:text-2xl shadow-inner transition-transform group-hover:scale-110 shrink-0"
             style={{ backgroundColor: habit.color ? `${habit.color}20` : 'rgba(255,255,255,0.05)', color: habit.color || '#FFFFFF' }}
           >
-            {habit.emoji || (habit.type === 'positive' ? <Sparkles size={20} /> : <ShieldAlert size={20} />)}
+            {habit.emoji || (habit.type === 'positive' ? <Sparkles size={16} /> : <ShieldAlert size={16} />)}
           </div>
-          <div className="space-y-1">
-            <h3 className="text-xl font-bold text-[var(--text-primary)] transition-colors">{habit.name}</h3>
-            <p className="text-[var(--text-muted)] text-base font-medium line-clamp-1 italic">{habit.description || 'Sem descrição'}</p>
+          <div className="space-y-0.5 min-w-0">
+            <h3 className="text-sm md:text-xl font-bold text-[var(--text-primary)] transition-colors leading-tight truncate">{habit.name}</h3>
+            <p className="text-[var(--text-muted)] text-xs md:text-base font-medium line-clamp-1 italic hidden sm:block">{habit.description || 'Sem descrição'}</p>
           </div>
         </div>
         {!isSelectionMode && (
@@ -117,40 +117,40 @@ function HabitGridItem({
         )}
       </div>
 
-      <div className="relative z-10 pt-8 flex items-end justify-between">
-        <div className="space-y-2">
-           <div className="flex gap-1">
-              {DAYS.map((label, i) => {
-                const isActive = !habit.recurrence || 
-                  habit.recurrence.frequency === 'daily' || 
-                  (habit.recurrence.frequency === 'specific_days' && habit.recurrence.days_of_week?.includes(i))
-                return (
-                  <div 
-                    key={i} 
-                    className={cn(
-                      "w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-black border transition-all",
-                      isActive ? "bg-white/10 border-white/20 text-white" : "bg-transparent border-white/5 text-white/5"
-                    )}
-                  >
-                    {label}
-                  </div>
-                )
-              })}
-           </div>
-           <p className="text-[12px] uppercase tracking-widest font-black text-white/20">
-             {habit.recurrence?.frequency === 'specific_days' ? 'Personalizado' : 
-              habit.recurrence?.frequency === 'weekly' ? 'Semanal' :
-              habit.recurrence?.frequency === 'monthly' ? 'Mensal' :
-              habit.recurrence?.frequency === 'yearly' ? 'Anual' : 'Diário'}
-           </p>
+      <div className="relative z-10 pt-4 md:pt-8 flex items-end justify-between">
+        <div className="space-y-1 md:space-y-2">
+          <div className="flex gap-0.5 md:gap-1">
+            {DAYS.map((label, i) => {
+              const isActive = !habit.recurrence ||
+                habit.recurrence.frequency === 'daily' ||
+                (habit.recurrence.frequency === 'specific_days' && habit.recurrence.days_of_week?.includes(i))
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    "w-4 h-4 md:w-5 md:h-5 rounded flex items-center justify-center text-[8px] md:text-[9px] font-black border transition-all",
+                    isActive ? "bg-white/10 border-white/20 text-white" : "bg-transparent border-white/5 text-white/5"
+                  )}
+                >
+                  {label}
+                </div>
+              )
+            })}
+          </div>
+          <p className="text-[9px] md:text-[12px] uppercase tracking-widest font-black text-white/20">
+            {habit.recurrence?.frequency === 'specific_days' ? 'Custom' :
+             habit.recurrence?.frequency === 'weekly' ? 'Semanal' :
+             habit.recurrence?.frequency === 'monthly' ? 'Mensal' :
+             habit.recurrence?.frequency === 'yearly' ? 'Anual' : 'Diário'}
+          </p>
         </div>
-        
+
         <div className="flex flex-col items-end">
-           <span className="text-sm font-black uppercase text-[var(--text-muted)] tracking-widest mb-1">Ofensiva</span>
-           <div className="flex items-center gap-2">
-              <span className="text-xl">🔥</span>
-              <span className="text-2xl font-black italic text-[var(--text-primary)]">{activeOfensiva}</span>
-           </div>
+          <span className="text-[9px] md:text-sm font-black uppercase text-[var(--text-muted)] tracking-widest mb-0.5">Ofensiva</span>
+          <div className="flex items-center gap-1 md:gap-2">
+            <span className="text-base md:text-xl">🔥</span>
+            <span className="text-xl md:text-2xl font-black italic text-[var(--text-primary)]">{activeOfensiva}</span>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -190,17 +190,14 @@ export default function HabitsPage() {
     if (!habits) return []
     const MAP = new Map<string, Habit[]>()
 
-    // Sort all habits by streak (desc) then frequency
+    // Sort habits by time ascending, no-time habits go to the end
     const sorted = [...habits].sort((a, b) => {
-      const streakA = a.streak || 0
-      const streakB = b.streak || 0
-      if (streakB !== streakA) return streakB - streakA
-      
-      const freqA = a.recurrence?.frequency || 'daily'
-      const freqB = b.recurrence?.frequency || 'daily'
-      if (freqA === 'daily' && freqB !== 'daily') return -1
-      if (freqB === 'daily' && freqA !== 'daily') return 1
-      return 0
+      const tA = a.time
+      const tB = b.time
+      if (tA && !tB) return -1
+      if (!tA && tB) return 1
+      if (tA && tB) return tA.localeCompare(tB)
+      return (a.sort_order || 0) - (b.sort_order || 0) || (b.streak || 0) - (a.streak || 0)
     })
 
     sorted.forEach(h => {
@@ -283,33 +280,32 @@ export default function HabitsPage() {
   }, [historyLogs, habits])
 
   return (
-    <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display',sans-serif]">
+    <div className="p-4 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-6 md:space-y-10 lg:space-y-14 pb-24 lg:pb-10">
       {/* Header */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-end justify-between"
+        className="flex items-center justify-between gap-3"
       >
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-[var(--bg-overlay)] rounded-[24px] flex items-center justify-center border border-[var(--border-subtle)] shadow-2xl">
-            <RefreshCcw className="text-[var(--text-primary)] w-8 h-8" />
+        <div className="flex items-center gap-3 md:gap-6 min-w-0">
+          <div className="w-10 h-10 md:w-16 md:h-16 bg-[var(--bg-overlay)] rounded-[16px] md:rounded-[24px] flex items-center justify-center border border-[var(--border-subtle)] shadow-2xl shrink-0">
+            <RefreshCcw className="text-[var(--text-primary)] w-5 h-5 md:w-8 md:h-8" />
           </div>
-          <div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tightest text-[var(--text-primary)]">Meus Hábitos</h1>
-            <p className="text-[var(--text-secondary)] font-medium text-base md:text-lg italic flex items-center gap-2">
+          <div className="min-w-0">
+            <h1 className="text-2xl md:text-5xl font-black tracking-tightest text-[var(--text-primary)]">Meus Hábitos</h1>
+            <p className="text-[var(--text-secondary)] font-medium text-sm md:text-lg italic hidden sm:block">
               Construa disciplina com rotinas consistentes.
-              <span className="inline-block w-1 h-1 rounded-full bg-[var(--text-muted)]/20 mx-1" />
-              <span className="text-[var(--text-muted)] text-xs font-black uppercase tracking-tighter hidden md:inline-block border border-[var(--border-subtle)] px-2 py-0.5 rounded-md">Botão direito para selecionar</span>
             </p>
           </div>
         </div>
-        
-        <button 
+
+        <button
           onClick={() => setShowAddModal(true)}
-          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-5 py-3 md:px-6 md:py-4 rounded-2xl font-black flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-xl shrink-0 text-sm md:text-base"
+          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-4 py-2.5 md:px-6 md:py-4 rounded-2xl font-black flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-xl shrink-0 text-sm md:text-base"
         >
-          <Plus size={20} />
-          Novo Hábito
+          <Plus size={18} />
+          <span className="hidden sm:inline">Novo Hábito</span>
+          <span className="sm:hidden">Novo</span>
         </button>
       </motion.div>
 
@@ -317,7 +313,7 @@ export default function HabitsPage() {
       <div className="space-y-16">
         <AnimatePresence mode="popLayout">
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
               {[1, 2, 3].map(i => (
                 <div key={i} className="h-48 rounded-[40px] bg-white/[0.02] border border-white/10 animate-pulse" />
               ))}
@@ -331,7 +327,7 @@ export default function HabitsPage() {
                 <h2 className="text-sm font-black tracking-widest text-white/50 uppercase">{group.category?.name || 'Sem Categoria'}</h2>
                 <span className="text-white/20 text-xs font-black uppercase tracking-widest">{group.items.length} {group.items.length === 1 ? 'Hábito' : 'Hábitos'}</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
                 {group.items.map((habit: Habit, idx: number) => (
                   <HabitGridItem
                     key={habit.id}
@@ -437,63 +433,67 @@ export default function HabitsPage() {
 
       <AnimatePresence>
         {isSelectionMode && (
-          <motion.div 
-            initial={{ y: 100, opacity: 0 }}
+          <motion.div
+            key="sel-bar-habits"
+            initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[10000] w-[calc(100vw-1.5rem)] md:w-auto max-w-5xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-8 lg:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-4 md:gap-8 lg:gap-10 shadow-2xl ring-1 ring-[var(--text-primary)]/5"
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+            className="fixed inset-x-0 bottom-0 z-[10000] pointer-events-none flex items-end justify-center lg:pl-64 pb-[calc(env(safe-area-inset-bottom)+88px)] lg:pb-10 px-3 lg:px-8"
           >
-            <div className="flex flex-col items-center justify-center min-w-[80px]">
-              <span className="text-3xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-1">Itens</span>
-            </div>
+            <div className="pointer-events-auto w-full md:w-auto max-w-2xl bg-[var(--bg-primary)]/95 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[28px] md:rounded-[36px] px-4 md:px-8 py-3.5 md:py-4 flex items-center gap-3 md:gap-5 shadow-2xl ring-1 ring-[var(--text-primary)]/5">
+              {/* Count */}
+              <div className="flex flex-col items-center justify-center min-w-[48px] md:min-w-[60px]">
+                <span className="text-xl md:text-2xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-0.5">Itens</span>
+              </div>
 
-            <div className="h-12 w-px bg-[var(--border-subtle)]" />
+              <div className="h-8 w-px bg-[var(--border-subtle)] flex-shrink-0" />
 
-            <div className="flex items-center gap-6">
-              {[
-                { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
-                { label: 'Hábitos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
-                { label: 'A Evitar', icon: ShieldAlert, onClick: () => handleSelectGroup('negative') },
-              ].map(btn => (
-                <button 
-                  key={btn.label}
-                  onClick={btn.onClick}
-                  className="relative flex flex-col items-center group/sel pt-1"
+              {/* Group selectors */}
+              <div className="flex items-center gap-2 md:gap-3 flex-1 justify-center">
+                {[
+                  { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
+                  { label: 'Hábitos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
+                  { label: 'A Evitar', icon: ShieldAlert, onClick: () => handleSelectGroup('negative') },
+                ].map(btn => (
+                  <button
+                    key={btn.label}
+                    onClick={btn.onClick}
+                    className="flex flex-col items-center gap-1 group/sel"
+                  >
+                    <div className="w-10 h-10 rounded-2xl bg-[var(--bg-overlay)] flex items-center justify-center border border-[var(--border-subtle)] group-hover/sel:bg-[var(--text-primary)] group-hover/sel:text-[var(--bg-primary)] text-[var(--text-muted)] group-hover/sel:border-transparent transition-all duration-200">
+                      <btn.icon size={16} />
+                    </div>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] group-hover/sel:text-[var(--text-primary)] transition-colors hidden md:block whitespace-nowrap">
+                      {btn.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-8 w-px bg-[var(--border-subtle)] flex-shrink-0" />
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={selectedIds.length === 0}
+                  className="flex flex-col items-center gap-1 group/del disabled:opacity-20"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-[var(--bg-overlay)] flex items-center justify-center border border-[var(--border-subtle)] group-hover/sel:bg-[var(--text-primary)] group-hover/sel:text-[var(--bg-primary)] transition-all duration-300">
-                    <btn.icon size={20} />
+                  <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white text-red-500 transition-all duration-200">
+                    <Trash2 size={16} />
                   </div>
-                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap">
-                    {btn.label}
-                  </span>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-red-400/60 hidden md:block whitespace-nowrap">Excluir</span>
                 </button>
-              ))}
-            </div>
 
-            <div className="h-10 w-px bg-white/10" />
-
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={handleBulkDelete}
-                disabled={selectedIds.length === 0}
-                className="flex flex-col items-center gap-1.5 text-red-500/40 hover:text-red-500 transition-all disabled:opacity-5 group/del"
-              >
-                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all">
-                  <Trash2 size={18} />
-                </div>
-                <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/del:opacity-60 transition-opacity">Excluir</span>
-              </button>
-              
-              <button 
-                onClick={() => {
-                  setIsSelectionMode(false)
-                  setSelectedIds([])
-                }}
-                className="bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] px-8 py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all border border-[var(--border-subtle)]"
-              >
-                Cancelar
-              </button>
+                <button
+                  onClick={() => { setIsSelectionMode(false); setSelectedIds([]) }}
+                  className="h-10 px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-[0.12em] text-[9px] md:text-[10px] transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           </motion.div>
         )}

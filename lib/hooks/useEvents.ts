@@ -118,11 +118,32 @@ export function useDeleteEvent() {
   const user = useCurrentUser()
 
   return useMutation({
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: ['events'] })
+      await qc.cancelQueries({ queryKey: ['eventsToday'] })
+      // Snapshot both cache groups for rollback
+      const eventSnaps = qc.getQueriesData<any[]>({ queryKey: ['events'] })
+      const todaySnaps = qc.getQueriesData<any[]>({ queryKey: ['eventsToday'] })
+      // Optimistically remove from every cached list immediately
+      eventSnaps.forEach(([key, old]) => {
+        if (old) qc.setQueryData(key, old.filter((e: any) => e.id !== id))
+      })
+      todaySnaps.forEach(([key, old]) => {
+        if (old) qc.setQueryData(key, old.filter((e: any) => e.id !== id))
+      })
+      return { eventSnaps, todaySnaps }
+    },
+    onError: (_err, _id, context: any) => {
+      context?.eventSnaps?.forEach(([key, old]: [unknown, unknown]) => qc.setQueryData(key as any, old))
+      context?.todaySnaps?.forEach(([key, old]: [unknown, unknown]) => qc.setQueryData(key as any, old))
+    },
     mutationFn: async (id: string) => {
       await deleteDoc(doc(db, 'events', id))
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['events', user?.uid] })
+      // Invalidate both — ['eventsToday'] was missing before (key mismatch with useEventsToday)
+      qc.invalidateQueries({ queryKey: ['events'] })
+      qc.invalidateQueries({ queryKey: ['eventsToday'] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
@@ -192,6 +213,7 @@ export function useEventsToday(selectedDate: Date = new Date()) {
 
   return useQuery({
     queryKey: ['eventsToday', dateStr, user?.uid],
+    staleTime: 30_000,
     queryFn: async () => {
       if (!user) return []
 
@@ -267,31 +289,54 @@ export function useEventsToday(selectedDate: Date = new Date()) {
         )
 
         // handledMap: eventId → Set of past dates that already have a real status
+        // lastHandledMap: eventId → the most recent date (past or today) with a real status
+        // — used to suppress OLD overdue occurrences once a more-recent one was logged,
+        //   so the user isn't forced to retroactively mark every missed occurrence one-by-one.
         const handledMap = new Map<string, Set<string>>()
+        const lastHandledMap = new Map<string, string>()
         allPastLogDocs.forEach(d => {
           const data = d.data()
           if (data.status !== 'none' && data.status !== 'todo') {
             if (!handledMap.has(data.event_id)) handledMap.set(data.event_id, new Set())
             handledMap.get(data.event_id)!.add(data.log_date)
+            const cur = lastHandledMap.get(data.event_id)
+            if (!cur || data.log_date > cur) lastHandledMap.set(data.event_id, data.log_date)
+          }
+        })
+
+        // Also factor in today's logged status — if today's occurrence was handled,
+        // ALL past overdue occurrences are suppressed (today is newer than any past date).
+        logsTodayMap.forEach((status, eventId) => {
+          if (status !== 'none' && status !== 'todo') {
+            const cur = lastHandledMap.get(eventId)
+            if (!cur || dateStr > cur) lastHandledMap.set(eventId, dateStr)
           }
         })
 
         // overdueMap: eventId → most recent unhandled past date
-        // We iterate pastDates from most-recent to oldest; first match wins.
+        // Iterates pastDates from most-recent (yesterday) to oldest (30 days ago).
+        // Skips any dates older than the event's most-recent logged date so that
+        // marking one occurrence doesn't spawn an infinite chain of older ones.
         const overdueMap = new Map<string, string>()
 
         allEvents.forEach(e => {
           if (!e.date || typeof e.date !== 'string') return
+          const lastHandled = lastHandledMap.get(e.id)
+
           for (const pDate of pastDates) {
             // Skip if event was created after this past date
             try {
               if (e.created_at && pDate < format(parseISO(e.created_at as string), 'yyyy-MM-dd')) continue
             } catch { continue }
 
+            // Skip dates older than the most recently logged occurrence.
+            // Example: event logged 3 days ago → only show occurrences from 1–2 days ago as overdue.
+            if (lastHandled && pDate < lastHandled) continue
+
             const pDateObj = parseISO(pDate)
             if (occursOnDate(e, pDate, pDateObj) && !handledMap.get(e.id)?.has(pDate)) {
               if (!overdueMap.has(e.id)) {
-                overdueMap.set(e.id, pDate) // store only the most-recent overdue date per event
+                overdueMap.set(e.id, pDate) // most-recent unhandled past date per event
               }
             }
           }

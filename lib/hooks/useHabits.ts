@@ -89,6 +89,7 @@ export function useHabitsToday(selectedDate: Date = new Date()) {
 
   return useQuery({
     queryKey: ['habits', 'date', format(selectedDate, 'yyyy-MM-dd'), user?.uid],
+    staleTime: 30_000,
     queryFn: async () => {
       if (!user) return []
 
@@ -128,7 +129,13 @@ export function useHabitsToday(selectedDate: Date = new Date()) {
         const interval = h.recurrence.interval || 1
         
         if (freq === 'daily') return true
-        if (freq === 'specific_days') return h.recurrence.days_of_week?.includes(todayDay) ?? false
+        if (freq === 'specific_days') {
+          if (interval > 1) {
+            const diffWeeks = Math.abs(differenceInWeeks(selectedDate, evDate))
+            if (diffWeeks % interval !== 0) return false
+          }
+          return h.recurrence.days_of_week?.includes(todayDay) ?? false
+        }
         if (freq === 'weekly') {
            if (interval > 1) {
               const diffWeeks = Math.abs(differenceInWeeks(selectedDate, evDate));
@@ -217,6 +224,19 @@ export function useDeleteHabit() {
   const user = useCurrentUser()
 
   return useMutation({
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: ['habits'] })
+      // Snapshot all habits caches for rollback
+      const snapshots = qc.getQueriesData<any[]>({ queryKey: ['habits'] })
+      // Optimistically remove the habit from every cached list immediately
+      snapshots.forEach(([key, old]) => {
+        if (old) qc.setQueryData(key, old.filter((h: any) => h.id !== id))
+      })
+      return { snapshots }
+    },
+    onError: (_err, _id, context: any) => {
+      context?.snapshots?.forEach(([key, old]: [unknown, unknown]) => qc.setQueryData(key as any, old))
+    },
     mutationFn: async (id: string) => {
       await deleteDoc(doc(db, 'habits', id))
     },
@@ -252,6 +272,7 @@ export function useLogHabit() {
           if (newStatus === 'failed') {
             newStreak = 0
           } else if (newStatus === 'done' && prevStatus !== 'done') {
+            // Transitioning TO done → +1 streak
             if (!newLastDate) {
               newStreak = 1
               newLastDate = targetDate
@@ -262,6 +283,7 @@ export function useLogHabit() {
               else { newStreak = 1; newLastDate = targetDate }
             }
           } else if (prevStatus === 'done' && newStatus !== 'done' && newStatus !== 'failed') {
+            // Undoing done (→ partial or none) → -1 streak
             if (newLastDate === targetDate) {
               newStreak = Math.max(0, newStreak - 1)
               newLastDate = newStreak > 0
@@ -269,6 +291,8 @@ export function useLogHabit() {
                 : null
             }
           }
+          // partial → anything or none → partial: no streak change
+
           return { ...h, status: newStatus, streak: newStreak, last_completed_date: newLastDate }
         })
       })
@@ -345,6 +369,7 @@ export function useLogHabit() {
           if (status === 'failed') {
             newStreak = 0
           } else if (status === 'done' && prevStatus !== 'done') {
+            // Transitioning TO done → increment streak
             if (!lastDate) {
               newStreak = 1
               newLastDate = targetDate
@@ -355,14 +380,16 @@ export function useLogHabit() {
               else { newStreak = 1; newLastDate = targetDate }
             }
           } else if (prevStatus === 'done' && status !== 'done' && status !== 'failed') {
+            // Undoing done (→ partial or none) → decrement streak
             if (lastDate === targetDate) {
               newStreak = Math.max(0, newStreak - 1)
+              // Restore lastDate to previous day so re-doing today still counts as consecutive
               newLastDate = newStreak > 0
                 ? format(subDays(parseISO(targetDate), 1), 'yyyy-MM-dd')
                 : null
             }
           }
-          // partial → no streak change
+          // partial → anything or none → partial: no streak change
 
           if (newStreak !== currentStreak || newLastDate !== lastDate) {
             await updateDoc(habitRef, { streak: newStreak, last_completed_date: newLastDate })

@@ -69,6 +69,10 @@ export function StatusChoiceBubble({
     const viewportHeight = window.innerHeight
     const padding = 12
 
+    // Account for the mobile bottom nav bar (lg:hidden, so present below 1024px)
+    // Nav height ≈ 80px. Add extra 4px breathing room above it.
+    const mobileNavHeight = viewportWidth < 1024 ? 84 : 0
+
     let nextX = position.x
     const halfWidth = rect.width / 2
     if (nextX - halfWidth < padding) {
@@ -80,14 +84,21 @@ export function StatusChoiceBubble({
     const bubbleHeight = rect.height || 100
     const topAbove = position.y - bubbleHeight - 16
     const topBelow = position.y + 16
+    // Prefer to show above the tap point; fall back to below when there's no room
     const top =
       position.y - padding >= bubbleHeight
         ? topAbove
         : topBelow
 
+    // Clamp: stay within viewport, and never overlap the mobile nav at the bottom
+    const clampedTop = Math.min(
+      Math.max(top, padding),
+      viewportHeight - bubbleHeight - padding - mobileNavHeight
+    )
+
     setBubbleStyle({
       position: 'fixed',
-      top: `${Math.min(Math.max(top, padding), viewportHeight - bubbleHeight - padding)}px`,
+      top: `${clampedTop}px`,
       left: `${nextX}px`,
       transform: 'translateX(-50%)',
       zIndex: 30000,

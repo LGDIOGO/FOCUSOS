@@ -3,24 +3,20 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { format, startOfWeek, addDays, isToday, getDay, isSameDay, isTomorrow, isYesterday, parse, isAfter } from 'date-fns'
+import { format, startOfWeek, addDays, isToday, getDay, isSameDay, isTomorrow, isYesterday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import HabitCard from '@/components/dashboard/HabitCard'
 import TaskItem from '@/components/dashboard/TaskItem'
 import ScoreWidget from '@/components/dashboard/ScoreWidget'
-import AIInsightBanner from '@/components/dashboard/AIInsightBanner'
 import { useHabitsToday, useLogHabit, useDeleteHabit } from '@/lib/hooks/useHabits'
 import { useTasksToday, useUpdateTask, useAddTask, useDeleteTask } from '@/lib/hooks/useTasks'
 import { useProfile } from '@/lib/hooks/useProfile'
-import { useGoals } from '@/lib/hooks/useGoals'
 import { RealTimeClock } from '@/components/dashboard/RealTimeClock'
 import { useEventsToday, useLogEvent, useUpdateEvent, useDeleteEvent } from '@/lib/hooks/useEvents'
 import { HabitStatus, Habit, Task, CalendarEvent, TaskStatus } from '@/types'
 import { TaskModal } from '@/components/dashboard/TaskModal'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
 import { HabitModal } from '@/components/dashboard/HabitModal'
-import { generateLocalInsights } from '@/lib/services/aiService'
-import SeedData from '@/components/dashboard/SeedData'
 import {
   Zap, TrendingUp, Target, Clock, Calendar, Trash2, Plus,
   ChevronRight, ArrowLeft, ArrowRight, RefreshCcw,
@@ -36,7 +32,7 @@ import { TutorialModal } from '@/components/dashboard/TutorialModal'
 import { calculateProgress } from '@/lib/utils/performance'
 import { usePerformanceMetrics } from '@/lib/hooks/usePerformance'
 import { NotificationsCenter } from '@/components/dashboard/NotificationsCenter'
-import { useNotifications, useAddNotification } from '@/lib/hooks/useNotifications'
+import { useNotifications } from '@/lib/hooks/useNotifications'
 
 // ─── Utilidades ─────────────────────────────────────────────
 const CYCLE: HabitStatus[] = ['none', 'done', 'partial', 'failed']
@@ -120,7 +116,6 @@ export default function DashboardPage() {
 
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { data: persistentNotifs } = useNotifications();
-  const { mutate: addPersistentNotif } = useAddNotification();
   const unreadCount = persistentNotifs?.filter(n => !n.is_read).length || 0;
 
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -274,13 +269,15 @@ export default function DashboardPage() {
         return (ov !== undefined && ov !== h.status) ? { ...h, status: ov } : h
       })
       .sort((a, b) => {
-        // Pendentes (none) primeiro; done/partial/failed vão para o fundo
-        const aPending = a.status === 'none' || !a.status
-        const bPending = b.status === 'none' || !b.status
-        if (aPending && !bPending) return -1
-        if (!aPending && bPending) return 1
-        // Dentro do mesmo grupo: maior streak primeiro
-        return (b.streak || 0) - (a.streak || 0)
+        const tA = a.time
+        const tB = b.time
+        // Com horário antes dos sem horário
+        if (tA && !tB) return -1
+        if (!tA && tB) return 1
+        // Ambos com horário: crescente
+        if (tA && tB) return tA.localeCompare(tB)
+        // Ambos sem horário: sort_order, depois streak
+        return (a.sort_order || 0) - (b.sort_order || 0) || (b.streak || 0) - (a.streak || 0)
       })
   }, [habitsData, habitStatusOverrides])
 
@@ -296,54 +293,18 @@ export default function DashboardPage() {
         return (ov !== undefined && ov !== e.status) ? { ...e, status: ov } : e
       })
       .sort((a, b) => {
-        // Concluído/parcial/falhou sempre vão para o fundo
+        // Pendentes (none/todo) primeiro; resolvidos (done/partial/failed) no fundo
         const aResolved = a.status === 'done' || a.status === 'partial' || a.status === 'failed'
         const bResolved = b.status === 'done' || b.status === 'partial' || b.status === 'failed'
         if (aResolved && !bResolved) return 1
         if (!aResolved && bResolved) return -1
-
-        // Entre pendentes: atrasados depois dos futuros, dentro do mesmo
-        // grupo ordena por horário
-        const now = currentTime
-        const timeA = a.time ? parse(a.time, 'HH:mm', now) : null
-        const timeB = b.time ? parse(b.time, 'HH:mm', now) : null
-
-        if (timeA && timeB) {
-          const passedA = isToday(selectedDate) && isAfter(now, timeA)
-          const passedB = isToday(selectedDate) && isAfter(now, timeB)
-          if (passedA && !passedB) return 1
-          if (!passedA && passedB) return -1
-          return timeA.getTime() - timeB.getTime()
-        }
-        return 0
+        // Dentro de cada grupo: horário crescente; sem horário vai por último
+        const toMin = (t?: string) => { if (!t) return Infinity; const [h, m] = t.split(':').map(Number); return h * 60 + m }
+        return toMin(a.time) - toMin(b.time)
       })
-  }, [eventsToday, eventStatusOverrides, currentTime, selectedDate])
+  }, [eventsToday, eventStatusOverrides])
 
-  // Sync AI Insights to Persistent Notifications
-  const currentInsights = useMemo(() => generateLocalInsights(habits, tasks), [habits, tasks])
-  
-  useEffect(() => {
-    if (!currentInsights.length || !persistentNotifs) return
 
-    // Solo agregar si el insight no existe ya hoy (evitar spam)
-    currentInsights.forEach(insight => {
-       const alreadyExists = persistentNotifs.some(n => 
-         n.title === insight.title && 
-         isToday(new Date(n.created_at))
-       )
-
-       if (!alreadyExists) {
-         addPersistentNotif({
-           title: insight.title,
-           body: insight.body,
-           type: 'insight'
-         })
-       }
-    })
-  }, [currentInsights, persistentNotifs, addPersistentNotif])
-
-  const { data: allGoals, isLoading: loadingGoals } = useGoals()
-  const goals = useMemo(() => allGoals || [], [allGoals])
 
   // Gera strip de 7 dias com base no offset
   const weekStart = useMemo(() => {
@@ -367,15 +328,7 @@ export default function DashboardPage() {
     setEventStatusOverrides(prev => ({ ...prev, [`${id}_${targetDate}`]: status }))
     logEvent({ eventId: id, status, logDate: targetDate })
 
-    if (status === 'partial') {
-      const ev = todayEvents.find(e => e.id === id)
-      if (ev) {
-        setEventToReschedule(ev)
-        setIsRescheduleOpen(true)
-      }
-    }
-
-    const labels: any = { done: '✓ Concluído!', partial: '½ Parcial - Reagendar?', failed: '✗ Falhou.' }
+    const labels: any = { done: '✓ Concluído!', partial: '½ Parcial!', failed: '✗ Falhou.' }
     if (labels[status]) setToast(labels[status])
   }
 
@@ -454,40 +407,42 @@ export default function DashboardPage() {
 
   // Removed the full screen blocking spinner so the UI shell renders instantaneously
   return (
-    <div className="min-h-screen bg-[var(--bg-workspace)] text-[var(--text-primary)] pb-24 font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--bg-workspace)] text-[var(--text-primary)] pb-[calc(env(safe-area-inset-bottom)+96px)] lg:pb-12 font-sans transition-colors duration-300">
 
-      {/* ─── Top Bar ─── */}
-      {/* Header */}
+      {/* ─── Header ─── */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 px-6 pt-4 md:px-10 md:pt-6 lg:px-14 max-w-[1600px] mx-auto w-full"
+        className="flex items-center justify-between gap-3 mb-6 px-4 pt-4 md:px-10 md:pt-6 lg:px-14 max-w-[1600px] mx-auto w-full"
       >
-        <div className="flex items-center gap-6">
-          <div>
-            <p className="text-[12px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] mb-1">FocusOS Dashboard</p>
-            <h1 className="text-4xl font-black tracking-tighter text-[var(--text-primary)]">Olá, {profile?.full_name?.split(' ')[0] || 'Usuário'}</h1>
-          </div>
+        {/* Left: greeting */}
+        <div className="min-w-0">
+          <p className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] mb-0.5">FocusOS Dashboard</p>
+          <h1 className="text-2xl md:text-4xl font-black tracking-tighter text-[var(--text-primary)] truncate">
+            Olá, {profile?.full_name?.split(' ')[0] || 'Usuário'}
+          </h1>
         </div>
 
-        <div className="flex flex-col md:flex-row md:items-center gap-8 md:gap-12">
-          <PerformanceHeader manualDailyScore={score.combined} />
-          <RealTimeClock />
-          <div className="flex items-center gap-2.5">
-            <button 
-              onClick={() => setIsNotificationsOpen(true)}
-              className="w-12 h-12 rounded-2xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] flex items-center justify-center hover:bg-[var(--bg-overlay)]/80 transition-all group relative"
-            >
-              <Bell size={20} className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors" />
-              {unreadCount > 0 && (
-                <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-600 rounded-full border-2 border-[var(--bg-primary)] animate-pulse" />
-              )}
-            </button>
+        {/* Right: metrics + clock + bell */}
+        <div className="flex items-center gap-3 md:gap-6 shrink-0">
+          {/* Clock — hidden on small mobile to save space */}
+          <div className="hidden sm:block">
+            <RealTimeClock />
           </div>
+          <PerformanceHeader manualDailyScore={score.combined} />
+          <button
+            onClick={() => setIsNotificationsOpen(true)}
+            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] flex items-center justify-center hover:bg-[var(--bg-overlay)]/80 transition-all group relative shrink-0"
+          >
+            <Bell size={18} className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors" />
+            {unreadCount > 0 && (
+              <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-600 rounded-full border border-[var(--bg-primary)] animate-pulse" />
+            )}
+          </button>
         </div>
       </motion.div>
 
-      <main className="px-6 md:px-10 lg:px-14 space-y-6 pt-0 pb-12 max-w-[1600px] mx-auto">
+      <main className="px-4 md:px-10 lg:px-14 space-y-5 md:space-y-6 pt-0 pb-4 max-w-[1600px] mx-auto">
 
 
 
@@ -501,7 +456,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setWeekOffset(prev => prev - 1)}
-                  className="p-1 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-white"
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-white touch-manipulation active:scale-90"
                 >
                   <ArrowLeft size={12} />
                 </button>
@@ -513,7 +468,7 @@ export default function DashboardPage() {
                 </button>
                 <button
                   onClick={() => setWeekOffset(prev => prev + 1)}
-                  className="p-1 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-white"
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-white touch-manipulation active:scale-90"
                 >
                   <ChevronRight size={12} className="rotate-0" />
                 </button>
@@ -579,7 +534,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
               <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Compromissos</p>
               <div className="flex items-center gap-3">
-                <Link href="/dashboard/agenda?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
+                <Link href="/dashboard/agenda?add=true" className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all active:scale-90 touch-manipulation">
                   <Plus size={14} />
                 </Link>
                 <Link href="/dashboard/agenda" className="text-sm text-white/60 hover:text-white flex items-center gap-0.5 transition-colors">
@@ -634,7 +589,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-3">
               <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Hábitos</p>
               <div className="flex items-center gap-3">
-                <Link href="/dashboard/habits?add=true" className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all">
+                <Link href="/dashboard/habits?add=true" className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all active:scale-90 touch-manipulation">
                   <Plus size={14} />
                 </Link>
                 <Link href="/dashboard/habits" className="text-sm text-white/60 hover:text-white flex items-center gap-0.5 transition-colors">
@@ -724,7 +679,7 @@ export default function DashboardPage() {
                 />
                 <button
                   type="submit"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white text-white hover:text-black transition-all active:scale-90"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white text-white hover:text-black transition-all active:scale-90 touch-manipulation"
                 >
                   <Plus size={16} />
                 </button>
@@ -768,17 +723,6 @@ export default function DashboardPage() {
           </section>
         </div>
 
-        {/* ─── AI Insight ─── */}
-
-        <SeedData />
-
-        <AIInsightBanner
-          habits={habits}
-          tasks={tasks}
-          events={todayEvents}
-          goals={goals}
-          score={score}
-        />
 
         <TaskModal
           isOpen={showTaskModal}
@@ -801,75 +745,83 @@ export default function DashboardPage() {
           habitToEdit={habitToEdit}
         />
 
-        <RescheduleModal
-          isOpen={isRescheduleOpen}
-          onClose={() => { setIsRescheduleOpen(false); setEventToReschedule(null) }}
-          onConfirm={handleRescheduleConfirm}
-          event={eventToReschedule}
-        />
+        <AnimatePresence>
+          {isRescheduleOpen && eventToReschedule && (
+            <RescheduleModal
+              onClose={() => { setIsRescheduleOpen(false); setEventToReschedule(null) }}
+              onConfirm={handleRescheduleConfirm}
+              event={eventToReschedule}
+            />
+          )}
+        </AnimatePresence>
       </main>
 
       <AnimatePresence>
         {isSelectionMode && (
           <motion.div
-            initial={{ y: 100, opacity: 0 }}
+            key="sel-bar-dashboard"
+            initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[10000] w-[95%] md:w-auto max-w-4xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-4 md:gap-10 shadow-2xl ring-1 ring-white/5"
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+            className="fixed inset-x-0 bottom-0 z-[10000] pointer-events-none flex items-end justify-center lg:pl-64 pb-[calc(env(safe-area-inset-bottom)+88px)] lg:pb-10 px-3 lg:px-8"
           >
-            <div className="flex flex-col items-center justify-center min-w-[60px] md:min-w-[80px]">
-              <span className="text-2xl md:text-3xl font-black text-white leading-none">{selectedItems.length}</span>
-              <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">
-                {selectedItems.length === 1 ? 'Item' : 'Itens'}
-              </span>
-            </div>
+            <div className="pointer-events-auto w-full md:w-auto max-w-3xl bg-[var(--bg-primary)]/95 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[28px] md:rounded-[36px] px-4 md:px-8 py-3.5 md:py-4 flex items-center gap-3 md:gap-5 shadow-2xl ring-1 ring-white/5">
+              {/* Count */}
+              <div className="flex flex-col items-center justify-center min-w-[48px] md:min-w-[60px]">
+                <span className="text-xl md:text-2xl font-black text-[var(--text-primary)] leading-none">{selectedItems.length}</span>
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-0.5">
+                  {selectedItems.length === 1 ? 'Item' : 'Itens'}
+                </span>
+              </div>
 
-            <div className="h-10 md:h-12 w-px bg-white/10" />
+              <div className="h-8 w-px bg-[var(--border-subtle)] flex-shrink-0" />
 
-            <div className="flex items-center gap-3 md:gap-6">
-              {[
-                { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
-                { label: 'Compromissos', icon: Calendar, onClick: () => handleSelectGroup('events') },
-                { label: 'Hábitos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
-                { label: 'A Evitar', icon: Target, onClick: () => handleSelectGroup('negative') },
-              ].map(btn => (
+              {/* Group selectors */}
+              <div className="flex items-center gap-2 md:gap-3 flex-1 justify-center">
+                {[
+                  { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
+                  { label: 'Agendas', icon: Calendar, onClick: () => handleSelectGroup('events') },
+                  { label: 'Hábitos', icon: TrendingUp, onClick: () => handleSelectGroup('positive') },
+                  { label: 'Evitar', icon: Target, onClick: () => handleSelectGroup('negative') },
+                ].map(btn => (
+                  <button
+                    key={btn.label}
+                    onClick={btn.onClick}
+                    className="flex flex-col items-center gap-1 group/sel"
+                  >
+                    <div className="w-10 h-10 rounded-2xl bg-[var(--bg-overlay)] flex items-center justify-center border border-[var(--border-subtle)] group-hover/sel:bg-[var(--text-primary)] group-hover/sel:text-[var(--bg-primary)] text-[var(--text-muted)] group-hover/sel:border-transparent transition-all duration-200">
+                      <btn.icon size={16} />
+                    </div>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] group-hover/sel:text-[var(--text-primary)] transition-colors hidden md:block whitespace-nowrap">
+                      {btn.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-8 w-px bg-[var(--border-subtle)] flex-shrink-0" />
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
                 <button
-                  key={btn.label}
-                  onClick={btn.onClick}
-                  className="relative flex flex-col items-center group/sel pt-1"
+                  onClick={handleBulkDelete}
+                  disabled={selectedItems.length === 0 || loading}
+                  className="flex flex-col items-center gap-1 group/del disabled:opacity-20"
                 >
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/sel:bg-white group-hover/sel:text-black transition-all duration-300">
-                    <btn.icon size={18} />
+                  <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white text-red-500 transition-all duration-200">
+                    {loading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Trash2 size={16} />}
                   </div>
-                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap hidden md:block">
-                    {btn.label}
-                  </span>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-red-400/60 hidden md:block whitespace-nowrap">Excluir</span>
                 </button>
-              ))}
-            </div>
 
-            <div className="h-10 md:h-12 w-px bg-white/10" />
-
-            <div className="flex items-center gap-3 md:gap-6">
-              <button
-                onClick={handleBulkDelete}
-                disabled={selectedItems.length === 0 || loading}
-                className="relative flex flex-col items-center group/del disabled:opacity-20"
-              >
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all duration-300 text-red-500">
-                  {loading ? <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Trash2 size={18} />}
-                </div>
-              </button>
-
-              <button
-                onClick={() => {
-                  setIsSelectionMode(false)
-                  setSelectedItems([])
-                }}
-                className="h-10 md:h-12 px-5 md:px-10 bg-white/10 hover:bg-white text-white hover:text-black rounded-xl md:rounded-2xl font-black uppercase tracking-[0.15em] text-[10px] md:text-[11px] transition-all duration-300 whitespace-nowrap"
-              >
-                Cancelar
-              </button>
+                <button
+                  onClick={() => { setIsSelectionMode(false); setSelectedItems([]) }}
+                  className="h-10 px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-[0.12em] text-[9px] md:text-[10px] transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           </motion.div>
         )}

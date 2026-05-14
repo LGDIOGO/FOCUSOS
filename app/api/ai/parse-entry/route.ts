@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from "@google/generative-ai"
+import OpenAI from "openai"
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 function buildSystemPrompt(today: string, dayName: string, categories: unknown[], type: string) {
   let schemaExtensions = ''
   let ruleExtensions = ''
-  
+
   if (type === 'finance') {
     schemaExtensions = `
   "amount": "Valor numérico (number) extraído da frase. Ex: 55. Salve apenas o número ou null.",
@@ -45,7 +46,7 @@ JSON DE RESPOSTA (OBRIGATÓRIO):
 REGRAS CRÍTICAS:
 1. TÍTULO LIMPO: É OBRIGATÓRIO remover números e unidades do título. "Ler 10 livros" -> title: "Ler". "Correr 5km" -> title: "Correr".
 2. EMOJI: Escolha um emoji vibrante e contextual.
-3. RECORRÊNCIA: 
+3. RECORRÊNCIA:
    - "Todo dia" ou "diariamente" -> frequency: "daily"
    - "Segundas e quartas" -> frequency: "specific_days", days_of_week: [1, 3]
    - "Toda semana" -> frequency: "weekly"
@@ -56,36 +57,70 @@ REGRAS CRÍTICAS:
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = process.env.GOOGLE_AI_API_KEY?.trim()
-    if (!apiKey) {
-      return NextResponse.json({ error: 'Configuração de IA ausente' }, { status: 500 })
-    }
+    const groqKey = process.env.GROQ_API_KEY?.trim()
+    const geminiKey = (process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY)?.trim()
 
-    const genAI = new GoogleGenerativeAI(apiKey)
     const { text, type, categories, currentDetails } = await req.json()
 
     const today = currentDetails?.today || format(new Date(), 'yyyy-MM-dd')
     const dayName = currentDetails?.dayName || format(new Date(), 'EEEE', { locale: ptBR })
 
     const systemPrompt = buildSystemPrompt(today, dayName, categories, type)
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      systemInstruction: systemPrompt
-    })
-
     const userMessage = `FRASE PARA PARSE: "${text}"\nTIPO: ${type}`
-    const result = await model.generateContent(userMessage)
-    const textResponse = result.response.text() || ''
-    
-    // Mais robusto: extrai o conteúdo entre as primeiras e últimas chaves
-    const jsonMatch = textResponse.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      throw new Error('Formato de resposta da IA inválido')
-    }
-    
-    const parsed = JSON.parse(jsonMatch[0])
 
-    return NextResponse.json(parsed)
+    function extractJson(raw: string): Record<string, unknown> {
+      const match = raw.match(/\{[\s\S]*\}/)
+      if (!match) throw new Error('Formato de resposta da IA inválido')
+      return JSON.parse(match[0])
+    }
+
+    // 1. Tentar com GROQ
+    if (groqKey) {
+      try {
+        const groq = new OpenAI({
+          apiKey: groqKey,
+          baseURL: "https://api.groq.com/openai/v1",
+        })
+
+        const completion = await groq.chat.completions.create({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage }
+          ],
+          model: "llama-3.3-70b-versatile",
+          temperature: 0.2,
+          response_format: { type: "json_object" }
+        })
+
+        const raw = completion.choices[0]?.message?.content || ''
+        if (raw) {
+          const parsed = extractJson(raw)
+          return NextResponse.json(parsed)
+        }
+      } catch (groqErr: any) {
+        console.warn('Parse-entry Groq failed, falling back to Gemini:', groqErr.message)
+      }
+    }
+
+    // 2. Tentar com GEMINI
+    if (geminiKey) {
+      try {
+        const genAI = new GoogleGenerativeAI(geminiKey)
+        const model = genAI.getGenerativeModel({
+          model: "gemini-2.0-flash",
+          systemInstruction: systemPrompt
+        })
+
+        const result = await model.generateContent(userMessage)
+        const raw = result.response.text() || ''
+        const parsed = extractJson(raw)
+        return NextResponse.json(parsed)
+      } catch (geminiErr: any) {
+        console.warn('Parse-entry Gemini failed:', geminiErr.message)
+      }
+    }
+
+    return NextResponse.json({ error: 'Nenhuma API de IA configurada (GROQ_API_KEY ou GOOGLE_AI_API_KEY)' }, { status: 500 })
   } catch (err: unknown) {
     const error = err as Error
     console.error('Parse Error:', error.message)

@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle, History
+  Calendar as CalendarIcon, Plus, Trash2, Zap, Clock, ChevronRight, Users, Cake, Star, Bell, RefreshCcw, TrendingUp, AlertCircle, History, Search, X
 } from 'lucide-react'
 import { AgendaModal } from '@/components/dashboard/AgendaModal'
 import { useEvents, useDeleteEvent } from '@/lib/hooks/useEvents'
@@ -119,65 +119,66 @@ function EventItem({
         toggleSelection(event.id)
       }}
       className={cn(
-        "group flex items-center gap-6 p-6 bg-[var(--bg-overlay)] border rounded-[32px] hover:bg-[var(--bg-overlay)]/80 transition-all cursor-pointer relative transition-colors duration-300",
+        "group flex items-center gap-3 md:gap-6 p-4 md:p-6 bg-[var(--bg-overlay)] border rounded-[24px] md:rounded-[32px] hover:bg-[var(--bg-overlay)]/80 transition-all cursor-pointer relative transition-colors duration-300",
         isSelected ? "border-red-500 bg-red-500/5" : "border-[var(--border-subtle)]"
       )}
     >
-      <div 
-        className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-110"
+      <div
+        className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-2xl shadow-inner transition-transform group-hover:scale-105 shrink-0"
         style={{ backgroundColor: event.color ? `${event.color}20` : 'rgba(255,255,255,0.05)', color: event.color || '#FFFFFF' }}
       >
         {event.emoji || (
-          event.type === 'meeting' ? <Users size={24} /> :
-          event.type === 'birthday' ? <Cake size={24} /> :
-          event.type === 'event' ? <Star size={24} /> : <CalendarIcon size={24} />
+          event.type === 'meeting' ? <Users size={20} /> :
+          event.type === 'birthday' ? <Cake size={20} /> :
+          event.type === 'event' ? <Star size={20} /> : <CalendarIcon size={20} />
         )}
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-3 mb-1">
-          <h3 className="text-lg font-bold text-[var(--text-primary)] truncate transition-colors">{event.title}</h3>
+        <div className="flex items-center gap-2 mb-0.5 md:mb-1">
+          <h3 className="text-base md:text-lg font-bold text-[var(--text-primary)] truncate transition-colors">{event.title}</h3>
           {event.recurrence && (
-             <div className="flex items-center gap-1 text-[9px] font-black text-white/20 uppercase tracking-widest">
-               <RefreshCcw size={10} />
-               {
-                 event.recurrence.frequency === 'daily' ? 'Diário' :
+            <div className="flex items-center gap-1 text-[9px] font-black text-white/20 uppercase tracking-widest shrink-0">
+              <RefreshCcw size={9} />
+              <span className="hidden sm:inline">
+                {event.recurrence.frequency === 'daily' ? 'Diário' :
                  event.recurrence.frequency === 'weekly' ? (event.recurrence.interval === 2 ? 'Quinzenal' : 'Semanal') :
                  event.recurrence.frequency === 'monthly' ? 'Mensal' :
-                 event.recurrence.frequency === 'yearly' ? 'Anual' :
-                 'Personalizado'
-               }
-             </div>
+                 event.recurrence.frequency === 'yearly' ? 'Anual' : 'Recorrente'}
+              </span>
+            </div>
           )}
         </div>
-          <div className={cn(
-            "flex items-center gap-4 text-base font-medium transition-all duration-700",
-            timeStatus.passed ? "text-[#FF453A]" : 
-            timeStatus.approaching ? "text-[#FF453A] animate-pulse" : "text-[var(--text-muted)]"
-          )}>
-            <div className="flex items-center gap-1.5">
-              <Clock size={14} className={cn(timeStatus.passed || timeStatus.approaching ? "text-[#FF453A]" : "")} />
-              {event.time}
+        <div className={cn(
+          "flex items-center gap-2 md:gap-4 text-sm md:text-base font-medium transition-all duration-700 flex-wrap",
+          timeStatus.passed ? "text-[#FF453A]" :
+          timeStatus.approaching ? "text-[#FF453A] animate-pulse" : "text-[var(--text-muted)]"
+        )}>
+          {event.time && (
+            <div className="flex items-center gap-1">
+              <Clock size={12} className={cn(timeStatus.passed || timeStatus.approaching ? "text-[#FF453A]" : "")} />
+              <span className="text-[12px] font-semibold">{event.time}</span>
             </div>
-            {event.isOverdue && (() => {
-              const daysLate = event.date ? differenceInDays(new Date(), parseISO(event.date)) : 0
-              return (
-                <span className="flex items-center gap-1 px-2 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-lg text-[#FF453A] text-[10px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-500">
-                  <AlertCircle size={10} />
-                  {daysLate > 0 ? `${daysLate}d atraso` : 'ATRASADO'}
-                </span>
-              )
-            })()}
-            {event.description && (
-              <div className="flex items-center gap-1.5 truncate">
-                <div className="w-1 h-1 rounded-full bg-white/10" />
-                {event.description}
-              </div>
-            )}
-          </div>
+          )}
+          {event.isOverdue && (() => {
+            const daysLate = event.date ? differenceInDays(new Date(), parseISO(event.date)) : 0
+            return (
+              <span className="flex items-center gap-1 px-1.5 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-md text-[#FF453A] text-[9px] font-black uppercase tracking-widest">
+                <AlertCircle size={9} />
+                {daysLate > 0 ? `${daysLate}d` : 'ATRASADO'}
+              </span>
+            )
+          })()}
+          {event.description && (
+            <span className="text-[11px] md:text-sm text-[var(--text-muted)] truncate hidden sm:block">
+              {event.description}
+            </span>
+          )}
+        </div>
       </div>
 
-      <button 
+      {/* Delete button — always visible on touch, hover-only on desktop */}
+      <button
         onClick={(e) => {
           e.stopPropagation()
           if (isSelectionMode) return
@@ -189,11 +190,11 @@ function EventItem({
         onTouchStart={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
         className={cn(
-          "p-3 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100",
-          isSelectionMode ? "hidden" : "text-white/5"
+          "p-2.5 rounded-xl text-white/20 hover:text-red-400 hover:bg-red-400/10 transition-all shrink-0",
+          isSelectionMode ? "hidden" : "opacity-40 md:opacity-0 md:group-hover:opacity-100"
         )}
       >
-        <Trash2 size={20} />
+        <Trash2 size={16} />
       </button>
     </motion.div>
   )
@@ -222,6 +223,7 @@ function AgendaPage() {
   const [historyStartDate, setHistoryStartDate] = useState<string>('')
   const [historyEndDate, setHistoryEndDate] = useState<string>('')
   const [historyPeriod, setHistoryPeriod] = useState<'all' | 'custom'>('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
   const user = useCurrentUser()
 
@@ -479,52 +481,196 @@ function AgendaPage() {
     )
   }, [events, logs, historyPeriod, historyStartDate, historyEndDate])
 
+  // ── Search results — null when search is empty (shows normal view) ──────────
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q || !events) return null
+
+    const filtered = events.filter(e => {
+      const title = (e.title || '').toLowerCase()
+      const desc = (e.description || '').toLowerCase()
+      const typeLabel = (EVENT_TYPES.find(t => t.type === e.type)?.label || '').toLowerCase()
+      let dateLabel = ''
+      if (e.date) {
+        try { dateLabel = format(parseISO(e.date), "dd/MM/yyyy EEEE MMMM", { locale: ptBR }).toLowerCase() } catch {}
+      }
+      return title.includes(q) || desc.includes(q) || typeLabel.includes(q) || dateLabel.includes(q)
+    })
+
+    return filtered
+      .map(e => ({
+        ...e,
+        status: (logs.get(`${e.id}_${e.date}`) || 'none') as CalendarEvent['status']
+      }))
+      .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+  }, [searchQuery, events, logs])
+
   return (
-    <div className="p-6 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-10 lg:space-y-14 pb-24 md:pb-10">
+    <div className="p-4 md:p-10 lg:p-14 max-w-7xl mx-auto space-y-6 md:space-y-10 lg:space-y-14 pb-24 lg:pb-10">
       {/* Header */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-end justify-between gap-6"
+        className="flex items-start justify-between gap-4"
       >
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-[var(--bg-overlay)] rounded-[24px] flex items-center justify-center border border-[var(--border-subtle)] shadow-2xl">
-            <CalendarIcon className="text-[var(--text-primary)] w-8 h-8" />
+        <div className="flex items-center gap-3 md:gap-6 min-w-0">
+          <div className="w-10 h-10 md:w-16 md:h-16 bg-[var(--bg-overlay)] rounded-[16px] md:rounded-[24px] flex items-center justify-center border border-[var(--border-subtle)] shadow-2xl shrink-0">
+            <CalendarIcon className="text-[var(--text-primary)] w-5 h-5 md:w-8 md:h-8" />
           </div>
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-               <h1 className="text-5xl font-black tracking-tightest text-[var(--text-primary)]">Minha Agenda</h1>
-               <div className="flex items-center gap-1 bg-[var(--bg-overlay)] rounded-full px-3 py-1 border border-[var(--border-subtle)]">
-                  <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:text-[var(--text-primary)] transition-colors text-[var(--text-muted)]">
-                    <ChevronRight className="rotate-180" size={14} />
-                  </button>
-                  <span className="text-[12px] font-black uppercase tracking-widest min-w-[100px] text-center text-[var(--text-primary)]">
-                    {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
-                  </span>
-                  <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:text-[var(--text-primary)] transition-colors text-[var(--text-muted)]">
-                    <ChevronRight size={14} />
-                  </button>
-               </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h1 className="text-3xl md:text-5xl font-black tracking-tightest text-[var(--text-primary)]">Minha Agenda</h1>
+              {/* Month nav — inline on desktop */}
+              <div className="flex items-center gap-1 bg-[var(--bg-overlay)] rounded-full px-2 py-1 border border-[var(--border-subtle)]">
+                <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-0.5 hover:text-[var(--text-primary)] transition-colors text-[var(--text-muted)]">
+                  <ChevronRight className="rotate-180" size={13} />
+                </button>
+                <span className="text-[11px] font-black uppercase tracking-widest min-w-[90px] text-center text-[var(--text-primary)] capitalize">
+                  {format(currentMonth, 'MMM yyyy', { locale: ptBR })}
+                </span>
+                <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-0.5 hover:text-[var(--text-primary)] transition-colors text-[var(--text-muted)]">
+                  <ChevronRight size={13} />
+                </button>
+              </div>
             </div>
-            <p className="text-[var(--text-secondary)] font-medium text-lg italic flex items-center gap-2">
+            <p className="text-[var(--text-secondary)] font-medium text-sm md:text-lg italic hidden sm:block">
               Gerencie compromissos para qualquer data futura.
-              <span className="inline-block w-1 h-1 rounded-full bg-[var(--text-muted)]/20 mx-1" />
-              <span className="text-[var(--text-muted)] text-xs font-black uppercase tracking-tighter hidden md:inline-block border border-[var(--border-subtle)] px-2 py-0.5 rounded-md">Botão direito para selecionar</span>
             </p>
           </div>
         </div>
-        
-        <button 
+
+        <button
           onClick={() => setShowAddModal(true)}
-          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-6 py-4 rounded-2xl font-black flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-xl shrink-0"
+          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-4 py-2.5 md:px-6 md:py-4 rounded-2xl font-black flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-xl shrink-0 text-sm md:text-base"
         >
-          <Plus size={20} />
-          Novo Compromisso
+          <Plus size={18} />
+          <span className="hidden sm:inline">Novo Compromisso</span>
+          <span className="sm:hidden">Novo</span>
         </button>
       </motion.div>
 
+      {/* ── Search bar ──────────────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="relative"
+      >
+        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Pesquisar compromissos por título, tipo ou data..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl pl-11 pr-10 py-3.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-white/20 transition-all font-medium text-sm"
+        />
+        <AnimatePresence>
+          {searchQuery && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.7 }}
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-xl hover:bg-white/10 active:scale-90 transition-all text-[var(--text-muted)] touch-manipulation"
+            >
+              <X size={14} />
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
-        <div className="lg:col-span-2 space-y-10 md:space-y-14">
+        <div className={cn("space-y-10 md:space-y-14", searchResults !== null ? "lg:col-span-3" : "lg:col-span-2")}>
+          {/* ── Search results ───────────────────────────────────────────── */}
+          <AnimatePresence mode="wait">
+            {searchResults !== null && (
+              <motion.div
+                key="search-results"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
+              >
+                {/* Result count badge */}
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                    {searchResults.length === 0
+                      ? 'Nenhum resultado'
+                      : `${searchResults.length} compromisso${searchResults.length !== 1 ? 's' : ''} encontrado${searchResults.length !== 1 ? 's' : ''}`}
+                  </span>
+                  <div className="px-2.5 py-0.5 bg-red-500/10 border border-red-500/20 rounded-full text-[10px] font-black text-red-400 truncate max-w-[200px]">
+                    "{searchQuery}"
+                  </div>
+                </div>
+
+                {searchResults.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+                    <div className="w-16 h-16 rounded-[24px] bg-[var(--bg-overlay)] border border-[var(--border-subtle)] flex items-center justify-center">
+                      <Search size={22} className="text-[var(--text-muted)]" />
+                    </div>
+                    <div>
+                      <p className="font-black text-[var(--text-primary)]">Nenhum compromisso encontrado</p>
+                      <p className="text-sm text-[var(--text-muted)] mt-1">Tente outros termos ou verifique a grafia</p>
+                    </div>
+                  </div>
+                ) : (
+                  // Group search results by date
+                  Object.entries(
+                    searchResults.reduce<Record<string, typeof searchResults>>((acc, e) => {
+                      const key = e.date || 'sem-data'
+                      if (!acc[key]) acc[key] = []
+                      acc[key].push(e)
+                      return acc
+                    }, {})
+                  )
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([date, eventList]) => {
+                      const isPast = date !== 'sem-data' && date < todayStr
+                      return (
+                        <div key={date} className={cn("space-y-3", isPast && "opacity-60 hover:opacity-100 transition-opacity")}>
+                          <div className="flex items-center gap-4 px-2">
+                            <h2 className={cn(
+                              "text-[12px] font-black uppercase tracking-widest shrink-0",
+                              date === todayStr ? "text-white" : isPast ? "text-white/30" : "text-white/60"
+                            )}>
+                              {date === 'sem-data' ? 'Sem data' :
+                               isToday(parseISO(date)) ? `Hoje • ${format(parseISO(date), 'dd/MM/yyyy')}` :
+                               isTomorrow(parseISO(date)) ? `Amanhã • ${format(parseISO(date), 'dd/MM/yyyy')}` :
+                               isPast ? format(parseISO(date), "dd/MM/yyyy • EEEE", { locale: ptBR }) :
+                               format(parseISO(date), "dd/MM/yyyy • EEEE", { locale: ptBR })}
+                            </h2>
+                            <div className="flex-1 border-t border-white/[0.03]" />
+                            {isPast && (
+                              <span className="text-[9px] font-black uppercase tracking-widest text-white/20 shrink-0">passado</span>
+                            )}
+                          </div>
+                          <div className="space-y-3">
+                            {eventList.map(event => (
+                              <EventItem
+                                key={`search_${event.id}_${event.date}`}
+                                event={event}
+                                isSelectionMode={isSelectionMode}
+                                isSelected={selectedIds.includes(event.id)}
+                                toggleSelection={toggleSelection}
+                                openEditModal={openEditModal}
+                                setIsSelectionMode={setIsSelectionMode}
+                                onDelete={id => deleteEvent.mutate(id)}
+                                currentTime={currentTime}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Normal view (history + upcoming) — hidden while searching ─── */}
+          {searchResults === null && (
+            <>
           {/* Aba de Compromissos Passados (Histórico) */}
           {!isLoading && Object.keys(pastEventsGrouped).length > 0 && (
             <div className="space-y-4">
@@ -716,8 +862,12 @@ function AgendaPage() {
               </motion.div>
             ))}
           </AnimatePresence>
+            </>
+          )}
         </div>
 
+        {/* Sidebar — hidden while searching */}
+        {searchResults === null && (
         <div className="space-y-8 lg:sticky lg:top-14 h-fit">
            <div className="p-6 md:p-8 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-[32px] space-y-6">
               <h3 className="font-black text-base uppercase tracking-widest text-white/60">Próximos Dias</h3>
@@ -742,6 +892,7 @@ function AgendaPage() {
               </div>
            </div>
         </div>
+        )}
       </div>
 
 
@@ -759,64 +910,69 @@ function AgendaPage() {
 
       <AnimatePresence>
         {isSelectionMode && (
-          <motion.div 
-            initial={{ y: 100, opacity: 0 }}
+          <motion.div
+            key="sel-bar-agenda"
+            initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[1000] w-[95%] md:w-auto max-w-5xl bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] px-4 md:px-10 py-4 md:py-5 flex items-center justify-between md:justify-start gap-3 md:gap-10 shadow-2xl ring-1 ring-[var(--text-primary)]/5"
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+            className="fixed inset-x-0 bottom-0 z-[10000] pointer-events-none flex items-end justify-center lg:pl-64 pb-[calc(env(safe-area-inset-bottom)+88px)] lg:pb-10 px-3 lg:px-8"
           >
-            <div className="flex flex-col items-center justify-center min-w-[60px] md:min-w-[80px]">
-              <span className="text-2xl md:text-3xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>
-              <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-1">Itens</span>
-            </div>
+            <div className="pointer-events-auto w-full md:w-auto max-w-3xl bg-[var(--bg-primary)]/95 backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[28px] md:rounded-[36px] px-4 md:px-8 py-3.5 md:py-4 flex items-center gap-3 md:gap-5 shadow-2xl ring-1 ring-[var(--text-primary)]/5">
+              {/* Count */}
+              <div className="flex flex-col items-center justify-center min-w-[48px] md:min-w-[60px]">
+                <span className="text-xl md:text-2xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-0.5">Itens</span>
+              </div>
 
-            <div className="h-10 md:h-12 w-px bg-[var(--border-subtle)]" />
+              <div className="h-8 w-px bg-[var(--border-subtle)] flex-shrink-0" />
 
-            <div className="flex items-center gap-2 md:gap-6">
-              {[
-                { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
-                { label: 'Hoje', icon: Clock, onClick: () => handleSelectGroup('today') },
-                { label: 'Amanhã', icon: CalendarIcon, onClick: () => handleSelectGroup('tomorrow') },
-                { label: 'Ano Atual', icon: Star, onClick: () => handleSelectGroup('current_year') },
-                { label: 'Próximo', icon: TrendingUp, onClick: () => handleSelectGroup('next_year') },
-              ].map(btn => (
-                <button 
-                  key={btn.label}
-                  onClick={btn.onClick}
-                  className="relative flex flex-col items-center group/sel pt-1"
+              {/* Group selectors */}
+              <div className="flex items-center gap-2 md:gap-3 flex-1 justify-center">
+                {[
+                  { label: 'Tudo', icon: Zap, onClick: () => handleSelectGroup('all') },
+                  { label: 'Hoje', icon: Clock, onClick: () => handleSelectGroup('today') },
+                  { label: 'Amanhã', icon: CalendarIcon, onClick: () => handleSelectGroup('tomorrow') },
+                  { label: 'Ano', icon: Star, onClick: () => handleSelectGroup('current_year') },
+                  { label: 'Próximo', icon: TrendingUp, onClick: () => handleSelectGroup('next_year') },
+                ].map(btn => (
+                  <button
+                    key={btn.label}
+                    onClick={btn.onClick}
+                    className="flex flex-col items-center gap-1 group/sel"
+                  >
+                    <div className="w-10 h-10 rounded-2xl bg-[var(--bg-overlay)] flex items-center justify-center border border-[var(--border-subtle)] group-hover/sel:bg-[var(--text-primary)] group-hover/sel:text-[var(--bg-primary)] text-[var(--text-muted)] group-hover/sel:border-transparent transition-all duration-200">
+                      <btn.icon size={16} />
+                    </div>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] group-hover/sel:text-[var(--text-primary)] transition-colors hidden md:block whitespace-nowrap">
+                      {btn.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-8 w-px bg-[var(--border-subtle)] flex-shrink-0" />
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={selectedIds.length === 0}
+                  className="flex flex-col items-center gap-1 group/del disabled:opacity-20"
                 >
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-[var(--bg-overlay)] flex items-center justify-center border border-[var(--border-subtle)] group-hover/sel:bg-[var(--text-primary)] group-hover/sel:text-[var(--bg-primary)] transition-all duration-300">
-                    <btn.icon size={18} />
+                  <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white text-red-500 transition-all duration-200">
+                    <Trash2 size={16} />
                   </div>
-                  <span className="mt-1.5 text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-0 group-hover/sel:opacity-100 transition-all pointer-events-none whitespace-nowrap hidden md:block">
-                    {btn.label}
-                  </span>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-red-400/60 hidden md:block whitespace-nowrap">Excluir</span>
                 </button>
-              ))}
-            </div>
 
-            <div className="h-10 md:h-12 w-px bg-white/10" />
-
-            <div className="flex items-center gap-3 md:gap-6">
-              <button 
-                onClick={handleBulkDelete}
-                disabled={selectedIds.length === 0}
-                className="relative flex flex-col items-center group/del disabled:opacity-20"
-              >
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white transition-all duration-300 text-red-500">
-                  <Trash2 size={18} />
-                </div>
-              </button>
-              
-              <button 
-                onClick={() => {
-                  setIsSelectionMode(false)
-                  setSelectedIds([])
-                }}
-                className="h-10 md:h-12 px-5 md:px-10 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-xl md:rounded-2xl font-black uppercase tracking-[0.15em] text-[10px] md:text-[11px] transition-all duration-300 whitespace-nowrap border border-[var(--border-subtle)]"
-              >
-                Cancelar
-              </button>
+                <button
+                  onClick={() => { setIsSelectionMode(false); setSelectedIds([]) }}
+                  className="h-10 px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-[0.12em] text-[9px] md:text-[10px] transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
