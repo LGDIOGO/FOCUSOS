@@ -38,14 +38,17 @@ export function useTasksToday(selectedDate: Date = new Date()) {
       })) as any[]
 
       // Filter rules:
-      //  - Future tasks (due_date > today): never show
-      //  - Everything else (today, past, inbox): always show regardless of status
-      //    so that marking done/partial/failed never removes the task from the day's view.
-      //    Users delete tasks explicitly when they want to remove them.
+      //  - Future tasks (due_date > targetDay): never show
+      //  - Inbox tasks (no due_date): always show (not tied to any date)
+      //  - Tasks due on the selected date: always show (pending and completed)
+      //  - Past tasks (due_date < targetDay): only show if unresolved (overdue/pending)
+      //    Resolved past tasks belong in history, not in today's view
       const isCompleted = (t: any) => t.status === 'done' || t.status === 'partial' || t.status === 'failed'
       const filtered = tasks.filter(t => {
         if (t.due_date && t.due_date > targetDay) return false  // futuro: nunca mostra
-        return true                                              // hoje, passado, inbox: sempre mostra
+        if (!t.due_date) return true                            // inbox: sempre mostra
+        if (t.due_date === targetDay) return true               // do dia selecionado: sempre mostra
+        return !isCompleted(t)                                  // passado: só mostra se pendente (atrasado)
       }) as Task[]
 
       // Sort: pending first, completed/resolved at the bottom; within each group by due_time.
