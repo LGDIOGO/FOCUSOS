@@ -260,8 +260,8 @@ export function useEventsToday(selectedDate: Date = new Date()) {
         return false
       }
 
-      // Filter events that occur ON the selected date
-      const occurringToday = allEvents.filter(e => occursOnDate(e, dateStr, selectedDate))
+      // Filter events that occur ON the selected date — skip drafts (no title)
+      const occurringToday = allEvents.filter(e => e.title && occursOnDate(e, dateStr, selectedDate))
 
       // Fetch each log by its known document ID — zero composite indexes needed
       // Use allSettled so a permission-denied on a non-existing doc doesn't abort all
@@ -330,73 +330,64 @@ export function useEventsToday(selectedDate: Date = new Date()) {
           }
         })
 
-        // allPastMap: eventId → most recent past occurrence date (handled OR unhandled).
-        // Iterates from most-recent to oldest and stops at the very first occurrence
-        // found for each event. This is the single date we surface per event.
-        //
-        // Key difference from the old overdueMap approach: we no longer skip handled
-        // dates — so the event STAYS in the results after being marked, letting the
-        // user see their chosen status (CONCLUÍDO/PARCIAL/FALHOU) on reload.
-        const allPastMap = new Map<string, string>()
+        // overdueMap: eventId → most recent UNRESOLVED past occurrence date.
+        // Iterates from most-recent (yesterday) to oldest (30 days ago).
+        // Skips dates already handled (done/partial/failed) and dates older than the
+        // event's most-recently-logged occurrence so we surface ONE entry per event.
+        const overdueMap = new Map<string, string>()
 
         allEvents.forEach(e => {
           if (!e.date || typeof e.date !== 'string') return
+          if (!e.title) return  // skip draft / incomplete events
           const lastHandled = lastHandledMap.get(e.id)
 
           for (const pDate of pastDates) {
             try {
               if (e.created_at && pDate < format(parseISO(e.created_at as string), 'yyyy-MM-dd')) continue
             } catch { continue }
+
+            // Skip dates older than the most recently resolved occurrence.
+            // This prevents an infinite chain of "missed" entries after a user logs one.
+            if (lastHandled && pDate < lastHandled) continue
+
             const pDateObj = parseISO(pDate)
             if (!occursOnDate(e, pDate, pDateObj)) continue
-            allPastMap.set(e.id, pDate) // most recent past occurrence
-            break
+
+            // Only track if this specific occurrence has no real status yet
+            if (!handledMap.get(e.id)?.has(pDate)) {
+              overdueMap.set(e.id, pDate)  // most-recent unresolved past date per event
+            }
+            break  // stop at the most recent past occurrence (whether resolved or not)
           }
         })
 
         // IDs of events that already have a today occurrence
         const todayEventIds = new Set(todayResults.map(e => e.id))
 
-        // ── Case 1: event occurs today AND has a recent past occurrence
-        //   → flag isOverdue only if the most recent past occurrence was NOT handled
-        //     AND today hasn't been resolved yet (avoids ghost NÃO REALIZADO after marking)
+        // ── Case 1: event occurs today AND has unresolved past occurrences
+        //   → flag as isOverdue only when today is still pending
         todayResults = todayResults.map(e => {
-          const recentPastDate = allPastMap.get(e.id)
-          if (!recentPastDate) return e
-          const pastWasHandled = handledMap.get(e.id)?.has(recentPastDate) ?? false
-          if (!pastWasHandled && (e.status === 'none' || !e.status)) {
+          if (overdueMap.has(e.id) && (e.status === 'none' || !e.status)) {
             return { ...e, date: dateStr, isOverdue: true }
           }
           return e
         })
 
-        // ── Case 2: event has a recent past occurrence but does NOT occur today
-        //   → fetch the actual log status for each event so it persists after marking.
-        //   → isOverdue = true only when unresolved (shows NÃO REALIZADO tag).
-        //   → after marking done/partial/failed the status is read back from Firestore
-        //     on every reload — the event stays visible with the correct badge.
-        const case2Entries = [...allPastMap.entries()].filter(([id]) => !todayEventIds.has(id))
+        // ── Case 2: event has an unresolved past occurrence but does NOT occur today
+        //   → add ONE entry (most recent unresolved date) to Resumo.
+        //   → resolved events (done/partial/failed) do NOT appear here — they belong
+        //     in the Agenda history, not in today's pending list.
+        overdueMap.forEach((overdueDate, eventId) => {
+          if (todayEventIds.has(eventId)) return  // already handled in Case 1
 
-        const case2LogResults = await Promise.allSettled(
-          case2Entries.map(([id, date]) => getDoc(doc(db, 'event_logs', `${id}_${date}`)))
-        )
-
-        case2Entries.forEach(([eventId, pDate], i) => {
           const event = allEvents.find(e => e.id === eventId)
-          if (!event) return
-
-          const result = case2LogResults[i]
-          const logStatus = (result.status === 'fulfilled' && result.value.exists())
-            ? (result.value.data().status || 'none')
-            : 'none'
-
-          const isResolved = logStatus === 'done' || logStatus === 'partial' || logStatus === 'failed'
+          if (!event || !event.title) return  // skip missing / draft events
 
           overdueResults.push({
             ...event,
-            date: pDate,       // past date — marking logs to the correct day
-            status: logStatus, // actual Firestore value, not hardcoded 'none'
-            isOverdue: !isResolved, // NÃO REALIZADO tag only for unresolved events
+            date: overdueDate,  // past date — marking logs to the correct day
+            status: 'none',
+            isOverdue: true,
           })
         })
       }
