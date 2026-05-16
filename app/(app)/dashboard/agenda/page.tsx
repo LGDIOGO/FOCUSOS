@@ -36,9 +36,11 @@ const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 // Pure helper — shared by groupedEvents and overdue injection
 function occursOnDate(e: CalendarEvent, targetStr: string, targetDate: Date): boolean {
   if (!e.date || typeof e.date !== 'string') return false
-  if (e.date === targetStr) return true
-  if (!e.recurrence) return false
-  if (targetStr < e.date) return false
+  if (targetStr < e.date) return false           // event hasn't started yet
+  if (!e.recurrence) return e.date === targetStr // non-recurring: only its own date
+  // Recurring events: ALWAYS run the pattern check — even for the start date.
+  // Previously `e.date === targetStr → true` caused specific_days events to appear
+  // on their creation day even when that day wasn't in days_of_week.
   try {
     const evDate = parseISO(e.date)
     const targetDay = getDay(targetDate)
