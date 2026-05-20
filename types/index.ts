@@ -186,3 +186,16 @@ export interface FocusNotification {
   created_at: string;
   data?: any;
 }
+
+export interface Book {
+  id: string;
+  user_id: string;
+  title: string;
+  author?: string;
+  purchase_link?: string;
+  status: 'want_to_read' | 'reading' | 'read';
+  rating?: number;  // 1-5
+  notes?: string;
+  created_at: string;
+  finished_at?: string;
+}

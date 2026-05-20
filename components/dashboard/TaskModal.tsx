@@ -120,7 +120,7 @@ export function TaskModal({ isOpen, onClose, taskToEdit }: { isOpen: boolean, on
   ]
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-end md:items-center md:justify-center md:p-6">
+    <div className="fixed inset-0 z-[10000] flex items-end pb-safe md:pb-0 md:items-center md:justify-center md:p-6">
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
@@ -132,7 +132,7 @@ export function TaskModal({ isOpen, onClose, taskToEdit }: { isOpen: boolean, on
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: '100%', opacity: 0 }}
         transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-        className="relative w-full md:max-w-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-t-[32px] md:rounded-[48px] p-5 md:p-8 overflow-y-auto max-h-[92dvh] md:max-h-[90vh] shadow-2xl z-[10001]"
+        className="relative w-full md:max-w-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-t-[32px] md:rounded-[48px] p-5 md:p-8 overflow-y-auto max-h-[85svh] md:max-h-[90vh] shadow-2xl z-[10001]"
       >
         {/* Drag handle — mobile only */}
         <div className="w-10 h-1 bg-[var(--border-subtle)] rounded-full mx-auto mb-4 md:hidden" />

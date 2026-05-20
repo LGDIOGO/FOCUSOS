@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Calendar, RefreshCcw, Target, Brain, Settings, Wallet, Timer } from 'lucide-react'
+import { LayoutDashboard, Calendar, RefreshCcw, Target, Brain, Settings, Wallet, Timer, BookOpen } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { SettingsModal } from '@/components/dashboard/SettingsModal'
 import { usePomodoroStore } from '@/lib/stores/pomodoroStore'
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { label: 'Metas',    icon: Target,          href: '/dashboard/goals' },
   { label: 'Insights', icon: Brain,           href: '/dashboard/insights' },
   { label: 'Finanças',  icon: Wallet,          href: '/dashboard/finance' },
+  { label: 'Livros',    icon: BookOpen,        href: '/dashboard/books' },
 ]
 
 export default function Sidebar() {

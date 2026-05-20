@@ -101,7 +101,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
         body: JSON.stringify({
           text: newHabit.name,
           type: 'habits',
-          categories: categories?.filter(c => c.type === 'habits').map(c => ({ id: c.id, name: c.name })),
+          categories: categories?.map(c => ({ id: c.id, name: c.name })),
           currentDetails: {
             today: format(new Date(), 'yyyy-MM-dd'),
             dayName: format(new Date(), 'EEEE', { locale: ptBR })
@@ -190,7 +190,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-end md:items-center md:justify-center md:p-6">
+    <div className="fixed inset-0 z-[10000] flex items-end pb-safe md:pb-0 md:items-center md:justify-center md:p-6">
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
@@ -202,7 +202,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: '100%', opacity: 0 }}
         transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-        className="relative w-full md:max-w-lg bg-[var(--bg-primary)] border text-left border-[var(--border-subtle)] rounded-t-[32px] md:rounded-[48px] p-5 md:p-7 overflow-y-auto max-h-[92dvh] md:max-h-[90vh] shadow-2xl z-[10001] transition-colors duration-300"
+        className="relative w-full md:max-w-lg bg-[var(--bg-primary)] border text-left border-[var(--border-subtle)] rounded-t-[32px] md:rounded-[48px] p-5 md:p-7 overflow-y-auto max-h-[85svh] md:max-h-[90vh] shadow-2xl z-[10001] transition-colors duration-300"
       >
         {/* Drag handle — mobile only */}
         <div className="w-10 h-1 bg-[var(--border-subtle)] rounded-full mx-auto mb-4 md:hidden" />
@@ -278,7 +278,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
               >
                 Nenhuma
               </button>
-              {categories?.filter(c => c.type === 'habits').map(cat => (
+              {categories?.map(cat => (
                 <button
                   key={cat.id}
                   type="button"
