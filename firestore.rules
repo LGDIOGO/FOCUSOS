@@ -77,5 +77,10 @@ service cloud.firestore {
       allow read, update, delete: if isOwnerByField();
       allow create: if isOwnerByFieldOnCreate();
     }
+
+    match /books/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
   }
 }
