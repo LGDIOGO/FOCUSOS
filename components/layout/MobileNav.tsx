@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Calendar, RefreshCcw, Target, Brain, Wallet, BookOpen } from 'lucide-react'
+import { LayoutDashboard, Calendar, RefreshCcw, Target, Brain, Wallet, BookOpen, GraduationCap } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 const NAV_ITEMS = [
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { label: 'Insights', icon: Brain,           href: '/dashboard/insights' },
   { label: 'Finanças', icon: Wallet,          href: '/dashboard/finance' },
   { label: 'Livros',   icon: BookOpen,        href: '/dashboard/books' },
+  { label: 'Estudos',  icon: GraduationCap,   href: '/dashboard/study' },
 ]
 
 export default function MobileNav() {

@@ -1,9 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, Pencil, Trash2, ExternalLink } from 'lucide-react'
-import { useBooks, useAddBook, useUpdateBook, useDeleteBook } from '@/lib/hooks/useBooks'
+import { Plus, X, Pencil, Trash2, ExternalLink, GripVertical } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { useBooks, useAddBook, useUpdateBook, useDeleteBook, useReorderBooks } from '@/lib/hooks/useBooks'
 import { Book } from '@/types'
 import { cn } from '@/lib/utils/cn'
 
@@ -40,10 +58,14 @@ function BookCard({
   book,
   onEdit,
   onDelete,
+  dragHandleProps,
+  isDragging,
 }: {
   book: Book
   onEdit: (book: Book) => void
   onDelete: (id: string) => void
+  dragHandleProps?: Record<string, any>
+  isDragging?: boolean
 }) {
   return (
     <motion.div
@@ -51,8 +73,22 @@ function BookCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       layout
-      className="p-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl flex items-start justify-between gap-3 group"
+      className={cn(
+        "p-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl flex items-start justify-between gap-3 group transition-shadow",
+        isDragging && "opacity-50 shadow-2xl ring-1 ring-[var(--text-primary)]/20"
+      )}
     >
+      {/* Drag handle — only rendered when sortable */}
+      {dragHandleProps && (
+        <button
+          {...dragHandleProps}
+          className="touch-none p-1 -ml-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-grab active:cursor-grabbing shrink-0 self-center transition-colors"
+          aria-label="Reordenar"
+        >
+          <GripVertical size={16} />
+        </button>
+      )}
+
       <div className="flex-1 min-w-0">
         <p className="font-bold text-sm text-[var(--text-primary)] leading-snug">{book.title}</p>
         {book.author && (
@@ -101,7 +137,46 @@ function BookCard({
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// BookSection
+// SortableBookCard — wraps BookCard with dnd-kit sortable
+// ────────────────────────────────────────────────────────────────────────────
+function SortableBookCard({
+  book,
+  onEdit,
+  onDelete,
+}: {
+  book: Book
+  onEdit: (book: Book) => void
+  onDelete: (id: string) => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: book.id })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <BookCard
+        book={book}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        dragHandleProps={{ ...attributes, ...listeners }}
+        isDragging={isDragging}
+      />
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// BookSection — regular (non-sortable)
 // ────────────────────────────────────────────────────────────────────────────
 function BookSection({
   title,
@@ -137,6 +212,71 @@ function BookSection({
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// SortableBookSection — "Quero Ler" with drag-and-drop
+// ────────────────────────────────────────────────────────────────────────────
+function SortableBookSection({
+  books,
+  onEdit,
+  onDelete,
+  onDragEnd,
+}: {
+  books: Book[]
+  onEdit: (book: Book) => void
+  onDelete: (id: string) => void
+  onDragEnd: (event: DragEndEvent) => void
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 6 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+        🛒 Quero Ler ({books.length})
+        {books.length > 1 && (
+          <span className="ml-2 text-[9px] font-medium normal-case tracking-normal text-[var(--text-muted)]/60">
+            segure o ícone para reordenar
+          </span>
+        )}
+      </h2>
+      {books.length === 0 ? (
+        <p className="text-sm text-[var(--text-muted)] italic px-1">Nenhum livro aqui ainda.</p>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
+        >
+          <SortableContext
+            items={books.map(b => b.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="grid gap-3">
+              {books.map(book => (
+                <SortableBookCard
+                  key={book.id}
+                  book={book}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Page
 // ────────────────────────────────────────────────────────────────────────────
 export default function BooksPage() {
@@ -144,10 +284,32 @@ export default function BooksPage() {
   const addBook = useAddBook()
   const updateBook = useUpdateBook()
   const deleteBook = useDeleteBook()
+  const reorderBooks = useReorderBooks()
 
   const [showModal, setShowModal] = useState(false)
   const [bookToEdit, setBookToEdit] = useState<Book | null>(null)
   const [form, setForm] = useState<BookForm>(EMPTY_FORM)
+
+  // Local ordered IDs for want_to_read — synced from DB, mutated optimistically on drag
+  const [wantToReadIds, setWantToReadIds] = useState<string[]>([])
+
+  useEffect(() => {
+    const sorted = books
+      .filter(b => b.status === 'want_to_read')
+      .sort((a, b) => {
+        const ao = a.sort_order ?? Infinity
+        const bo = b.sort_order ?? Infinity
+        if (ao !== bo) return ao - bo
+        return a.created_at < b.created_at ? -1 : 1
+      })
+    setWantToReadIds(sorted.map(b => b.id))
+  }, [books])
+
+  const reading = books.filter(b => b.status === 'reading')
+  const wantToRead = wantToReadIds
+    .map(id => books.find(b => b.id === id))
+    .filter(Boolean) as Book[]
+  const read = books.filter(b => b.status === 'read')
 
   const openAdd = () => {
     setBookToEdit(null)
@@ -176,6 +338,9 @@ export default function BooksPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    const isNewWantToRead = form.status === 'want_to_read' &&
+      (!bookToEdit || bookToEdit.sort_order === undefined || bookToEdit.sort_order === null)
+
     const payload = {
       title: form.title,
       author: form.author || undefined,
@@ -186,6 +351,8 @@ export default function BooksPage() {
       finished_at: form.status === 'read' && !bookToEdit?.finished_at
         ? new Date().toISOString()
         : bookToEdit?.finished_at,
+      // Assign sort_order so new want_to_read books go to the end of the list
+      ...(isNewWantToRead ? { sort_order: wantToRead.length } : {}),
     }
 
     if (bookToEdit) {
@@ -199,9 +366,18 @@ export default function BooksPage() {
     deleteBook.mutate(id)
   }
 
-  const reading = books.filter(b => b.status === 'reading')
-  const wantToRead = books.filter(b => b.status === 'want_to_read')
-  const read = books.filter(b => b.status === 'read')
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIdx = wantToReadIds.indexOf(active.id as string)
+    const newIdx = wantToReadIds.indexOf(over.id as string)
+    if (oldIdx < 0 || newIdx < 0) return
+
+    const newIds = arrayMove(wantToReadIds, oldIdx, newIdx)
+    setWantToReadIds(newIds)
+    reorderBooks.mutate(newIds)
+  }
 
   return (
     <div className="flex-1 min-h-screen p-4 md:p-6 lg:p-8 pb-24 lg:pb-10 space-y-8">
@@ -241,12 +417,11 @@ export default function BooksPage() {
             onEdit={openEdit}
             onDelete={handleDelete}
           />
-          <BookSection
-            title="Quero Ler"
-            emoji="🛒"
+          <SortableBookSection
             books={wantToRead}
             onEdit={openEdit}
             onDelete={handleDelete}
+            onDragEnd={handleDragEnd}
           />
           <BookSection
             title="Lidos"

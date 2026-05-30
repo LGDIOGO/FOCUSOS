@@ -82,5 +82,10 @@ service cloud.firestore {
       allow read, update, delete: if isOwnerByField();
       allow create: if isOwnerByFieldOnCreate();
     }
+
+    match /study_entries/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
   }
 }

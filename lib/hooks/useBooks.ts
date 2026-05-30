@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { db } from '@/lib/firebase/config'
 import { useCurrentUser } from '@/lib/context/AuthContext'
-import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore'
+import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore'
 import { Book } from '@/types'
 
 export function useBooks() {
@@ -60,6 +60,34 @@ export function useDeleteBook() {
     },
     onError: (_e: any, _id: string, ctx: any) => qc.setQueryData(['books', user?.uid], ctx?.prev),
     mutationFn: async (id: string) => deleteDoc(doc(db, 'books', id)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['books', user?.uid] }),
+  })
+}
+
+export function useReorderBooks() {
+  const qc = useQueryClient()
+  const user = useCurrentUser()
+  return useMutation({
+    onMutate: async (orderedIds: string[]) => {
+      await qc.cancelQueries({ queryKey: ['books', user?.uid] })
+      const prev = qc.getQueryData<Book[]>(['books', user?.uid])
+      qc.setQueryData(['books', user?.uid], (old: Book[] | undefined) => {
+        if (!old) return old
+        return old.map(b => {
+          const idx = orderedIds.indexOf(b.id)
+          return idx >= 0 ? { ...b, sort_order: idx } : b
+        })
+      })
+      return { prev }
+    },
+    onError: (_e: any, _ids: string[], ctx: any) => qc.setQueryData(['books', user?.uid], ctx?.prev),
+    mutationFn: async (orderedIds: string[]) => {
+      const batch = writeBatch(db)
+      orderedIds.forEach((id, idx) => {
+        batch.update(doc(db, 'books', id), { sort_order: idx })
+      })
+      await batch.commit()
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['books', user?.uid] }),
   })
 }

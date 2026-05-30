@@ -187,6 +187,16 @@ export interface FocusNotification {
   data?: any;
 }
 
+export interface StudyEntry {
+  id: string;
+  user_id: string;
+  date: string;       // ISO yyyy-MM-dd
+  content: string;
+  subjects?: string[]; // topic tags
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Book {
   id: string;
   user_id: string;
@@ -196,6 +206,7 @@ export interface Book {
   status: 'want_to_read' | 'reading' | 'read';
   rating?: number;  // 1-5
   notes?: string;
+  sort_order?: number; // manual order for want_to_read
   created_at: string;
   finished_at?: string;
 }
