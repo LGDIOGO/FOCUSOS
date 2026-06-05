@@ -75,6 +75,7 @@ export interface UserSettings {
     leadTimeMinutes: number; // ex: 5, 15, 30
     sound: 'focus' | 'none';
   };
+  score_target?: number; // 0-100 %, default 80
   updated_at: string;
   theme: 'light' | 'dark';
 }
