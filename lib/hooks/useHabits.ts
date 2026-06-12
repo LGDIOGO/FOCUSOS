@@ -18,8 +18,15 @@ import {
   Timestamp,
   increment 
 } from 'firebase/firestore'
-import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, differenceInDays, subDays } from 'date-fns'
+import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks } from 'date-fns'
 import { Habit } from '@/types'
+import {
+  isScheduledOn as isScheduledOnUtil,
+  getPrevScheduledDate,
+  getScheduledDatesNewestFirst,
+  computeStreakFromDates,
+  HabitScheduleData,
+} from '@/lib/utils/habitSchedule'
 
 export function useHabitsHistory(startDate?: string, endDate?: string) {
   const user = useCurrentUser()
@@ -246,46 +253,32 @@ export function useDeleteHabit() {
   })
 }
 
-// Recomputes habit streak by reading last 90 days of logs.
-// Used when backdating or undoing — simple diff logic fails for non-consecutive marks.
+// Schedule-aware streak recomputation from Firestore logs.
+// Reads only scheduled dates (not every calendar day) — correct for weekly/specific_days habits.
 async function computeStreakFromLogs(
   habitId: string,
-  excludeDate?: string // exclude when undoing a done mark
+  habitData: HabitScheduleData,
+  excludeDate?: string
 ): Promise<{ streak: number; lastDate: string | null }> {
   const user = auth.currentUser
   if (!user) return { streak: 0, lastDate: null }
 
-  const dates = Array.from({ length: 90 }, (_, i) =>
-    format(subDays(new Date(), i), 'yyyy-MM-dd')
-  )
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+  const scheduledDates = getScheduledDatesNewestFirst(habitData, todayStr, 90)
+  if (scheduledDates.length === 0) return { streak: 0, lastDate: null }
 
   const snaps = await Promise.all(
-    dates.map(date => getDoc(doc(db, 'habit_logs', `${habitId}_${date}`)))
+    scheduledDates.map(date => getDoc(doc(db, 'habit_logs', `${habitId}_${date}`)))
   )
 
-  const completedDates: string[] = []
+  const doneDates = new Set<string>()
   snaps.forEach((snap, i) => {
-    if (snap.exists() && dates[i] !== excludeDate && snap.data().status === 'done') {
-      completedDates.push(dates[i])
+    if (snap.exists() && snap.data().status === 'done') {
+      doneDates.add(scheduledDates[i])
     }
   })
 
-  completedDates.sort() // ascending
-
-  if (completedDates.length === 0) return { streak: 0, lastDate: null }
-
-  const lastDate = completedDates[completedDates.length - 1]
-  let streak = 1
-
-  for (let i = completedDates.length - 2; i >= 0; i--) {
-    if (differenceInDays(parseISO(completedDates[i + 1]), parseISO(completedDates[i])) === 1) {
-      streak++
-    } else {
-      break
-    }
-  }
-
-  return { streak, lastDate }
+  return computeStreakFromDates(scheduledDates, doneDates, todayStr, excludeDate)
 }
 
 export function useLogHabit() {
@@ -307,70 +300,51 @@ export function useLogHabit() {
       const previousHabits = qc.getQueryData(todayKey)
       const previousAllHabits = qc.getQueryData(allKey)
 
-      // For backdating, skip optimistic streak update — server will recompute correctly
       const prevHabit = (previousHabits as Habit[] | undefined)?.find(h => h.id === vars.habitId)
       const newStatus = vars.status
       const prevStatus = (prevHabit as any)?.status || 'none'
-      let newStreak = prevHabit?.streak || 0
-      let newLastDate: string | null | undefined = prevHabit?.last_completed_date as string | null | undefined ?? null
 
-      if (!isBackdating) {
+      // Optimistic streak — schedule-aware, no Firestore reads
+      let newStreak = prevHabit?.streak || 0
+      let newLastDate: string | null = (prevHabit?.last_completed_date as string | null | undefined) ?? null
+
+      if (!isBackdating && prevHabit) {
         if (newStatus === 'failed') {
           newStreak = 0
+          newLastDate = null
         } else if (newStatus === 'done' && prevStatus !== 'done') {
+          const prevScheduled = getPrevScheduledDate(prevHabit as HabitScheduleData, targetDate)
           if (!newLastDate) {
             newStreak = 1
-            newLastDate = targetDate
+          } else if (newLastDate === targetDate) {
+            // Same-day re-mark — keep streak as-is
+          } else if (prevScheduled && newLastDate === prevScheduled) {
+            // Last done was the previous scheduled occurrence — extend streak
+            newStreak += 1
           } else {
-            const diff = differenceInDays(parseISO(targetDate), parseISO(newLastDate))
-            if (diff === 0) { if (newStreak === 0) newStreak = 1; newLastDate = targetDate }
-            else if (diff === 1) { newStreak += 1; newLastDate = targetDate }
-            else { newStreak = 1; newLastDate = targetDate }
+            // Gap — reset
+            newStreak = 1
           }
+          newLastDate = targetDate
         } else if (prevStatus === 'done' && newStatus !== 'done' && newStatus !== 'failed') {
+          // Undoing done — approximate (server will recompute exact value)
           if (newLastDate === targetDate) {
             newStreak = Math.max(0, newStreak - 1)
-            newLastDate = newStreak > 0
-              ? format(subDays(parseISO(targetDate), 1), 'yyyy-MM-dd')
-              : null
+            const prevScheduled = getPrevScheduledDate(prevHabit as HabitScheduleData, targetDate)
+            newLastDate = newStreak > 0 ? (prevScheduled ?? null) : null
           }
         }
       }
 
-      // Update the habit list for the selected date (Resumo / Hábitos date view)
+      // Update habit list for the selected date view
       qc.setQueryData(todayKey, (old: Habit[] | undefined) => {
         if (!old) return old
         return old.map(h => {
           if (h.id !== vars.habitId) return h
           if (isBackdating) {
-            // Only update status — streak corrected by server after invalidation
+            // Only update status — streak recomputed server-side after invalidation
             return { ...h, status: vars.status }
           }
-          const prevStatus = (h as any).status || 'none'
-          let newStreak = h.streak || 0
-          let newLastDate = h.last_completed_date as string | null | undefined
-
-          if (newStatus === 'failed') {
-            newStreak = 0
-          } else if (newStatus === 'done' && prevStatus !== 'done') {
-            if (!newLastDate) {
-              newStreak = 1
-              newLastDate = targetDate
-            } else {
-              const diff = differenceInDays(parseISO(targetDate), parseISO(newLastDate))
-              if (diff === 0) { if (newStreak === 0) newStreak = 1; newLastDate = targetDate }
-              else if (diff === 1) { newStreak += 1; newLastDate = targetDate }
-              else { newStreak = 1; newLastDate = targetDate }
-            }
-          } else if (prevStatus === 'done' && newStatus !== 'done' && newStatus !== 'failed') {
-            if (newLastDate === targetDate) {
-              newStreak = Math.max(0, newStreak - 1)
-              newLastDate = newStreak > 0
-                ? format(subDays(parseISO(targetDate), 1), 'yyyy-MM-dd')
-                : null
-            }
-          }
-
           return { ...h, status: newStatus, streak: newStreak, last_completed_date: newLastDate }
         })
       })
@@ -441,19 +415,20 @@ export function useLogHabit() {
         }
       }
 
-        // 4. Update Habit Streak
-        // For today's marks: simple diff logic.
-        // For backdating or undoing: recompute from logs so gap-filling restores streak correctly.
+        // 4. Update Habit Streak — schedule-aware for all recurrence types
         const habitRef = doc(db, 'habits', habitId)
         const habitDoc = await getDoc(habitRef)
 
         if (habitDoc.exists()) {
-          const habitData = habitDoc.data()
+          const habitData = habitDoc.data() as HabitScheduleData & {
+            streak: number
+            last_completed_date?: string | null
+          }
           const currentStreak = habitData.streak || 0
-          const lastDate = habitData.last_completed_date as string | null | undefined
+          const lastDate = (habitData.last_completed_date as string | null | undefined) ?? null
 
           let newStreak = currentStreak
-          let newLastDate = lastDate
+          let newLastDate: string | null = lastDate
 
           const todayStr = format(new Date(), 'yyyy-MM-dd')
           const isBackdating = targetDate < todayStr
@@ -464,24 +439,28 @@ export function useLogHabit() {
           } else if (status === 'done' && prevStatus !== 'done') {
             if (isBackdating) {
               // Recompute from logs — handles gap-filling, out-of-order marking, midnight recovery
-              const computed = await computeStreakFromLogs(habitId)
+              const computed = await computeStreakFromLogs(habitId, habitData)
               newStreak = computed.streak
               newLastDate = computed.lastDate
             } else {
-              // Marking today: simple diff is correct
+              // Marking today: schedule-aware prev-day check (no extra Firestore reads)
+              const prevScheduled = getPrevScheduledDate(habitData, targetDate)
               if (!lastDate) {
                 newStreak = 1
-                newLastDate = targetDate
+              } else if (lastDate === targetDate) {
+                // Already counted (same day re-check) — keep streak
+              } else if (prevScheduled && lastDate === prevScheduled) {
+                // Completed the previous scheduled occurrence → extend streak
+                newStreak = currentStreak + 1
               } else {
-                const diff = differenceInDays(parseISO(targetDate), parseISO(lastDate))
-                if (diff === 0) { if (newStreak === 0) newStreak = 1; newLastDate = targetDate }
-                else if (diff === 1) { newStreak += 1; newLastDate = targetDate }
-                else { newStreak = 1; newLastDate = targetDate }
+                // Missed at least one scheduled occurrence → reset
+                newStreak = 1
               }
+              newLastDate = targetDate
             }
           } else if (prevStatus === 'done' && status !== 'done' && status !== 'failed') {
             // Undoing done → recompute excluding this date
-            const computed = await computeStreakFromLogs(habitId, targetDate)
+            const computed = await computeStreakFromLogs(habitId, habitData, targetDate)
             newStreak = computed.streak
             newLastDate = computed.lastDate
           }

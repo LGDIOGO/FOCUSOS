@@ -1,12 +1,9 @@
 'use client'
 
 import { useMemo } from 'react'
-import {
-  format, subDays, parseISO,
-  getDay, getDate, getMonth, differenceInWeeks,
-} from 'date-fns'
+import { format, subDays } from 'date-fns'
 import { useHabitsHistory, useHabits } from './useHabits'
-import { Habit } from '@/types'
+import { isScheduledOn } from '@/lib/utils/habitSchedule'
 
 export type AnalyticsPeriod = 'week' | 'month' | 'year'
 
@@ -39,35 +36,6 @@ export interface AnalyticsSummary {
   daysTotal: number
 }
 
-// Mirrors the recurrence filter from useHabitsToday
-function isScheduledOn(h: Habit, dateStr: string): boolean {
-  if (h.start_date && dateStr < h.start_date) return false
-  if (h.end_date && dateStr > h.end_date) return false
-
-  const baseDateStr = h.start_date || h.created_at.split('T')[0]
-  if (dateStr < baseDateStr) return false
-
-  if (!h.recurrence) return dateStr === baseDateStr
-
-  const date = new Date(dateStr + 'T00:00:00')
-  const dayOfWeek = getDay(date)
-  const evDate = parseISO(baseDateStr)
-  const freq = h.recurrence.frequency
-  const interval = h.recurrence.interval || 1
-
-  if (freq === 'daily') return true
-  if (freq === 'specific_days') {
-    if (interval > 1 && Math.abs(differenceInWeeks(date, evDate)) % interval !== 0) return false
-    return h.recurrence.days_of_week?.includes(dayOfWeek) ?? false
-  }
-  if (freq === 'weekly') {
-    if (interval > 1 && Math.abs(differenceInWeeks(date, evDate)) % interval !== 0) return false
-    return dayOfWeek === getDay(evDate)
-  }
-  if (freq === 'monthly') return getDate(date) === getDate(evDate)
-  if (freq === 'yearly') return getDate(date) === getDate(evDate) && getMonth(date) === getMonth(evDate)
-  return false
-}
 
 const PERIOD_DAYS: Record<AnalyticsPeriod, number> = {
   week: 7,
