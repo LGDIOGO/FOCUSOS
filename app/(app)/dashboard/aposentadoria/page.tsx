@@ -700,20 +700,35 @@ export default function AposentadoriaPage() {
             </div>
           </div>
 
-          {/* CTA: Track plan */}
-          <button
-            onClick={handleStartTracking}
-            className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-amber-500/30 bg-amber-500/8 hover:bg-amber-500/15 hover:border-amber-500/50 text-amber-300 transition-all group"
-          >
-            <div className="flex items-center gap-2.5">
-              <PiggyBank size={18} className="text-amber-400 shrink-0" />
-              <div className="text-left">
-                <p className="text-sm font-semibold">Acompanhar plano</p>
-                <p className="text-xs text-amber-400/70">Registre cada aporte mês a mês</p>
+          {/* CTAs */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={handleStartTracking}
+              className="flex items-center justify-between px-3 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/8 hover:bg-amber-500/15 hover:border-amber-500/50 text-amber-300 transition-all group"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <PiggyBank size={16} className="text-amber-400 shrink-0" />
+                <div className="text-left min-w-0">
+                  <p className="text-xs font-semibold leading-tight">Acompanhar</p>
+                  <p className="text-[10px] text-amber-400/70 leading-tight">plano mês a mês</p>
+                </div>
               </div>
-            </div>
-            <ArrowRight size={16} className="text-amber-400/60 group-hover:translate-x-1 transition-transform" />
-          </button>
+              <ArrowRight size={14} className="text-amber-400/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
+            </button>
+            <button
+              onClick={() => router.push('/dashboard/aposentadoria/reservas')}
+              className="flex items-center justify-between px-3 py-3 rounded-2xl border border-blue-500/30 bg-blue-500/8 hover:bg-blue-500/15 hover:border-blue-500/50 text-blue-300 transition-all group"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Wallet size={16} className="text-blue-400 shrink-0" />
+                <div className="text-left min-w-0">
+                  <p className="text-xs font-semibold leading-tight">Reservas</p>
+                  <p className="text-[10px] text-blue-400/70 leading-tight">fundos separados</p>
+                </div>
+              </div>
+              <ArrowRight size={14} className="text-blue-400/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
+            </button>
+          </div>
 
           {/* Chart */}
           <div className="bg-[var(--bg-overlay)] rounded-2xl p-4 border border-[var(--border-subtle)]">

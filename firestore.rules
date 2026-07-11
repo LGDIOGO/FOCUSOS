@@ -94,5 +94,15 @@ service cloud.firestore {
       allow update, delete: if isOwnerByField();
       allow create: if isOwnerByFieldOnCreate();
     }
+
+    match /reserves/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    match /reserve_transactions/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
   }
 }
