@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   PiggyBank, TrendingUp, Wallet, Sparkles, BarChart3,
   ChevronDown, ChevronUp, AlertCircle, CheckCircle2,
-  RotateCcw, Info,
+  RotateCcw, Info, ArrowRight,
 } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -343,10 +344,22 @@ function useLocalConfig(): [Config, (v: Partial<Config>) => void, () => void] {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AposentadoriaPage() {
+  const router = useRouter()
   const [cfg, update, reset] = useLocalConfig()
   const [showTable, setShowTable] = useState(false)
   const [activePreset, setActivePreset] = useState<number | null>(null)
   const [showInfo, setShowInfo] = useState(false)
+
+  function handleStartTracking() {
+    const now = new Date()
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    try {
+      if (!localStorage.getItem('focusos:retirement:trackingStart')) {
+        localStorage.setItem('focusos:retirement:trackingStart', ym)
+      }
+    } catch {}
+    router.push('/dashboard/aposentadoria/acompanhamento')
+  }
 
   const result = useMemo(() => project(cfg), [cfg])
   const reqContrib = useMemo(() => calcRequiredContrib(cfg), [cfg])
@@ -576,7 +589,9 @@ export default function AposentadoriaPage() {
                 <CheckCircle2 size={20} className="text-emerald-400 shrink-0" />
                 <div>
                   <p className="text-sm font-semibold text-emerald-300">
-                    Meta atingida aos {result.goalReachedAge} anos — {result.goalReachedYear} {result.goalReachedYear === 1 ? 'ano' : 'anos'} antes do prazo!
+                    Meta atingida aos {result.goalReachedAge} anos —{' '}
+                    {yearsToRetire - result.goalReachedYear!}{' '}
+                    {yearsToRetire - result.goalReachedYear! === 1 ? 'ano' : 'anos'} antes do prazo!
                   </p>
                   {exceedsPct > 100 && (
                     <p className="text-xs text-emerald-400/70 mt-0.5">
@@ -684,6 +699,21 @@ export default function AposentadoriaPage() {
               </p>
             </div>
           </div>
+
+          {/* CTA: Track plan */}
+          <button
+            onClick={handleStartTracking}
+            className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-amber-500/30 bg-amber-500/8 hover:bg-amber-500/15 hover:border-amber-500/50 text-amber-300 transition-all group"
+          >
+            <div className="flex items-center gap-2.5">
+              <PiggyBank size={18} className="text-amber-400 shrink-0" />
+              <div className="text-left">
+                <p className="text-sm font-semibold">Acompanhar plano</p>
+                <p className="text-xs text-amber-400/70">Registre cada aporte mês a mês</p>
+              </div>
+            </div>
+            <ArrowRight size={16} className="text-amber-400/60 group-hover:translate-x-1 transition-transform" />
+          </button>
 
           {/* Chart */}
           <div className="bg-[var(--bg-overlay)] rounded-2xl p-4 border border-[var(--border-subtle)]">
