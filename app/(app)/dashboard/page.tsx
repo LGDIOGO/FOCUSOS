@@ -8,7 +8,7 @@ import { ptBR } from 'date-fns/locale'
 import HabitCard from '@/components/dashboard/HabitCard'
 import TaskItem from '@/components/dashboard/TaskItem'
 import ScoreWidget from '@/components/dashboard/ScoreWidget'
-import { useHabitsToday, useLogHabit, useDeleteHabit } from '@/lib/hooks/useHabits'
+import { useHabits, useHabitsToday, useLogHabit, useDeleteHabit } from '@/lib/hooks/useHabits'
 import { useTasksToday, useUpdateTask, useAddTask, useDeleteTask } from '@/lib/hooks/useTasks'
 import { useProfile } from '@/lib/hooks/useProfile'
 import { RealTimeClock } from '@/components/dashboard/RealTimeClock'
@@ -30,6 +30,7 @@ import { RescheduleModal } from '@/components/dashboard/RescheduleModal'
 import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
 import { TutorialModal } from '@/components/dashboard/TutorialModal'
 import { calculateProgress } from '@/lib/utils/performance'
+import { getStreakShieldInfo } from '@/lib/utils/scoring'
 import { usePerformanceMetrics } from '@/lib/hooks/usePerformance'
 import { NotificationsCenter } from '@/components/dashboard/NotificationsCenter'
 import { useNotifications } from '@/lib/hooks/useNotifications'
@@ -87,6 +88,7 @@ export default function DashboardPage() {
   }, [])
 
   const { data: habitsData, isLoading: loadingHabits } = useHabitsToday(selectedDate)
+  const { data: allHabitsData } = useHabits()
   const { data: tasksData, isLoading: loadingTasks } = useTasksToday(selectedDate)
   const { data: eventsToday, isLoading: loadingEvents } = useEventsToday(selectedDate)
   const { mutate: logHabit } = useLogHabit()
@@ -282,6 +284,17 @@ export default function DashboardPage() {
         return (a.sort_order || 0) - (b.sort_order || 0) || (b.streak || 0) - (a.streak || 0)
       })
   }, [habitsData, habitStatusOverrides])
+
+  const atRiskHabits = useMemo(() => {
+    if (!isViewingToday || !allHabitsData) return []
+    return allHabitsData.filter(h => {
+      if (!h.last_completed_date || (h.streak || 0) <= 0) return false
+      const daysSince = differenceInDays(parseISO(todayStr), parseISO(h.last_completed_date))
+      if (daysSince < 2) return false
+      const shield = getStreakShieldInfo(h.streak || 0, h.last_completed_date, todayStr)
+      return shield.isAtRisk && shield.isProtected
+    })
+  }, [allHabitsData, isViewingToday, todayStr])
 
   const tasks = useMemo(() => tasksData || [], [tasksData])
 
@@ -479,7 +492,30 @@ export default function DashboardPage() {
 
       <main className="px-4 md:px-10 lg:px-14 space-y-5 md:space-y-6 pt-0 pb-4 max-w-[1600px] mx-auto">
 
-
+        {/* ─── Banner: Registrando para ONTEM ─── */}
+        <AnimatePresence>
+          {isYesterday(selectedDate) && (
+            <motion.div
+              key="yesterday-banner"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-blue-500/10 border border-blue-500/20"
+            >
+              <span className="text-lg">📅</span>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-blue-300">Registrando para ONTEM</p>
+                <p className="text-[11px] text-blue-400/70">O status de hoje não é afetado — cada dia tem seu próprio registro.</p>
+              </div>
+              <button
+                onClick={() => setSelectedDate(new Date())}
+                className="text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 hover:bg-blue-500/20 transition-all active:scale-95 flex-shrink-0"
+              >
+                Voltar a Hoje
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ─── Week Strip ─── */}
         <section>
@@ -618,6 +654,61 @@ export default function DashboardPage() {
               )}
             </div>
           </section>
+
+          {/* ─── Ofensivas em Risco ─── */}
+          <AnimatePresence>
+            {isViewingToday && atRiskHabits.length > 0 && (
+              <motion.section
+                key="at-risk-section"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.04] p-4"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🛡️</span>
+                    <p className="text-[12px] font-black tracking-[0.1em] uppercase text-amber-400">Ofensivas em Risco</p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedDate(subDays(new Date(), 1))}
+                    className="text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-400 hover:bg-amber-400/20 transition-all active:scale-95"
+                  >
+                    📅 Ir para ONTEM
+                  </button>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {atRiskHabits.map(h => {
+                    const shield = getStreakShieldInfo(h.streak || 0, h.last_completed_date, todayStr)
+                    return (
+                      <div
+                        key={h.id}
+                        className="flex items-center gap-3 px-1 py-1.5 cursor-pointer hover:bg-amber-400/5 rounded-xl transition-colors"
+                        onClick={() => setSelectedDate(subDays(new Date(), 1))}
+                      >
+                        {h.emoji && <span className="text-xl flex-shrink-0">{h.emoji}</span>}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-white/80 truncate">{h.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[11px] font-black text-amber-400">🔥 {h.streak}</span>
+                            <span className={cn(
+                              'text-[10px] font-black px-1.5 py-0.5 rounded-md border',
+                              shield.hoursRemaining <= 6
+                                ? 'text-red-400 bg-red-400/10 border-red-400/20'
+                                : 'text-blue-400 bg-blue-400/10 border-blue-400/20'
+                            )}>
+                              {shield.hoursRemaining}h restantes
+                            </span>
+                          </div>
+                        </div>
+                        <ChevronRight size={14} className="text-amber-400/50 flex-shrink-0" />
+                      </div>
+                    )
+                  })}
+                </div>
+              </motion.section>
+            )}
+          </AnimatePresence>
 
           {/* ─── Positive Habits ─── */}
           <section>

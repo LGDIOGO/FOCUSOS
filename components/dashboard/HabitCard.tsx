@@ -7,7 +7,7 @@ import { format } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { resolveBubblePosition } from '@/lib/utils/statusBubble'
-import { getEffectiveOfensiva } from '@/lib/utils/scoring'
+import { getEffectiveOfensiva, getStreakShieldInfo } from '@/lib/utils/scoring'
 import { Habit, HabitStatus } from '@/types'
 
 interface HabitCardProps {
@@ -78,6 +78,7 @@ export function HabitCard({
 
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   const activeOfensiva = getEffectiveOfensiva(habit.streak || 0, habit.last_completed_date, currentStatus, todayStr)
+  const shield = getStreakShieldInfo(habit.streak || 0, habit.last_completed_date, todayStr)
 
   const handleShortPress = (eventData: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
     // Do NOT check isBubbleIgnoredTarget — it blocks clicks via button ancestors even when buttons are pointer-events-none
@@ -175,6 +176,16 @@ export function HabitCard({
           {activeOfensiva > 0 && currentStatus !== 'failed' && (
             <span className="text-[11px] font-black text-amber-400 flex-shrink-0 bg-amber-400/10 px-2 py-0.5 rounded-lg border border-amber-400/20">
               🔥 {activeOfensiva}
+            </span>
+          )}
+          {shield.isAtRisk && shield.isProtected && currentStatus !== 'failed' && (
+            <span className={cn(
+              'text-[10px] font-black flex-shrink-0 px-2 py-0.5 rounded-lg border flex items-center gap-1',
+              shield.hoursRemaining <= 6
+                ? 'text-red-400 bg-red-400/10 border-red-400/20'
+                : 'text-blue-400 bg-blue-400/10 border-blue-400/20'
+            )}>
+              🛡️ {shield.hoursRemaining}h
             </span>
           )}
         </div>
