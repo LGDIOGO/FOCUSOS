@@ -6,10 +6,13 @@ import {
   Plus, Trash2, TrendingUp, TrendingDown, Wallet,
   Repeat, ChevronRight, ArrowUpRight, ArrowDownRight,
   Sparkles, PiggyBank, BarChart3, ListFilter,
+  Pencil, X, Check, Clock, Target,
 } from 'lucide-react'
+import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils/cn'
 import {
   useFinanceTransactions,
   useAddFinanceTransaction,
@@ -23,6 +26,7 @@ import {
   useCreateReserve,
   useDeleteReserve,
   useTransact,
+  useUpdateReserve,
   useReserveTxs,
   type Reserve,
 } from '@/lib/hooks/useReserves'
@@ -909,321 +913,311 @@ function TxHistoryList({ reserveId }: { reserveId: string }) {
   )
 }
 
-function ReserveCard({ reserve }: { reserve: Reserve }) {
-  const deleteReserve = useDeleteReserve()
-  const transact      = useTransact()
+// ─── Reserve helpers (finance page) ──────────────────────────────────────────
 
-  const [panel, setPanel]       = useState<'transact' | 'history' | null>(null)
-  const [txType, setTxType]     = useState<'deposit' | 'withdrawal'>('deposit')
-  const [txAmount, setTxAmount] = useState('')
-  const [txNote, setTxNote]     = useState('')
-  const [txSaving, setTxSaving] = useState(false)
+const RESERVE_COLORS = [
+  { id: 'blue',    stroke: '#3b82f6', bg: 'bg-blue-500/15',    ring: 'ring-blue-500',    text: 'text-blue-400',    dot: 'bg-blue-500'    },
+  { id: 'emerald', stroke: '#10b981', bg: 'bg-emerald-500/15', ring: 'ring-emerald-500', text: 'text-emerald-400', dot: 'bg-emerald-500' },
+  { id: 'amber',   stroke: '#f59e0b', bg: 'bg-amber-500/15',   ring: 'ring-amber-500',   text: 'text-amber-400',   dot: 'bg-amber-500'   },
+  { id: 'purple',  stroke: '#a855f7', bg: 'bg-purple-500/15',  ring: 'ring-purple-500',  text: 'text-purple-400',  dot: 'bg-purple-500'  },
+  { id: 'rose',    stroke: '#f43f5e', bg: 'bg-rose-500/15',    ring: 'ring-rose-500',    text: 'text-rose-400',    dot: 'bg-rose-500'    },
+  { id: 'cyan',    stroke: '#06b6d4', bg: 'bg-cyan-500/15',    ring: 'ring-cyan-500',    text: 'text-cyan-400',    dot: 'bg-cyan-500'    },
+  { id: 'orange',  stroke: '#f97316', bg: 'bg-orange-500/15',  ring: 'ring-orange-500',  text: 'text-orange-400',  dot: 'bg-orange-500'  },
+  { id: 'indigo',  stroke: '#6366f1', bg: 'bg-indigo-500/15',  ring: 'ring-indigo-500',  text: 'text-indigo-400',  dot: 'bg-indigo-500'  },
+]
 
-  const col = COLORS.find(c => c.id === reserve.color) ?? COLORS[0]
-  const pct = reserve.target > 0 ? Math.min(100, (reserve.balance / reserve.target) * 100) : 0
+function rsvColorById(id: string) {
+  return RESERVE_COLORS.find(c => c.id === id) ?? RESERVE_COLORS[0]
+}
 
-  const handleTransact = async () => {
-    const a = parseFloat(txAmount.replace(',', '.'))
-    if (!a || a <= 0) return
-    setTxSaving(true)
-    try {
-      await transact.mutateAsync({
-        reserveId: reserve.id,
-        amount: a,
-        type: txType,
-        note: txNote,
-        currentBalance: reserve.balance,
-      })
-      setTxAmount(''); setTxNote(''); setPanel(null)
-    } catch {}
-    finally { setTxSaving(false) }
+function ReserveProgressRing({ pct, stroke, size = 64, thickness = 4 }: { pct: number; stroke: string; size?: number; thickness?: number }) {
+  const r = (size - thickness) / 2
+  const circ = 2 * Math.PI * r
+  const offset = circ * (1 - Math.min(pct, 100) / 100)
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }} className="absolute inset-0">
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={thickness} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={stroke} strokeWidth={thickness}
+        strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+        style={{ transition: 'stroke-dashoffset 0.7s cubic-bezier(.4,0,.2,1)' }}
+      />
+    </svg>
+  )
+}
+
+function ReserveEditModal({ reserve, onClose }: { reserve: Reserve; onClose: () => void }) {
+  const { mutate: update, isPending } = useUpdateReserve()
+  const [name, setName]     = useState(reserve.name)
+  const [emoji, setEmoji]   = useState(reserve.emoji)
+  const [color, setColor]   = useState(reserve.color)
+  const [target, setTarget] = useState(reserve.target > 0 ? String(reserve.target) : '')
+
+  function handleSave() {
+    if (!name.trim()) return
+    update({ id: reserve.id, name: name.trim(), emoji, color, target: parseInt(target.replace(/\D/g, ''), 10) || 0 }, { onSuccess: onClose })
   }
 
   return (
-    <div
-      className={`bg-zinc-900 border rounded-2xl overflow-hidden transition-colors ${
-        panel ? 'border-zinc-600' : 'border-zinc-800'
-      }`}
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onClick={e => e.target === e.currentTarget && onClose()}
     >
-      <div className="p-4">
+      <motion.div initial={{ opacity: 0, y: 24, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 24, scale: 0.97 }} transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+        className="w-full max-w-sm bg-[#1a1a1a] rounded-3xl border border-white/[0.08] p-6 space-y-5 shadow-2xl"
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-base font-black text-white">Editar Reserva</p>
+          <button onClick={onClose} className="p-2 rounded-xl text-white/30 hover:text-white hover:bg-white/[0.06] transition-all"><X size={16} /></button>
+        </div>
+        <div className="flex justify-center">
+          <EmojiPicker value={emoji} onChange={setEmoji} />
+        </div>
+        <input type="text" placeholder="Nome da reserva" value={name} onChange={e => setName(e.target.value)}
+          className="w-full px-4 py-3 rounded-2xl border border-white/[0.08] bg-white/[0.04] text-sm font-bold text-white placeholder:text-white/25 outline-none focus:border-white/25 transition-colors"
+        />
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-white/30 mb-2.5">Cor</p>
+          <div className="flex gap-2.5 flex-wrap">
+            {RESERVE_COLORS.map(c => (
+              <button key={c.id} onClick={() => setColor(c.id)}
+                className={cn('w-8 h-8 rounded-full transition-all', c.dot, color === c.id ? `ring-2 ring-offset-2 ring-offset-[#1a1a1a] ${c.ring}` : 'opacity-60 hover:opacity-100')}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] focus-within:border-white/20 transition-colors">
+          <Target size={14} className="text-white/30 shrink-0" />
+          <span className="text-sm text-white/30 font-semibold shrink-0">Meta R$</span>
+          <input type="text" inputMode="numeric" placeholder="Sem meta" value={target} onChange={e => setTarget(e.target.value.replace(/\D/g, ''))}
+            className="flex-1 bg-transparent text-sm font-bold text-white outline-none min-w-0 placeholder:text-white/20"
+          />
+        </div>
+        <div className="flex gap-2 pt-1">
+          <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-white/[0.08] text-sm text-white/40 hover:text-white/70 transition-all">Cancelar</button>
+          <button onClick={handleSave} disabled={isPending || !name.trim()}
+            className={cn('flex-1 py-3 rounded-2xl bg-white text-black text-sm font-black transition-all hover:bg-white/90', (isPending || !name.trim()) && 'opacity-40 cursor-not-allowed')}
+          >{isPending ? '...' : 'Salvar'}</button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function ReserveCard({ reserve }: { reserve: Reserve }) {
+  const { mutate: deleteReserve } = useDeleteReserve()
+  const { mutate: transact, isPending: txPending } = useTransact()
+
+  const [panel, setPanel]   = useState<'transact' | 'history' | null>(null)
+  const [txType, setTxType] = useState<'deposit' | 'withdrawal'>('deposit')
+  const [txAmount, setTxAmount] = useState('')
+  const [txNote, setTxNote]     = useState('')
+  const [editing, setEditing]   = useState(false)
+
+  const col = rsvColorById(reserve.color)
+  const pct = reserve.target > 0 ? Math.min(100, Math.round((reserve.balance / reserve.target) * 100)) : null
+  const isGoalMet = pct !== null && pct >= 100
+  const RING = 60
+
+  function handleTransact() {
+    const a = parseInt(txAmount.replace(/\D/g, ''), 10)
+    if (!a || a <= 0) return
+    transact({ reserveId: reserve.id, amount: a, type: txType, note: txNote, currentBalance: reserve.balance }, {
+      onSuccess: () => { setTxAmount(''); setTxNote(''); setPanel(null) }
+    })
+  }
+
+  function confirmDelete() {
+    if (window.confirm(`Excluir "${reserve.name}"? Todas as movimentações serão apagadas.`)) deleteReserve(reserve.id)
+  }
+
+  return (
+    <>
+      <AnimatePresence>{editing && <ReserveEditModal key="edit" reserve={reserve} onClose={() => setEditing(false)} />}</AnimatePresence>
+      <div className="bg-[var(--bg-overlay)] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.10] transition-colors">
         <div className="flex items-start gap-3">
-          <div className={`w-11 h-11 rounded-xl ${col.bg} flex items-center justify-center text-xl shrink-0`}>
-            {reserve.emoji}
+          <div className="relative shrink-0" style={{ width: RING, height: RING }}>
+            {pct !== null && <ReserveProgressRing pct={pct} stroke={col.stroke} size={RING} />}
+            <div className={cn('absolute inset-[5px] rounded-full flex items-center justify-center text-xl', col.bg)}>{reserve.emoji}</div>
+            {isGoalMet && (
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                <Check size={8} className="text-white" strokeWidth={3} />
+              </div>
+            )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-zinc-200 truncate">{reserve.name}</span>
-              <button
-                onClick={() => deleteReserve.mutate(reserve.id)}
-                className="text-zinc-700 hover:text-rose-400 transition-colors shrink-0"
-              >
-                <Trash2 size={13} />
-              </button>
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-bold text-white truncate">{reserve.name}</p>
+              <div className="flex items-center gap-1 shrink-0">
+                <button onClick={() => setEditing(true)} className="p-1 rounded-lg text-white/25 hover:text-white hover:bg-white/[0.06] transition-all"><Pencil size={11} /></button>
+                <button onClick={confirmDelete} className="p-1 rounded-lg text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-all"><Trash2 size={11} /></button>
+              </div>
             </div>
-            <div className={`text-xl font-bold mt-0.5 ${col.text}`}>{brl(reserve.balance)}</div>
-            {reserve.target > 0 && (
-              <div className="text-xs text-zinc-500 mt-0.5">
-                Meta: {brl(reserve.target)} · {pct.toFixed(0)}%
-                {pct >= 100 && ' 🎯'}
+            <div className="flex items-baseline gap-1 mt-1">
+              <span className={cn('text-xl font-black tabular-nums', col.text)}>{brl(reserve.balance)}</span>
+              {reserve.target > 0 && <span className="text-xs text-white/30">/ {brl(reserve.target)}</span>}
+            </div>
+            {pct !== null && (
+              <div className="flex items-center gap-2 mt-1.5">
+                <div className="flex-1 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                  <motion.div className="h-full rounded-full" style={{ backgroundColor: col.stroke }}
+                    initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.6, ease: 'easeOut' }} />
+                </div>
+                <span className="text-[10px] font-bold text-white/25 tabular-nums">{pct}%</span>
               </div>
             )}
           </div>
         </div>
 
-        {reserve.target > 0 && (
-          <div className="mt-3 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
-            <motion.div
-              className={`h-full rounded-full ${col.bar}`}
-              initial={{ width: 0 }}
-              animate={{ width: `${pct}%` }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-            />
-          </div>
-        )}
-
         <div className="flex gap-2 mt-3">
-          <button
-            onClick={() => setPanel(panel === 'transact' ? null : 'transact')}
-            className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
-              panel === 'transact'
-                ? 'bg-blue-500/20 text-blue-300'
-                : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            Movimentar
-          </button>
-          <button
-            onClick={() => setPanel(panel === 'history' ? null : 'history')}
-            className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
-              panel === 'history'
-                ? 'bg-zinc-600/60 text-zinc-200'
-                : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            Histórico
-          </button>
-        </div>
-      </div>
-
-      <AnimatePresence>
-        {panel && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-t border-zinc-800"
-          >
-            <div className="p-4">
-              {panel === 'transact' ? (
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    {(['deposit', 'withdrawal'] as const).map(t => (
-                      <button
-                        key={t}
-                        onClick={() => setTxType(t)}
-                        className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
-                          txType === t
-                            ? t === 'deposit'
-                              ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
-                              : 'bg-rose-500/20 text-rose-300 ring-1 ring-rose-500/40'
-                            : 'bg-zinc-800 text-zinc-500'
-                        }`}
-                      >
-                        {t === 'deposit' ? '↓ Depositar' : '↑ Retirar'}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm pointer-events-none">R$</span>
-                    <input
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-xl pl-9 pr-3 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-zinc-600"
-                      placeholder="Valor"
-                      value={txAmount}
-                      onChange={e => setTxAmount(e.target.value)}
-                      inputMode="decimal"
-                    />
-                  </div>
-                  <input
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-zinc-600"
-                    placeholder="Nota (opcional)"
-                    value={txNote}
-                    onChange={e => setTxNote(e.target.value)}
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setPanel(null)}
-                      className="flex-1 py-2.5 rounded-xl text-sm text-zinc-400 bg-zinc-800 hover:bg-zinc-700 transition-colors"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      disabled={txSaving || !txAmount}
-                      onClick={handleTransact}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-purple-500 hover:bg-purple-400 text-white disabled:opacity-60 transition-colors"
-                    >
-                      {txSaving ? '...' : 'Confirmar'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <TxHistoryList reserveId={reserve.id} />
+          {([['transact', TrendingUp, 'Movimentar'], ['history', Clock, 'Histórico']] as const).map(([p, Icon, label]) => (
+            <button key={p} onClick={() => setPanel(prev => prev === p ? null : p)}
+              className={cn('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold border uppercase tracking-wide transition-all',
+                panel === p ? 'bg-white/[0.08] border-white/20 text-white' : 'border-white/[0.08] text-white/35 hover:text-white hover:border-white/20'
               )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+            >
+              <Icon size={11} />{label}
+            </button>
+          ))}
+        </div>
+
+        <AnimatePresence mode="wait">
+          {panel === 'transact' && (
+            <motion.div key="transact" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+              <div className="pt-3 mt-3 border-t border-white/[0.06] space-y-2.5">
+                <div className="flex gap-2">
+                  {(['deposit', 'withdrawal'] as const).map(t => (
+                    <button key={t} onClick={() => setTxType(t)}
+                      className={cn('flex-1 py-2 rounded-xl text-xs font-bold border transition-all uppercase tracking-wide flex items-center justify-center gap-1',
+                        txType === t && t === 'deposit' ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                          : txType === t ? 'bg-red-500/20 border-red-500/40 text-red-400'
+                          : 'border-white/[0.08] text-white/30 hover:text-white/60'
+                      )}
+                    >
+                      {t === 'deposit' ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                      {t === 'deposit' ? 'Depositar' : 'Retirar'}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] focus-within:border-white/20 transition-colors">
+                  <span className="text-xs text-white/30 font-semibold shrink-0">R$</span>
+                  <input type="text" inputMode="numeric" placeholder="0" value={txAmount} onChange={e => setTxAmount(e.target.value.replace(/\D/g, ''))}
+                    onKeyDown={e => e.key === 'Enter' && handleTransact()} autoFocus
+                    className="flex-1 bg-transparent text-base font-black text-white outline-none min-w-0 placeholder:text-white/20"
+                  />
+                </div>
+                <input type="text" placeholder="Observação (opcional)" value={txNote} onChange={e => setTxNote(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-white/[0.08] bg-white/[0.03] text-sm text-white placeholder:text-white/25 outline-none focus:border-white/20 transition-colors"
+                />
+                <div className="flex gap-2">
+                  <button onClick={() => setPanel(null)} className="flex-1 py-2 rounded-xl border border-white/[0.08] text-xs text-white/35 hover:text-white/70 transition-all">Cancelar</button>
+                  <button onClick={handleTransact} disabled={txPending || !txAmount}
+                    className={cn('flex-1 py-2 rounded-xl text-xs font-bold transition-all',
+                      txType === 'deposit' ? 'bg-emerald-500 text-white hover:bg-emerald-400' : 'bg-red-500 text-white hover:bg-red-400',
+                      (txPending || !txAmount) && 'opacity-40 cursor-not-allowed'
+                    )}
+                  >{txPending ? '...' : txType === 'deposit' ? 'Depositar' : 'Retirar'}</button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          {panel === 'history' && (
+            <motion.div key="history" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+              <div className="mt-3 pt-3 border-t border-white/[0.06]">
+                <TxHistoryList reserveId={reserve.id} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </>
   )
 }
 
 function ReservasTab() {
   const { data: reserves = [], isLoading } = useReserves()
-  const createReserve = useCreateReserve()
+  const { mutate: createReserve, isPending: creating } = useCreateReserve()
 
   const [showCreate, setShowCreate] = useState(false)
-  const [name, setName]             = useState('')
-  const [emoji, setEmoji]           = useState('💰')
-  const [colorId, setColorId]       = useState('blue')
-  const [target, setTarget]         = useState('')
-  const [showEmojis, setShowEmojis] = useState(false)
-  const [creating, setCreating]     = useState(false)
+  const [name, setName]   = useState('')
+  const [emoji, setEmoji] = useState('💰')
+  const [colorId, setColorId] = useState('blue')
+  const [target, setTarget]   = useState('')
 
   const totalReserves = reserves.reduce((s, r) => s + r.balance, 0)
   const goalsMetCount = reserves.filter(r => r.target > 0 && r.balance >= r.target).length
 
-  const handleCreate = async () => {
+  function handleCreate() {
     if (!name.trim()) return
-    setCreating(true)
-    try {
-      await createReserve.mutateAsync({
-        name: name.trim(),
-        emoji,
-        color: colorId,
-        target: parseFloat(target.replace(',', '.')) || 0,
-      })
-      setName(''); setTarget(''); setShowCreate(false); setShowEmojis(false)
-    } catch {}
-    finally { setCreating(false) }
+    createReserve({ name: name.trim(), emoji, color: colorId, target: parseInt(target.replace(/\D/g, ''), 10) || 0 }, {
+      onSuccess: () => { setName(''); setTarget(''); setShowCreate(false) }
+    })
   }
 
-  if (isLoading) {
-    return <div className="text-center py-12 text-zinc-500 text-sm animate-pulse">Carregando reservas...</div>
-  }
+  if (isLoading) return <div className="text-center py-12 text-white/30 text-sm">Carregando reservas...</div>
 
   return (
     <div className="space-y-4">
-      {/* Summary header */}
       {reserves.length > 0 && (
-        <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-2xl p-4 flex items-center gap-4">
-          <PiggyBank size={28} className="text-purple-400 shrink-0" />
+        <div className="bg-[var(--bg-overlay)] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-4">
+          <PiggyBank size={24} className="text-purple-400 shrink-0" />
           <div className="flex-1">
-            <div className="text-xs text-zinc-400 mb-0.5">Total em Reservas</div>
-            <div className="text-2xl font-bold text-white">{brl(totalReserves)}</div>
-            <div className="text-xs text-zinc-500 mt-0.5">
+            <p className="text-xs text-white/35 mb-0.5">Total em Reservas</p>
+            <p className="text-xl font-black text-white">{brl(totalReserves)}</p>
+            <p className="text-xs text-white/30 mt-0.5">
               {reserves.length} {reserves.length === 1 ? 'reserva' : 'reservas'}
-              {goalsMetCount > 0 && (
-                <span className="text-emerald-400 ml-2">
-                  · {goalsMetCount} meta{goalsMetCount > 1 ? 's' : ''} atingida{goalsMetCount > 1 ? 's' : ''} 🎯
-                </span>
-              )}
-            </div>
+              {goalsMetCount > 0 && <span className="text-emerald-400 ml-2">· {goalsMetCount} meta{goalsMetCount > 1 ? 's' : ''} ✓</span>}
+            </p>
           </div>
         </div>
       )}
 
-      {/* Add button */}
-      <button
-        onClick={() => setShowCreate(v => !v)}
-        className="w-full py-3 rounded-xl border border-dashed border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 transition-colors text-sm flex items-center justify-center gap-2"
+      <button onClick={() => setShowCreate(v => !v)}
+        className="w-full py-3 rounded-xl border border-dashed border-white/10 text-white/35 hover:text-white hover:border-white/25 transition-colors text-sm flex items-center justify-center gap-2"
       >
-        <Plus size={15} />
-        {showCreate ? 'Cancelar' : 'Nova Reserva'}
+        <Plus size={14} />{showCreate ? 'Cancelar' : 'Nova Reserva'}
       </button>
 
-      {/* Create form */}
       <AnimatePresence>
         {showCreate && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowEmojis(v => !v)}
-                  className="w-12 h-12 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xl shrink-0 hover:bg-zinc-700 transition-colors"
-                >
-                  {emoji}
-                </button>
-                <input
-                  className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-zinc-500"
-                  placeholder="Nome da reserva"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                />
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+            <div className="bg-[var(--bg-overlay)] border border-white/[0.08] rounded-2xl p-4 space-y-4">
+              <p className="text-sm font-black text-white">Nova Reserva</p>
+              <div className="flex justify-center">
+                <EmojiPicker value={emoji} onChange={setEmoji} />
               </div>
-
-              {showEmojis && (
-                <div className="grid grid-cols-8 gap-1 p-2 bg-zinc-800 rounded-xl">
-                  {EMOJIS.map(e => (
-                    <button
-                      key={e}
-                      onClick={() => { setEmoji(e); setShowEmojis(false) }}
-                      className={`text-xl p-1.5 rounded-lg transition-colors hover:bg-zinc-700 ${emoji === e ? 'bg-zinc-700' : ''}`}
-                    >
-                      {e}
-                    </button>
-                  ))}
-                </div>
-              )}
-
+              <input type="text" placeholder="Nome da reserva" value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleCreate()} autoFocus
+                className="w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.03] text-sm font-bold text-white placeholder:text-white/25 outline-none focus:border-white/20 transition-colors"
+              />
               <div className="flex gap-2 flex-wrap">
-                {COLORS.map(c => (
-                  <button
-                    key={c.id}
-                    onClick={() => setColorId(c.id)}
-                    className={`w-8 h-8 rounded-full ${c.bar} transition-transform hover:scale-110 ${
-                      colorId === c.id ? 'ring-2 ring-white ring-offset-2 ring-offset-zinc-900 scale-110' : ''
-                    }`}
+                {RESERVE_COLORS.map(c => (
+                  <button key={c.id} onClick={() => setColorId(c.id)}
+                    className={cn('w-7 h-7 rounded-full transition-all', c.dot, colorId === c.id ? `ring-2 ring-offset-2 ring-offset-[var(--bg-overlay)] ${c.ring}` : 'opacity-60 hover:opacity-100')}
                   />
                 ))}
               </div>
-
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm pointer-events-none">R$</span>
-                <input
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl pl-9 pr-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-zinc-600"
-                  placeholder="Meta (opcional)"
-                  value={target}
-                  onChange={e => setTarget(e.target.value)}
-                  inputMode="decimal"
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] focus-within:border-white/20 transition-colors">
+                <Target size={13} className="text-white/30 shrink-0" />
+                <span className="text-sm text-white/30 shrink-0">Meta R$</span>
+                <input type="text" inputMode="numeric" placeholder="Opcional" value={target} onChange={e => setTarget(e.target.value.replace(/\D/g, ''))}
+                  className="flex-1 bg-transparent text-sm font-bold text-white outline-none min-w-0 placeholder:text-white/20"
                 />
               </div>
-
-              <button
-                disabled={!name.trim() || creating}
-                onClick={handleCreate}
-                className="w-full bg-purple-500 hover:bg-purple-400 text-white font-semibold py-3 rounded-xl text-sm transition-colors disabled:opacity-60"
-              >
-                {creating ? 'Criando...' : 'Criar Reserva'}
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-sm text-white/35 hover:text-white/70 transition-all">Cancelar</button>
+                <button onClick={handleCreate} disabled={creating || !name.trim()}
+                  className={cn('flex-1 py-2.5 rounded-xl bg-white text-black text-sm font-black transition-all hover:bg-white/90', (creating || !name.trim()) && 'opacity-40 cursor-not-allowed')}
+                >{creating ? '...' : 'Criar'}</button>
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Reserve list */}
       <div className="space-y-3">
         <AnimatePresence>
           {reserves.map(r => (
-            <motion.div
-              key={r.id}
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, height: 0 }}
-            >
+            <motion.div key={r.id} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }}>
               <ReserveCard reserve={r} />
             </motion.div>
           ))}
@@ -1231,10 +1225,9 @@ function ReservasTab() {
       </div>
 
       {reserves.length === 0 && !showCreate && (
-        <div className="text-center py-12 text-zinc-600">
-          <PiggyBank size={36} className="mx-auto mb-3 opacity-30" />
+        <div className="text-center py-12 text-white/25">
+          <PiggyBank size={32} className="mx-auto mb-3 opacity-40" />
           <p className="text-sm">Nenhuma reserva criada ainda.</p>
-          <p className="text-xs mt-1">Crie potes para seus objetivos financeiros.</p>
         </div>
       )}
     </div>

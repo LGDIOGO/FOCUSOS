@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase/config'
 import { useCurrentUser } from '@/lib/context/AuthContext'
 import {
   collection, query, where, getDocs, addDoc, deleteDoc,
-  doc, writeBatch, orderBy, Timestamp,
+  doc, writeBatch, orderBy, Timestamp, updateDoc,
 } from 'firebase/firestore'
 
 export interface Reserve {
@@ -115,6 +115,21 @@ export function useDeleteReserve() {
       qc.invalidateQueries({ queryKey: ['reserves', user?.uid] })
       qc.invalidateQueries({ queryKey: ['reserve_txs'] })
     },
+  })
+}
+
+export function useUpdateReserve() {
+  const qc = useQueryClient()
+  const user = useCurrentUser()
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Omit<Reserve, 'id' | 'user_id' | 'balance' | 'created_at'>> & { id: string }) => {
+      if (!user) throw new Error('Not authenticated')
+      await updateDoc(doc(db, 'reserves', id), {
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['reserves', user?.uid] }),
   })
 }
 
