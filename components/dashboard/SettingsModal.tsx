@@ -5,8 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   X, Settings, Tag, User, Bell, Shield, Moon, Trash2, Plus,
   ChevronRight, Sparkles, Check, Info, BookOpen, Play,
-  Key, Copy, ExternalLink, Zap, RefreshCw, Eye, EyeOff
+  Key, Copy, ExternalLink, Zap, RefreshCw, Eye, EyeOff, Calendar, Link2, Loader2
 } from 'lucide-react'
+import {
+  useGoogleCalendarStatus,
+  useConnectGoogleCalendar,
+  useDisconnectGoogleCalendar,
+  useSyncToGoogleCalendar,
+} from '@/lib/hooks/useGoogleCalendar'
 import { TutorialModal } from '@/components/dashboard/TutorialModal'
 import { useCategories, useAddCategory, useDeleteCategory } from '@/lib/hooks/useCategories'
 import { useSettings, useUpdateSettings } from '@/lib/hooks/useSettings'
@@ -22,7 +28,7 @@ interface SettingsModalProps {
   onClose: () => void
 }
 
-type TabType = 'categories' | 'notifications' | 'profile' | 'system' | 'tutorials' | 'api'
+type TabType = 'categories' | 'notifications' | 'profile' | 'system' | 'tutorials' | 'api' | 'integrations'
 
 interface ApiKeyRecord {
   id: string
@@ -57,6 +63,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [revokingId, setRevokingId] = useState<string | null>(null)
   const [showMcpSetup, setShowMcpSetup] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
+
+  // Google Calendar integration state
+  const gcalStatus = useGoogleCalendarStatus()
+  const { connect: connectGCal, loading: connectingGCal, error: connectGCalError } = useConnectGoogleCalendar()
+  const disconnectGCal = useDisconnectGoogleCalendar()
+  const syncGCal = useSyncToGoogleCalendar()
+  const [syncResult, setSyncResult] = useState<{ synced: number; updated: number; errors?: string[] } | null>(null)
 
   // Aguarda o usuário autenticado
   const getUser = useCallback((): Promise<any> => {
@@ -182,6 +195,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               { id: 'system', label: 'Sistema', icon: Shield },
               { id: 'tutorials', label: 'Tutoriais & Guias', icon: BookOpen },
               { id: 'api', label: 'API & Integrações', icon: Zap },
+              { id: 'integrations', label: 'Google Calendar', icon: Calendar },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -225,6 +239,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               {activeTab === 'system' && 'Preferências do Sistema'}
               {activeTab === 'tutorials' && 'Tutoriais & Guias'}
               {activeTab === 'api' && 'API & Integrações'}
+              {activeTab === 'integrations' && 'Google Calendar'}
             </h3>
             <button onClick={onClose} className="p-2 hover:bg-[var(--bg-overlay)] rounded-xl transition-all">
               <X className="text-[var(--text-muted)]" size={20} />
@@ -827,6 +842,155 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <p className="text-[10px] text-white/20 pt-2 font-medium">
                     Header: <code className="text-white/40">Authorization: Bearer fos_live_...</code>
                   </p>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'integrations' && (
+              <div className="space-y-6 max-w-xl">
+                {/* Google Calendar Card */}
+                <div className="bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-[28px] overflow-hidden">
+                  {/* Header */}
+                  <div className="p-6 border-b border-white/5 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-[#1A73E8]/15 border border-[#1A73E8]/20 flex items-center justify-center text-2xl">
+                      📆
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-black text-base text-[var(--text-primary)]">Google Calendar</h4>
+                      <p className="text-xs text-[var(--text-muted)] font-medium mt-0.5">
+                        Sincronize compromissos com sua conta Google
+                      </p>
+                    </div>
+                    <div className={cn(
+                      'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider',
+                      gcalStatus.data?.connected
+                        ? 'bg-green-500/15 text-green-400 border border-green-500/20'
+                        : 'bg-white/5 text-white/30 border border-white/10'
+                    )}>
+                      {gcalStatus.isLoading ? '...' : gcalStatus.data?.connected ? 'Conectado' : 'Não conectado'}
+                    </div>
+                  </div>
+
+                  <div className="p-6 space-y-5">
+                    {gcalStatus.isLoading ? (
+                      <div className="flex items-center gap-2 text-white/30 text-sm">
+                        <Loader2 size={14} className="animate-spin" /> Verificando conexão...
+                      </div>
+                    ) : gcalStatus.data?.connected ? (
+                      <>
+                        {/* Connected state */}
+                        <div className="flex items-center gap-3 p-4 bg-green-500/5 border border-green-500/15 rounded-2xl">
+                          <Check size={16} className="text-green-400 shrink-0" />
+                          <div>
+                            <p className="text-sm font-bold text-green-400">Calendário vinculado</p>
+                            {gcalStatus.data.email && (
+                              <p className="text-xs text-white/40 mt-0.5">{gcalStatus.data.email}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Sync result */}
+                        {syncResult && (
+                          <div className="p-4 bg-blue-500/5 border border-blue-500/15 rounded-2xl text-xs space-y-1">
+                            <p className="font-black text-blue-400 uppercase tracking-wider">Sincronização concluída</p>
+                            <p className="text-white/50">{syncResult.synced} novos · {syncResult.updated} atualizados</p>
+                            {syncResult.errors && syncResult.errors.length > 0 && (
+                              <p className="text-red-400">{syncResult.errors.length} erro(s): {syncResult.errors[0]}</p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex flex-col gap-3">
+                          <button
+                            onClick={async () => {
+                              setSyncResult(null)
+                              const result = await syncGCal.mutateAsync({})
+                              setSyncResult(result)
+                            }}
+                            disabled={syncGCal.isPending}
+                            className="flex items-center justify-center gap-2 w-full py-3 bg-[#1A73E8] hover:bg-[#1A73E8]/90 text-white font-black text-xs rounded-xl transition-all disabled:opacity-50"
+                          >
+                            {syncGCal.isPending ? (
+                              <><Loader2 size={14} className="animate-spin" /> Sincronizando...</>
+                            ) : (
+                              <><RefreshCw size={14} /> Sincronizar Todos os Compromissos</>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm('Desconectar o Google Calendar? Os eventos já sincronizados não serão apagados do Google.')) {
+                                setSyncResult(null)
+                                disconnectGCal.mutate()
+                              }
+                            }}
+                            disabled={disconnectGCal.isPending}
+                            className="w-full py-2.5 border border-red-500/20 text-red-400 hover:bg-red-500/10 font-bold text-xs rounded-xl transition-all disabled:opacity-50"
+                          >
+                            {disconnectGCal.isPending ? 'Desconectando...' : 'Desconectar'}
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* Not connected state */}
+                        <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                          Conecte sua conta Google para exportar compromissos do FocusOS diretamente para o Google Calendar.
+                        </p>
+
+                        {(connectGCalError || gcalStatus.error) && (
+                          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400">
+                            {connectGCalError || (gcalStatus.error as any)?.message}
+                          </div>
+                        )}
+
+                        <button
+                          onClick={connectGCal}
+                          disabled={connectingGCal}
+                          className="flex items-center justify-center gap-2 w-full py-3.5 bg-[#1A73E8] hover:bg-[#1A73E8]/90 text-white font-black text-sm rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-[#1A73E8]/20"
+                        >
+                          {connectingGCal ? (
+                            <><Loader2 size={16} className="animate-spin" /> Redirecionando...</>
+                          ) : (
+                            <><Link2 size={16} /> Conectar com Google Calendar</>
+                          )}
+                        </button>
+
+                        <div className="p-4 bg-amber-500/5 border border-amber-500/15 rounded-2xl space-y-2">
+                          <p className="text-[10px] font-black text-amber-400 uppercase tracking-wider">Configuração necessária</p>
+                          <p className="text-xs text-white/40 leading-relaxed">
+                            Adicione as variáveis de ambiente no servidor para ativar esta integração:
+                          </p>
+                          <div className="bg-black/40 rounded-lg p-3 font-mono text-[11px] text-amber-300/80 space-y-1">
+                            <p>GOOGLE_CALENDAR_CLIENT_ID=...</p>
+                            <p>GOOGLE_CALENDAR_CLIENT_SECRET=...</p>
+                            <p>GOOGLE_CALENDAR_REDIRECT_URI=...</p>
+                          </div>
+                          <p className="text-[10px] text-white/30">
+                            Crie as credenciais em{' '}
+                            <span className="text-blue-400">console.cloud.google.com</span>
+                            {' '}→ APIs & Serviços → Credenciais → OAuth 2.0.
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* What gets synced */}
+                <div className="p-5 bg-white/[0.02] border border-white/[0.06] rounded-[24px] space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/30">O que é sincronizado</p>
+                  {[
+                    { emoji: '📅', text: 'Todos os compromissos e eventos da agenda' },
+                    { emoji: '🕐', text: 'Horários exatos ou eventos de dia inteiro' },
+                    { emoji: '✏️', text: 'Título, descrição e emoji de cada evento' },
+                    { emoji: '🔄', text: 'Atualizações refletem automaticamente no Google Calendar' },
+                  ].map(item => (
+                    <div key={item.emoji} className="flex items-center gap-3 text-xs text-white/50">
+                      <span className="text-base w-6 text-center">{item.emoji}</span>
+                      {item.text}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

@@ -128,6 +128,8 @@ export interface CalendarEvent {
   color?: string;      // Curated Apple hex or tailwind class
   emoji?: string;      // Optional emoji
   created_at: string;
+  google_calendar_event_id?: string;
+  google_calendar_synced_at?: string;
 }
 
 export interface FinanceTransaction {
