@@ -1,0 +1,8 @@
+.claude/
+claude
+node_modules/
+.env*.local
+.git/
+.next/
+automation/
+focusos-mcp/
