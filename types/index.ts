@@ -76,6 +76,7 @@ export interface UserSettings {
     sound: 'focus' | 'none';
   };
   score_target?: number; // 0-100 %, default 80
+  finance_onboarded?: boolean; // wizard de finanças concluído (persiste entre dispositivos)
   updated_at: string;
   theme: 'light' | 'dark';
 }

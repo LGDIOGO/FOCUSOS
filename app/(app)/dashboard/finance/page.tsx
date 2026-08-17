@@ -30,6 +30,7 @@ import {
   useReserveTxs,
   type Reserve,
 } from '@/lib/hooks/useReserves'
+import { useSettings, useUpdateSettings } from '@/lib/hooks/useSettings'
 import type { FinanceTransaction, FinanceRecurringCost } from '@/types'
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
@@ -92,8 +93,15 @@ function Wizard({ onDone }: { onDone: () => void }) {
   const [error, setError]               = useState('')
 
   const addCost = useAddFinanceRecurringCost()
+  const updateSettings = useUpdateSettings()
 
-  const finish = () => { localStorage.setItem(WIZARD_KEY, '1'); onDone() }
+  // Marca como concluído no Firestore (persiste entre dispositivos) + localStorage
+  // como cache local para evitar flash do wizard antes das settings carregarem.
+  const finish = () => {
+    try { localStorage.setItem(WIZARD_KEY, '1') } catch {}
+    updateSettings.mutate({ finance_onboarded: true })
+    onDone()
+  }
 
   const handleStep0 = async () => {
     const a = parseFloat(incomeAmount.replace(',', '.'))
@@ -172,13 +180,24 @@ function Wizard({ onDone }: { onDone: () => void }) {
                 />
               </div>
               {error && <p className="text-rose-400 text-xs mb-3">{error}</p>}
-              <button
-                disabled={saving}
-                onClick={handleStep0}
-                className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60"
-              >
-                {saving ? 'Salvando...' : 'Continuar →'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={finish}
+                  className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium py-3 rounded-xl transition-colors text-sm"
+                >
+                  Pular
+                </button>
+                <button
+                  disabled={saving}
+                  onClick={handleStep0}
+                  className="flex-[2] bg-emerald-500 hover:bg-emerald-400 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60"
+                >
+                  {saving ? 'Salvando...' : 'Continuar →'}
+                </button>
+              </div>
+              <p className="text-zinc-600 text-[11px] text-center mt-3">
+                Você pode configurar isso depois na aba Recorrentes.
+              </p>
             </motion.div>
           )}
 
@@ -1247,13 +1266,38 @@ export default function FinancePage() {
   const [tab, setTab]           = useState<Tab>('resumo')
   const [showWizard, setShowWizard] = useState(false)
 
-  const { data: transactions = [] } = useFinanceTransactions()
-  const { data: recurring    = [] } = useFinanceRecurringCosts()
+  const { data: transactions = [], isLoading: loadingTx  } = useFinanceTransactions()
+  const { data: recurring    = [], isLoading: loadingRec } = useFinanceRecurringCosts()
   const { data: reserves         } = useReserves()
+  const { data: settings,          isLoading: loadingSet } = useSettings()
+  const updateSettings = useUpdateSettings()
 
+  // O wizard só aparece para quem realmente nunca configurou nada.
+  // Antes usávamos apenas localStorage, então ele reaparecia a cada novo
+  // dispositivo/navegador. Agora a fonte da verdade é o Firestore, com dois
+  // fallbacks: cache local e — o mais importante — os próprios dados do usuário.
   useEffect(() => {
-    if (!localStorage.getItem(WIZARD_KEY)) setShowWizard(true)
-  }, [])
+    if (loadingSet || loadingRec || loadingTx) return          // espera dados: evita flash
+    if (!settings) return                                      // deslogado ou query desabilitada
+    if (settings.finance_onboarded) return                     // já concluiu (qualquer device)
+
+    const hasData = recurring.length > 0 || transactions.length > 0
+    if (hasData) {
+      // Usuário já tem dados mas a flag nunca foi gravada (conta antiga ou
+      // localStorage perdido). Grava agora para não perguntar de novo.
+      updateSettings.mutate({ finance_onboarded: true })
+      return
+    }
+
+    let cached = false
+    try { cached = !!localStorage.getItem(WIZARD_KEY) } catch {}
+    if (cached) {
+      updateSettings.mutate({ finance_onboarded: true })       // migra flag antiga p/ Firestore
+      return
+    }
+
+    setShowWizard(true)
+  }, [loadingSet, loadingRec, loadingTx, settings?.finance_onboarded, recurring.length, transactions.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>

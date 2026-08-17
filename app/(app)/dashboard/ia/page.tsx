@@ -4,12 +4,12 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Send, Sparkles, Plus, Check, Loader2, Pencil, Trash2,
-  ArrowLeft, RefreshCw, Zap, ChevronRight, RotateCcw,
+  ArrowLeft, RefreshCw, Zap, ChevronRight, RotateCcw, Repeat,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { auth, db } from '@/lib/firebase/config'
 import { useQueryClient } from '@tanstack/react-query'
-import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { collection, addDoc, deleteDoc, doc, updateDoc, deleteField } from 'firebase/firestore'
 import { format } from 'date-fns'
 import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
 import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicker'
@@ -59,6 +59,68 @@ function parseActions(text: string) {
   return null
 }
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+
+/** Aceita só YYYY-MM-DD válido; qualquer outra coisa vira hoje. */
+function normalizeDate(value: unknown): string {
+  if (typeof value === 'string' && ISO_DATE.test(value)) {
+    const d = new Date(`${value}T12:00:00`)
+    if (!isNaN(d.getTime())) return value
+  }
+  return format(new Date(), 'yyyy-MM-dd')
+}
+
+const DAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+
+/**
+ * A IA às vezes devolve `weekly` + `days_of_week` (ex.: toda terça). Mas em
+ * `useEvents.occursOnDate` a frequência `weekly` ignora `days_of_week` e segue
+ * o dia da semana da data inicial — o que silenciosamente erra quando os dois
+ * discordam. `specific_days` respeita a lista, então convertemos.
+ */
+function normalizeRecurrence(rec: any) {
+  if (!rec?.frequency) return undefined
+  const days = Array.isArray(rec.days_of_week) ? rec.days_of_week.filter((d: any) => Number.isInteger(d) && d >= 0 && d <= 6) : []
+  if (rec.frequency === 'weekly' && days.length > 0 && days.length < 7) {
+    return { ...rec, frequency: 'specific_days', days_of_week: days, interval: rec.interval || 1 }
+  }
+  if (rec.frequency === 'specific_days' && days.length === 0) {
+    return { ...rec, frequency: 'weekly', interval: rec.interval || 1 } // sem dias: cai p/ semanal
+  }
+  return { ...rec, interval: rec.interval || 1 }
+}
+
+/** Texto curto de recorrência para o card ("Ter, Qui", "a cada 2 dias"...). */
+function recurrenceLabel(raw: any): string | null {
+  const rec = normalizeRecurrence(raw)
+  if (!rec?.frequency) return null
+  const n = rec.interval && rec.interval > 1 ? rec.interval : 1
+  switch (rec.frequency) {
+    case 'specific_days': {
+      const days = (rec.days_of_week || []).slice().sort((a: number, b: number) => a - b)
+      if (!days.length) return 'Semanal'
+      if (days.length === 7) return 'Todo dia'
+      if (days.join() === '1,2,3,4,5') return 'Seg a Sex'
+      return days.map((d: number) => DAY_NAMES[d]).join(', ')
+    }
+    case 'daily':   return n > 1 ? `A cada ${n} dias` : 'Todo dia'
+    case 'weekly':  return n > 1 ? `A cada ${n} semanas` : 'Toda semana'
+    case 'monthly': return n > 1 ? `A cada ${n} meses` : 'Todo mês'
+    case 'yearly':  return 'Todo ano'
+    default:        return null
+  }
+}
+
+/** "16 ago" ou "Hoje" / "Amanhã". */
+function dateLabel(value: unknown): string {
+  const iso = normalizeDate(value)
+  const today = format(new Date(), 'yyyy-MM-dd')
+  const tomorrow = format(new Date(Date.now() + 864e5), 'yyyy-MM-dd')
+  if (iso === today) return 'Hoje'
+  if (iso === tomorrow) return 'Amanhã'
+  try { return format(new Date(`${iso}T12:00:00`), "d MMM") } catch { return iso }
+}
+
 function cleanText(text: string) {
   return text
     .replace(/\[SUGGESTIONS\][\s\S]*?\[\/SUGGESTIONS\]/, '')
@@ -89,6 +151,29 @@ function formatContent(content: string) {
   })
 }
 
+/** Cabeçalho de uma seção de sugestões, com atalho para aplicar todas. */
+function SectionHeader({
+  label, pending, busy, onApplyAll,
+}: {
+  label: string; pending: number; busy: boolean; onApplyAll: () => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-1 mt-4 mb-1">
+      <p className="text-[9px] font-black uppercase tracking-widest text-white/30">{label}</p>
+      {pending > 1 && (
+        <button
+          onClick={onApplyAll}
+          disabled={busy}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 hover:border-white/25 hover:bg-white/10 transition-all text-[9px] font-black uppercase tracking-wider text-white/50 hover:text-white disabled:opacity-40"
+        >
+          {busy ? <Loader2 size={10} className="animate-spin" /> : <Plus size={10} />}
+          Adicionar todos ({pending})
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default function IAPage() {
   const qc = useQueryClient()
   const [messages, setMessages] = useState<Message[]>([])
@@ -99,6 +184,7 @@ export default function IAPage() {
     msgIndex: number; itemIndex: number; type: 'habit' | 'event'; data: any
   } | null>(null)
   const [removedSuggestions, setRemovedSuggestions] = useState<string[]>([])
+  const [bulkApplying, setBulkApplying] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -199,7 +285,14 @@ export default function IAPage() {
 
       if (existingId) {
         const coll = type === 'habit' ? 'habits' : type === 'event' ? 'events' : 'goals'
-        await updateDoc(doc(db, coll, existingId), { ...item, updated_at: new Date().toISOString() })
+        // Firestore rejeita `undefined` — ex.: remover a repetição de um evento
+        // deixa `recurrence: undefined`. Vira deleteField() para apagar de fato.
+        const patch: Record<string, any> = { updated_at: new Date().toISOString() }
+        for (const [k, v] of Object.entries(item)) {
+          patch[k] = v === undefined ? deleteField() : v
+        }
+        if (type === 'event') patch.date = normalizeDate(item.date)
+        await updateDoc(doc(db, coll, existingId), patch)
       } else {
         let docRef
         if (type === 'habit') {
@@ -209,7 +302,7 @@ export default function IAPage() {
             emoji: item.emoji || '✨',
             description: item.description || '',
             time: item.time || '08:00',
-            recurrence: item.recurrence || { frequency: 'daily', days_of_week: [0,1,2,3,4,5,6] },
+            recurrence: normalizeRecurrence(item.recurrence) || { frequency: 'daily', interval: 1, days_of_week: [0,1,2,3,4,5,6] },
             user_id: user.uid,
             start_date: format(new Date(), 'yyyy-MM-dd'),
             status: 'none',
@@ -218,6 +311,9 @@ export default function IAPage() {
             created_at: new Date().toISOString(),
           })
         } else if (type === 'event') {
+          // A data vem da IA (já resolvida para ISO). Só cai para hoje se
+          // vier vazia/inválida — antes isto era fixo em hoje e jogava fora
+          // qualquer prazo ou agendamento futuro sugerido.
           docRef = await addDoc(collection(db, 'events'), {
             title: item.title || 'Novo Evento',
             time: item.time || '08:00',
@@ -225,7 +321,10 @@ export default function IAPage() {
             emoji: item.emoji || '📅',
             description: item.description || '',
             user_id: user.uid,
-            date: format(new Date(), 'yyyy-MM-dd'),
+            date: normalizeDate(item.date),
+            status: 'none',
+            ...(normalizeRecurrence(item.recurrence) ? { recurrence: normalizeRecurrence(item.recurrence) } : {}),
+            ...(item.end_date ? { end_date: item.end_date } : {}),
             created_at: new Date().toISOString(),
           })
         } else {
@@ -262,6 +361,23 @@ export default function IAPage() {
       qc.invalidateQueries({ queryKey: ['goals'] })
     } catch (err: any) {
       alert(`Erro ao salvar: ${err.message}`)
+    }
+  }
+
+  /** Aplica de uma vez todas as sugestões ainda não aplicadas de um tipo. */
+  const handleApplyAll = async (
+    type: 'habit' | 'event' | 'goal', items: any[], msgIndex: number
+  ) => {
+    if (!auth.currentUser) return alert('Faça login para salvar.')
+    setBulkApplying(`${msgIndex}-${type}`)
+    try {
+      for (let idx = 0; idx < items.length; idx++) {
+        if (removedSuggestions.includes(`${msgIndex}-${type}-${idx}`)) continue
+        if (isApplied(msgIndex, type, idx)) continue
+        await handleApplySuggestion(type, items[idx], msgIndex, idx)
+      }
+    } finally {
+      setBulkApplying(null)
     }
   }
 
@@ -325,17 +441,29 @@ export default function IAPage() {
   const saveEdit = async () => {
     if (!editingItem) return
     await handleApplySuggestion(editingItem.type, editingItem.data, editingItem.msgIndex, editingItem.itemIndex)
+    // Reflete a edição no array certo. (Antes faltava o bloco no `if`, então
+    // editar um evento sobrescrevia uma posição do array de hábitos.)
     setMessages(prev => prev.map((m, i) => {
       if (i !== editingItem.msgIndex || !m.suggestions) return m
-      const sug = { ...m.suggestions }
-      if (editingItem.type === 'habit') sug.habits = [...sug.habits]; sug.habits && (sug.habits[editingItem.itemIndex] = editingItem.data)
-      return { ...m, suggestions: sug }
+      const key = editingItem.type === 'habit' ? 'habits' : 'events'
+      const list = m.suggestions[key]
+      if (!Array.isArray(list)) return m
+      const next = [...list]
+      next[editingItem.itemIndex] = editingItem.data
+      return { ...m, suggestions: { ...m.suggestions, [key]: next } }
     }))
     setEditingItem(null)
   }
 
   const isApplied = (msgIndex: number, type: string, itemIndex: number) =>
     messages[msgIndex]?.applied?.some(a => a.startsWith(`${type}-${itemIndex}`)) ?? false
+
+  /** Quantas sugestões de um tipo ainda faltam aplicar (ignora as removidas). */
+  const countPending = (msgIndex: number, type: string, items: any[] = []) =>
+    items.filter((_, idx) =>
+      !isApplied(msgIndex, type, idx) &&
+      !removedSuggestions.includes(`${msgIndex}-${type}-${idx}`)
+    ).length
 
   const showWelcome = loaded && messages.length === 0
 
@@ -495,7 +623,12 @@ export default function IAPage() {
                     <div className="w-full space-y-3">
                       {(msg.suggestions.habits || []).length > 0 && (
                         <>
-                          <p className="text-[9px] font-black uppercase tracking-widest text-white/30 px-1 mt-3">Hábitos Sugeridos</p>
+                          <SectionHeader
+                            label="Hábitos Sugeridos"
+                            pending={countPending(i, 'habit', msg.suggestions.habits)}
+                            busy={bulkApplying === `${i}-habit`}
+                            onApplyAll={() => handleApplyAll('habit', msg.suggestions!.habits, i)}
+                          />
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {msg.suggestions.habits.map((h, idx) => {
                               const key = `${i}-habit-${idx}`
@@ -551,7 +684,12 @@ export default function IAPage() {
 
                       {(msg.suggestions.events || []).length > 0 && (
                         <>
-                          <p className="text-[9px] font-black uppercase tracking-widest text-white/30 px-1 mt-4">Compromissos</p>
+                          <SectionHeader
+                            label="Compromissos"
+                            pending={countPending(i, 'event', msg.suggestions.events)}
+                            busy={bulkApplying === `${i}-event`}
+                            onApplyAll={() => handleApplyAll('event', msg.suggestions!.events, i)}
+                          />
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {msg.suggestions.events.map((e, idx) => {
                               const key = `${i}-event-${idx}`
@@ -566,7 +704,22 @@ export default function IAPage() {
                                     <span className="text-xl shrink-0">{e.emoji}</span>
                                     <div className="min-w-0">
                                       <p className="font-bold text-sm text-white truncate">{e.title}</p>
-                                      <p className="text-[10px] text-white/30 truncate">{e.time} · {e.description}</p>
+                                      <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                        <span className="text-[9px] font-black uppercase tracking-wider text-white/50 bg-white/[0.07] px-1.5 py-0.5 rounded-md shrink-0">
+                                          {dateLabel(e.date)}{e.time ? ` · ${e.time}` : ''}
+                                        </span>
+                                        {recurrenceLabel(e.recurrence) && (
+                                          <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-violet-300 bg-violet-500/15 px-1.5 py-0.5 rounded-md shrink-0">
+                                            <Repeat size={8} />{recurrenceLabel(e.recurrence)}
+                                          </span>
+                                        )}
+                                        {e.end_date && (
+                                          <span className="text-[9px] font-bold text-white/30 shrink-0">até {dateLabel(e.end_date)}</span>
+                                        )}
+                                      </div>
+                                      {e.description && (
+                                        <p className="text-[10px] text-white/30 truncate mt-0.5">{e.description}</p>
+                                      )}
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-1.5 shrink-0 ml-2">
@@ -599,9 +752,14 @@ export default function IAPage() {
 
                       {(msg.suggestions.goals || []).length > 0 && (
                         <>
-                          <p className="text-[9px] font-black uppercase tracking-widest text-white/30 px-1 mt-4">Metas Estratégicas</p>
+                          <SectionHeader
+                            label="Metas Estratégicas"
+                            pending={countPending(i, 'goal', msg.suggestions.goals || [])}
+                            busy={bulkApplying === `${i}-goal`}
+                            onApplyAll={() => handleApplyAll('goal', msg.suggestions!.goals!, i)}
+                          />
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {msg.suggestions.goals.map((g, idx) => {
+                            {(msg.suggestions.goals || []).map((g, idx) => {
                               const key = `${i}-goal-${idx}`
                               if (removedSuggestions.includes(key)) return null
                               const applied = isApplied(i, 'goal', idx)
@@ -746,41 +904,113 @@ export default function IAPage() {
                 </div>
               </div>
 
-              {editingItem.type === 'habit' && (
-                <div>
-                  <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Frequência</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[{ id: 'daily', label: 'Diário' }, { id: 'weekly', label: 'Semanal' }, { id: 'specific_days', label: 'Personalizado' }, { id: 'monthly', label: 'Mensal' }].map(f => (
-                      <button
-                        key={f.id}
-                        onClick={() => handleUpdateEditItem('recurrence', { ...editingItem.data.recurrence, frequency: f.id, days_of_week: f.id === 'specific_days' ? (editingItem.data.recurrence?.days_of_week?.length ? editingItem.data.recurrence.days_of_week : [1,2,3,4,5]) : [0,1,2,3,4,5,6] })}
-                        className={cn(
-                          'py-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all',
-                          editingItem.data.recurrence?.frequency === f.id ? 'bg-white text-black border-white' : 'bg-white/5 text-white/40 border-white/5 hover:border-white/20'
-                        )}
-                      >
-                        {f.label}
-                      </button>
-                    ))}
+              {editingItem.type === 'event' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">
+                      {editingItem.data.recurrence?.frequency ? 'Começa em' : 'Data'}
+                    </p>
+                    <CustomDateTimePicker
+                      label="Data"
+                      type="date"
+                      value={normalizeDate(editingItem.data.date)}
+                      onChange={v => handleUpdateEditItem('date', v)}
+                      direction="up"
+                    />
                   </div>
-                  {editingItem.data.recurrence?.frequency === 'specific_days' && (
-                    <div className="flex justify-between gap-1 mt-3">
-                      {DAYS.map((d, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => toggleDay(idx)}
-                          className={cn(
-                            'w-9 h-9 rounded-xl font-black text-sm transition-all',
-                            editingItem.data.recurrence?.days_of_week?.includes(idx) ? 'bg-white text-black' : 'text-white/20 border border-white/5 hover:bg-white/5'
-                          )}
-                        >
-                          {d}
-                        </button>
-                      ))}
+                  {editingItem.data.recurrence?.frequency && (
+                    <div>
+                      <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Termina em</p>
+                      <CustomDateTimePicker
+                        label="Fim"
+                        type="date"
+                        value={editingItem.data.end_date || ''}
+                        onChange={v => handleUpdateEditItem('end_date', v)}
+                        align="right"
+                        direction="up"
+                      />
                     </div>
                   )}
                 </div>
               )}
+
+              <div>
+                <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Repetição</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    ...(editingItem.type === 'event' ? [{ id: 'none', label: 'Não repete' }] : []),
+                    { id: 'daily', label: 'Diário' },
+                    { id: 'weekly', label: 'Semanal' },
+                    { id: 'specific_days', label: 'Dias fixos' },
+                    { id: 'monthly', label: 'Mensal' },
+                    { id: 'yearly', label: 'Anual' },
+                  ].map(f => {
+                    const current = editingItem.data.recurrence?.frequency || (editingItem.type === 'event' ? 'none' : undefined)
+                    return (
+                      <button
+                        key={f.id}
+                        onClick={() => handleUpdateEditItem(
+                          'recurrence',
+                          f.id === 'none' ? undefined : {
+                            ...editingItem.data.recurrence,
+                            frequency: f.id,
+                            interval: editingItem.data.recurrence?.interval || 1,
+                            days_of_week: f.id === 'specific_days'
+                              ? (editingItem.data.recurrence?.days_of_week?.length ? editingItem.data.recurrence.days_of_week : [1, 2, 3, 4, 5])
+                              : [0, 1, 2, 3, 4, 5, 6],
+                          }
+                        )}
+                        className={cn(
+                          'py-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all',
+                          current === f.id ? 'bg-white text-black border-white' : 'bg-white/5 text-white/40 border-white/5 hover:border-white/20'
+                        )}
+                      >
+                        {f.label}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {editingItem.data.recurrence?.frequency === 'specific_days' && (
+                  <div className="flex justify-between gap-1 mt-3">
+                    {DAYS.map((d, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => toggleDay(idx)}
+                        className={cn(
+                          'w-9 h-9 rounded-xl font-black text-sm transition-all',
+                          editingItem.data.recurrence?.days_of_week?.includes(idx) ? 'bg-white text-black' : 'text-white/20 border border-white/5 hover:bg-white/5'
+                        )}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* A cada N: "dia sim dia não", "quinzenal", etc. */}
+                {['daily', 'weekly', 'monthly'].includes(editingItem.data.recurrence?.frequency) && (
+                  <div className="flex items-center gap-2 mt-3">
+                    <span className="text-[10px] font-bold text-white/40">A cada</span>
+                    {[1, 2, 3, 4].map(n => (
+                      <button
+                        key={n}
+                        onClick={() => handleUpdateEditItem('recurrence', { ...editingItem.data.recurrence, interval: n })}
+                        className={cn(
+                          'w-9 h-8 rounded-lg text-xs font-black transition-all',
+                          (editingItem.data.recurrence?.interval || 1) === n ? 'bg-white text-black' : 'text-white/30 border border-white/10 hover:bg-white/5'
+                        )}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                    <span className="text-[10px] font-bold text-white/40">
+                      {editingItem.data.recurrence?.frequency === 'daily' ? 'dia(s)'
+                        : editingItem.data.recurrence?.frequency === 'weekly' ? 'semana(s)' : 'mês(es)'}
+                    </span>
+                  </div>
+                )}
+              </div>
 
               <div>
                 <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Descrição</p>
