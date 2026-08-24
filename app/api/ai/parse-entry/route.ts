@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from "@google/generative-ai"
-import OpenAI from "openai"
+import { generateText } from '@/lib/ai/models'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -57,9 +56,6 @@ REGRAS CRÍTICAS:
 
 export async function POST(req: NextRequest) {
   try {
-    const groqKey = process.env.GROQ_API_KEY?.trim()
-    const geminiKey = (process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY)?.trim()
-
     const { text, type, categories, currentDetails } = await req.json()
 
     const today = currentDetails?.today || format(new Date(), 'yyyy-MM-dd')
@@ -74,53 +70,18 @@ export async function POST(req: NextRequest) {
       return JSON.parse(match[0])
     }
 
-    // 1. Tentar com GROQ
-    if (groqKey) {
-      try {
-        const groq = new OpenAI({
-          apiKey: groqKey,
-          baseURL: "https://api.groq.com/openai/v1",
-        })
-
-        const completion = await groq.chat.completions.create({
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userMessage }
-          ],
-          model: "llama-3.3-70b-versatile",
-          temperature: 0.2,
-          response_format: { type: "json_object" }
-        })
-
-        const raw = completion.choices[0]?.message?.content || ''
-        if (raw) {
-          const parsed = extractJson(raw)
-          return NextResponse.json(parsed)
-        }
-      } catch (groqErr: any) {
-        console.warn('Parse-entry Groq failed, falling back to Gemini:', groqErr.message)
-      }
+    try {
+      const { text: raw } = await generateText({
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMessage }],
+        temperature: 0.2,
+        jsonMode: true,
+      })
+      return NextResponse.json(extractJson(raw))
+    } catch (aiErr: any) {
+      console.error('Parse-entry AI failure:', aiErr.message)
+      return NextResponse.json({ error: 'Falha nos provedores de IA', details: aiErr.message }, { status: 503 })
     }
-
-    // 2. Tentar com GEMINI
-    if (geminiKey) {
-      try {
-        const genAI = new GoogleGenerativeAI(geminiKey)
-        const model = genAI.getGenerativeModel({
-          model: "gemini-2.0-flash",
-          systemInstruction: systemPrompt
-        })
-
-        const result = await model.generateContent(userMessage)
-        const raw = result.response.text() || ''
-        const parsed = extractJson(raw)
-        return NextResponse.json(parsed)
-      } catch (geminiErr: any) {
-        console.warn('Parse-entry Gemini failed:', geminiErr.message)
-      }
-    }
-
-    return NextResponse.json({ error: 'Nenhuma API de IA configurada (GROQ_API_KEY ou GOOGLE_AI_API_KEY)' }, { status: 500 })
   } catch (err: unknown) {
     const error = err as Error
     console.error('Parse Error:', error.message)

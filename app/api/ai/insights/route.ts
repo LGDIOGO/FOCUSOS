@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from "@google/generative-ai"
-import OpenAI from "openai"
+import { generateText } from '@/lib/ai/models'
 
 const SYSTEM_PROMPT = `Você é o FocusOS AI Concierge, um Coach de Alta Performance de Elite (estilo Neurocientistas e CEOs do Vale do Silício).
 Sua missão é dar insights PROFUNDOS, FISIOLÓGICOS e DIRETOS, conectando os dados de produtividade do usuário com sua saúde física e mental. Sem conselhos vazios e clichês, seja prático, embasado e incisivo. Não aceite mediocridade, mas previna o Burnout.
@@ -24,9 +23,6 @@ Responda APENAS UM JSON VÁLIDO no formato especificado. Nunca inclua texto em m
 
 export async function POST(req: NextRequest) {
   try {
-    const groqKey = process.env.GROQ_API_KEY?.trim()
-    const geminiKey = (process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY)?.trim()
-    
     const { userData } = await req.json()
     const { habits = [], tasks = [], goals = [], events = [], score = null } = userData || {}
 
@@ -49,58 +45,20 @@ export async function POST(req: NextRequest) {
       BASEIE-SE ESTRITAMENTE NESTES DADOS PARA GERAR OS INSIGHTS. Gere de 2 a 4 insights precisos cruzando esses dados temporalmente e fisiologicamente.
     `
 
-    // 1. Tentar com GROQ
-    if (groqKey) {
-      try {
-        const groq = new OpenAI({
-          apiKey: groqKey,
-          baseURL: "https://api.groq.com/openai/v1",
-        })
-
-        const completion = await groq.chat.completions.create({
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: userContext }
-          ],
-          model: "llama-3.3-70b-versatile",
-          temperature: 0.7,
-          response_format: { type: "json_object" }
-        })
-
-        const text = completion.choices[0]?.message?.content
-        if (text) {
-          const parsed = JSON.parse(text)
-          return NextResponse.json(parsed.insights || parsed)
-        }
-      } catch (groqErr: any) {
-        console.warn('Insights Groq failed, falling back to Gemini:', groqErr.message)
-      }
+    try {
+      const { text } = await generateText({
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userContext }],
+        temperature: 0.7,
+        jsonMode: true,
+      })
+      // Alguns modelos embrulham o JSON em cerca de markdown mesmo em modo JSON.
+      const parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
+      return NextResponse.json(parsed.insights || parsed)
+    } catch (aiErr: any) {
+      console.error('Insights AI failure:', aiErr.message)
+      return NextResponse.json({ error: 'Falha na geração de insight', details: aiErr.message }, { status: 503 })
     }
-
-    // 2. Tentar com GEMINI
-    if (geminiKey) {
-      try {
-        const genAI = new GoogleGenerativeAI(geminiKey)
-        const model = genAI.getGenerativeModel({ 
-          model: "gemini-1.5-flash",
-          systemInstruction: SYSTEM_PROMPT
-        })
-
-        const result = await model.generateContent(userContext)
-        const response = await result.response
-        const text = response.text()
-
-        if (text) {
-          const jsonStr = text.replace(/```json|```/g, '').trim()
-          const parsed = JSON.parse(jsonStr)
-          return NextResponse.json(parsed.insights || parsed)
-        }
-      } catch (geminiErr: any) {
-        console.error('Insights Gemini fallback failed:', geminiErr.message)
-      }
-    }
-
-    return NextResponse.json({ error: 'Falha na geração de insight' }, { status: 500 })
   } catch (err: unknown) {
     const error = err as Error
     console.error('Insights API Error:', error.message)

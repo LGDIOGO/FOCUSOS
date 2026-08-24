@@ -1,24 +1,29 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { generateText } from '@/lib/ai/models';
 
 export async function POST(req: Request) {
+  // Fora do try: o fallback no catch precisa dos números reais do usuário,
+  // senão devolve o plano genérico de "cadastre sua renda" para quem já cadastrou.
+  let income = 0, fixedCosts = 0, variableExpenses = 0;
+
   try {
     const body = await req.json();
-    const { income, fixedCosts, variableExpenses, potes, futureTransactions } = body;
+    ({ income = 0, fixedCosts = 0, variableExpenses = 0 } = body);
+    const { potes, futureTransactions } = body;
 
-    const groqKey = process.env.GROQ_API_KEY?.trim();
+    const hasAnyKey = !!(
+      process.env.GROQ_API_KEY?.trim() ||
+      process.env.GOOGLE_AI_API_KEY?.trim() ||
+      process.env.GOOGLE_API_KEY?.trim() ||
+      process.env.GEMINI_API_KEY?.trim()
+    );
 
     // If no key, return a useful static suggestion (not an error card)
-    if (!groqKey) {
+    if (!hasAnyKey) {
       return NextResponse.json({
         plan: buildStaticPlan(income, fixedCosts, variableExpenses)
       });
     }
-
-    const openai = new OpenAI({
-      apiKey: groqKey,
-      baseURL: 'https://api.groq.com/openai/v1',
-    });
 
     const liquidBalance = (income || 0) - (fixedCosts || 0) - (variableExpenses || 0);
     const commitmentRate = income > 0 ? Math.round(((fixedCosts + variableExpenses) / income) * 100) : 0;
@@ -78,20 +83,17 @@ Retorne APENAS um JSON array com esta estrutura exata (sem \`\`\`json):
 ]
 Apenas a primeira fase tem "active": true. As demais têm "active": false.`;
 
-    const response = await openai.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        {
-          role: 'system',
-          content: 'Você é um conselheiro financeiro de elite. Responda APENAS com JSON puro, sem markdown, sem comentários, sem texto antes ou depois do JSON.'
-        },
-        { role: 'user', content: prompt }
-      ],
+    const { text } = await generateText({
+      system: 'Você é um conselheiro financeiro de elite. Responda APENAS com JSON puro, sem markdown, sem comentários, sem texto antes ou depois do JSON.',
+      messages: [{ role: 'user', content: prompt }],
       temperature: 0.6,
-      max_tokens: 2000,
+      // Modelos de raciocínio consomem orçamento antes de escrever a resposta;
+      // com 2000 o plano vinha cortado no meio e o JSON.parse quebrava.
+      maxTokens: 6000,
+      jsonMode: true,
     });
 
-    let aiContent = response.choices[0].message.content?.trim() || '[]';
+    let aiContent = text.trim() || '[]';
 
     // Strip any markdown code fences if the model adds them
     aiContent = aiContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
@@ -110,9 +112,8 @@ Apenas a primeira fase tem "active": true. As demais têm "active": false.`;
     console.error('Error generating AI finance plan:', error);
 
     // On parse error or API error, return a static analytical plan instead of crashing
-    const body = await (async () => { try { return {} } catch { return {} } })();
     return NextResponse.json({
-      plan: buildStaticPlan(0, 0, 0),
+      plan: buildStaticPlan(income, fixedCosts, variableExpenses),
       warning: error.message
     });
   }

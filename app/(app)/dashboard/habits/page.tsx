@@ -4,9 +4,11 @@ import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Plus, Trash2, Zap, ShieldAlert, Sparkles, TrendingUp, RefreshCcw, History, ChevronRight, CheckCircle2
+  Plus, Trash2, Zap, ShieldAlert, Sparkles, TrendingUp, RefreshCcw, History, ChevronRight, CheckCircle2,
+  LayoutGrid, List
 } from 'lucide-react'
 import { HabitModal } from '@/components/dashboard/HabitModal'
+import { HabitsMatrix } from '@/components/dashboard/HabitsMatrix'
 import { useHabits, useDeleteHabit, useHabitsHistory, useLogHabit } from '@/lib/hooks/useHabits'
 import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
 import { Check, Minus, X, Circle } from 'lucide-react'
@@ -180,10 +182,14 @@ export default function HabitsPage() {
     position: { x: number; y: number }
   } | null>(null)
 
+  const [historyView, setHistoryView] = useState<'list' | 'grid'>('grid')
+
   const { data: habits, isLoading } = useHabits()
   const deleteHabit = useDeleteHabit()
   const logHabit = useLogHabit()
+  // A grade também pinta as falhas; a lista continua só com o que foi cumprido.
   const { data: historyLogs } = useHabitsHistory(resolvedDateRange.start, resolvedDateRange.end)
+  const { data: matrixLogs } = useHabitsHistory(resolvedDateRange.start, resolvedDateRange.end, true)
   const { data: categories } = useCategories()
 
   const groupedHabits = useMemo(() => {
@@ -361,7 +367,40 @@ export default function HabitsPage() {
         customRange={customRange}
         onCustomRangeChange={setCustomRange}
       >
-        <div className="pt-2 pb-4 space-y-8 md:pl-4">
+        <div className="pt-2 pb-4 space-y-5 md:pl-4">
+          {/* Alternador de visualização */}
+          <div className="flex items-center gap-1 p-1 rounded-2xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] w-fit">
+            {([
+              { id: 'grid', label: 'Grade', icon: LayoutGrid },
+              { id: 'list', label: 'Lista', icon: List },
+            ] as const).map(v => (
+              <button
+                key={v.id}
+                onClick={() => setHistoryView(v.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                  historyView === v.id
+                    ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <v.icon size={12} />
+                {v.label}
+              </button>
+            ))}
+          </div>
+
+          {historyView === 'grid' ? (
+            <HabitsMatrix
+              habits={habits || []}
+              logs={matrixLogs || []}
+              rangeStart={resolvedDateRange.start}
+              rangeEnd={resolvedDateRange.end}
+              onCellClick={(habitId, logDate, position) =>
+                setActiveBubble({ habitId, logDate, position })
+              }
+            />
+          ) : (
+        <div className="space-y-8">
                  {groupedHistory.length === 0 ? (
                     <div className="text-[var(--text-muted)] text-sm font-medium pt-4">Nenhum hábito concluído neste período.</div>
                  ) : (
@@ -402,6 +441,8 @@ export default function HabitsPage() {
                    ))
                   )}
               </div>
+          )}
+        </div>
       </SharedHistoryBar>
 
       <HabitModal

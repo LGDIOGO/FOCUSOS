@@ -20,7 +20,7 @@ import {
 } from 'firebase/firestore'
 import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks } from 'date-fns'
 import { occursOn } from '@/lib/utils/recurrence'
-import { Habit } from '@/types'
+import { Habit, HabitLog } from '@/types'
 import {
   isScheduledOn as isScheduledOnUtil,
   getPrevScheduledDate,
@@ -29,10 +29,15 @@ import {
   HabitScheduleData,
 } from '@/lib/utils/habitSchedule'
 
-export function useHabitsHistory(startDate?: string, endDate?: string) {
+/**
+ * @param includeAll mantém também os logs 'failed'. A lista do histórico mostra
+ *   só o que foi cumprido, mas a grade precisa das falhas para pintar vermelho
+ *   e distinguir "falhei" de "nem estava previsto".
+ */
+export function useHabitsHistory(startDate?: string, endDate?: string, includeAll = false) {
   const user = useCurrentUser()
   return useQuery({
-    queryKey: ['habits', 'history', user?.uid, startDate, endDate],
+    queryKey: ['habits', 'history', user?.uid, startDate, endDate, includeAll],
     queryFn: async () => {
       if (!user) return []
 
@@ -45,10 +50,12 @@ export function useHabitsHistory(startDate?: string, endDate?: string) {
         where('user_id', '==', user.uid)
       )
       const snap = await getDocs(q)
-      const logs = snap.docs.map(d => d.data())
+      const logs = snap.docs.map(d => d.data() as HabitLog)
       // Filter date range and status client-side
       return logs.filter(l =>
-        (l.status === 'done' || l.status === 'partial') &&
+        (includeAll
+          ? l.status === 'done' || l.status === 'partial' || l.status === 'failed'
+          : l.status === 'done' || l.status === 'partial') &&
         l.log_date >= qStart &&
         l.log_date <= qEnd
       )

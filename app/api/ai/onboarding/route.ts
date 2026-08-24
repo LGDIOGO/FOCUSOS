@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from "@google/generative-ai"
-import OpenAI from "openai"
+import { generateText } from '@/lib/ai/models'
 
 const SYSTEM_PROMPT = `Você é o "FocusOS IA", um assistente de produtividade pessoal de elite para o app FocusOS.
 Você conhece o histórico e contexto completo do usuário e toma decisões precisas com base nisso.
@@ -86,11 +85,7 @@ ESTRUTURA DA RESPOSTA:
 
 export async function POST(req: NextRequest) {
   try {
-    const groqKey = process.env.GROQ_API_KEY?.trim()
-    const geminiKey = (process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY)?.trim()
-    
     const { messages, userData } = await req.json()
-    const lastUserMsg = messages[messages.length - 1]?.content || ''
 
     // Data de referência: sem isto a IA não consegue resolver "amanhã",
     // "sexta que vem" etc. em datas ISO reais.
@@ -191,60 +186,25 @@ LOGS RECENTES: ${userData.recentLogs?.slice(0, 5).map((l: any) => `${l.habit_id}
 
     const FINAL_SYSTEM_PROMPT = SYSTEM_PROMPT + dateBlock + contextBlock
 
-    // 1. Tentar com GROQ (Primário - mais rápido e maior cota)
-    if (groqKey) {
-      try {
-        const groq = new OpenAI({
-          apiKey: groqKey,
-          baseURL: "https://api.groq.com/openai/v1",
-        })
-
-        const completion = await groq.chat.completions.create({
-          messages: [
-            { role: "system", content: FINAL_SYSTEM_PROMPT },
-            ...messages.map((m: any) => ({
-              role: m.role === 'ai' ? 'assistant' : 'user',
-              content: m.content
-            }))
-          ],
-          model: "llama-3.3-70b-versatile",
-          temperature: 0.7,
-        })
-
-        const text = completion.choices[0]?.message?.content
-        if (text) {
-          return NextResponse.json({ message: text, provider: 'groq' })
-        }
-      } catch (groqErr: any) {
-        console.warn('Groq failed, falling back to Gemini:', groqErr.message)
-      }
+    // O histórico inteiro segue junto: sem ele a IA perde o fio da conversa
+    // (o fallback antigo mandava só a última mensagem do usuário).
+    try {
+      const { text, provider, model } = await generateText({
+        system: FINAL_SYSTEM_PROMPT,
+        messages: messages.map((m: any) => ({
+          role: m.role === 'ai' ? 'assistant' : 'user',
+          content: m.content,
+        })),
+        temperature: 0.7,
+      })
+      return NextResponse.json({ message: text, provider, model })
+    } catch (aiErr: any) {
+      console.error('Onboarding AI failure:', aiErr.message)
+      return NextResponse.json({
+        error: 'Falha em todos os provedores de IA',
+        details: aiErr.message,
+      }, { status: 503 })
     }
-
-    // 2. Tentar com GEMINI (Sempre como fallback)
-    if (geminiKey) {
-      try {
-        const genAI = new GoogleGenerativeAI(geminiKey)
-        const model = genAI.getGenerativeModel({ 
-          model: "gemini-1.5-flash",
-          systemInstruction: FINAL_SYSTEM_PROMPT
-        })
-
-        const result = await model.generateContent(lastUserMsg)
-        const response = await result.response
-        const text = response.text()
-
-        if (text) {
-          return NextResponse.json({ message: text, provider: 'gemini' })
-        }
-      } catch (geminiErr: any) {
-        console.error('Gemini fallback also failed:', geminiErr.message)
-      }
-    }
-
-    return NextResponse.json({ 
-      error: 'Falha em todos os provedores de IA',
-      details: 'Groq e Gemini falharam ou não estão configurados.'
-    }, { status: 500 })
 
   } catch (err: unknown) {
     const error = err as Error

@@ -61,6 +61,15 @@ export interface DailyScore {
   score_pct: number;
 }
 
+/** Documento em `habit_logs`, id = `{habit_id}_{log_date}`. */
+export interface HabitLog {
+  user_id: string;
+  habit_id: string;
+  log_date: string; // ISO yyyy-MM-dd
+  status: HabitStatus;
+  note?: string | null;
+}
+
 export interface UserSettings {
   id: string;
   user_id: string;
