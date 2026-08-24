@@ -5,17 +5,18 @@ import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Plus, Trash2, Zap, ShieldAlert, Sparkles, TrendingUp, RefreshCcw, History, ChevronRight, CheckCircle2,
-  LayoutGrid, List
+  LayoutGrid, List, CalendarDays
 } from 'lucide-react'
 import { HabitModal } from '@/components/dashboard/HabitModal'
 import { HabitsMatrix } from '@/components/dashboard/HabitsMatrix'
+import { HabitsWeekGrid } from '@/components/dashboard/HabitsWeekGrid'
 import { useHabits, useDeleteHabit, useHabitsHistory, useLogHabit } from '@/lib/hooks/useHabits'
 import { StatusChoiceBubble } from '@/components/dashboard/StatusChoiceBubble'
 import { Check, Minus, X, Circle } from 'lucide-react'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { Habit } from '@/types'
 import { cn } from '@/lib/utils/cn'
-import { format, isToday, parseISO, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear } from 'date-fns'
+import { format, isToday, parseISO, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, addWeeks, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { getEffectiveOfensiva } from '@/lib/utils/scoring'
 import { useLongPress } from '@/lib/hooks/useLongPress'
@@ -182,14 +183,27 @@ export default function HabitsPage() {
     position: { x: number; y: number }
   } | null>(null)
 
-  const [historyView, setHistoryView] = useState<'list' | 'grid'>('grid')
+  const [historyView, setHistoryView] = useState<'week' | 'grid' | 'list'>('week')
+  const [weekOffset, setWeekOffset] = useState(0)
+
+  // Semana começa no domingo, como no cabeçalho D-S-T-Q-Q-S-S.
+  const weekStart = useMemo(
+    () => startOfWeek(addWeeks(new Date(), weekOffset), { weekStartsOn: 0 }),
+    [weekOffset]
+  )
+  const weekRange = useMemo(() => ({
+    start: format(weekStart, 'yyyy-MM-dd'),
+    end: format(addDays(weekStart, 6), 'yyyy-MM-dd'),
+  }), [weekStart])
 
   const { data: habits, isLoading } = useHabits()
   const deleteHabit = useDeleteHabit()
   const logHabit = useLogHabit()
-  // A grade também pinta as falhas; a lista continua só com o que foi cumprido.
+  // As grades também pintam as falhas; a lista continua só com o que foi cumprido.
   const { data: historyLogs } = useHabitsHistory(resolvedDateRange.start, resolvedDateRange.end)
   const { data: matrixLogs } = useHabitsHistory(resolvedDateRange.start, resolvedDateRange.end, true)
+  // A semana navega livre do filtro de período, então busca o próprio intervalo.
+  const { data: weekLogs } = useHabitsHistory(weekRange.start, weekRange.end, true)
   const { data: categories } = useCategories()
 
   const groupedHabits = useMemo(() => {
@@ -371,7 +385,8 @@ export default function HabitsPage() {
           {/* Alternador de visualização */}
           <div className="flex items-center gap-1 p-1 rounded-2xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] w-fit">
             {([
-              { id: 'grid', label: 'Grade', icon: LayoutGrid },
+              { id: 'week', label: 'Semana', icon: CalendarDays },
+              { id: 'grid', label: 'Período', icon: LayoutGrid },
               { id: 'list', label: 'Lista', icon: List },
             ] as const).map(v => (
               <button
@@ -389,7 +404,20 @@ export default function HabitsPage() {
             ))}
           </div>
 
-          {historyView === 'grid' ? (
+          {historyView === 'week' ? (
+            <HabitsWeekGrid
+              habits={habits || []}
+              logs={weekLogs || []}
+              weekStart={weekStart}
+              weekOffset={weekOffset}
+              onPrevWeek={() => setWeekOffset(w => w - 1)}
+              onNextWeek={() => setWeekOffset(w => Math.min(0, w + 1))}
+              onToday={() => setWeekOffset(0)}
+              onCellClick={(habitId, logDate, position) =>
+                setActiveBubble({ habitId, logDate, position })
+              }
+            />
+          ) : historyView === 'grid' ? (
             <HabitsMatrix
               habits={habits || []}
               logs={matrixLogs || []}
