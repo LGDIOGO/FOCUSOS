@@ -19,6 +19,7 @@ import {
   increment 
 } from 'firebase/firestore'
 import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks } from 'date-fns'
+import { occursOn } from '@/lib/utils/recurrence'
 import { Habit } from '@/types'
 import {
   isScheduledOn as isScheduledOnUtil,
@@ -127,33 +128,10 @@ export function useHabitsToday(selectedDate: Date = new Date()) {
         if (h.start_date && todayStr < h.start_date) return false
         if (h.end_date && todayStr > h.end_date) return false
         if (!h.recurrence) return true
-        
-        const baseDateStr = h.start_date || h.created_at.split('T')[0]
-        if (todayStr < baseDateStr) return false
 
-        const freq = h.recurrence.frequency
-        const evDate = parseISO(baseDateStr)
-        const interval = h.recurrence.interval || 1
-        
-        if (freq === 'daily') return true
-        if (freq === 'specific_days') {
-          if (interval > 1) {
-            const diffWeeks = Math.abs(differenceInWeeks(selectedDate, evDate))
-            if (diffWeeks % interval !== 0) return false
-          }
-          return h.recurrence.days_of_week?.includes(todayDay) ?? false
-        }
-        if (freq === 'weekly') {
-           if (interval > 1) {
-              const diffWeeks = Math.abs(differenceInWeeks(selectedDate, evDate));
-              if (diffWeeks % interval !== 0) return false;
-           }
-           return todayDay === getDay(evDate)
-        }
-        if (freq === 'monthly') return getDate(selectedDate) === getDate(evDate)
-        if (freq === 'yearly') return getDate(selectedDate) === getDate(evDate) && getMonth(selectedDate) === getMonth(evDate)
-        
-        return true
+        // Hábitos criados antes de `start_date` existir caem no dia de criação.
+        const baseDateStr = h.start_date || h.created_at.split('T')[0]
+        return occursOn(h.recurrence, baseDateStr, todayStr, h.end_date)
       })
 
       // Fetch each log by its known document ID — zero composite indexes needed

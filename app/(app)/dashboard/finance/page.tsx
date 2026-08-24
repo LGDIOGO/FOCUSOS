@@ -76,6 +76,30 @@ const CYCLES: { value: FinanceRecurringCost['billing_cycle']; label: string }[] 
   { value: 'yearly',   label: 'Anual' },
 ]
 
+/**
+ * Quantas vezes cada ciclo ocorre por mês.
+ *
+ * O resumo somava `amount` cru, então um seguro de R$ 2.400/ano entrava como
+ * R$ 2.400 de gasto mensal e uma faxina de R$ 120/semana entrava como R$ 120.
+ * "Saldo Livre" saía muito errado para quem não usa só ciclo mensal.
+ *
+ * Semanal usa 52/12 (não 4), senão perdem-se as ~4 semanas extras do ano.
+ * Quinzenal = 2x/mês, o sentido usual de "quinzenal" no Brasil (dia 15 e 30),
+ * e não 26 ocorrências anuais.
+ */
+const CYCLE_PER_MONTH: Record<FinanceRecurringCost['billing_cycle'], number> = {
+  monthly:  1,
+  weekly:   52 / 12,
+  biweekly: 2,
+  yearly:   1 / 12,
+  custom:   1, // nenhuma tela cria 'custom' hoje; conta como mensal até existir período próprio
+}
+
+/** Valor do item convertido para o equivalente mensal. */
+function monthlyAmount(item: FinanceRecurringCost): number {
+  return item.amount * (CYCLE_PER_MONTH[item.billing_cycle] ?? 1)
+}
+
 const WIZARD_KEY = 'focusos:finance:wizard_done'
 
 type Tab = 'resumo' | 'lancamentos' | 'recorrentes' | 'reservas'
@@ -278,8 +302,8 @@ function ResumoTab({
 }) {
   const router = useRouter()
 
-  const monthlyIncome  = recurring.filter(r => r.entry_type === 'income').reduce((s, r) => s + r.amount, 0)
-  const fixedExpenses  = recurring.filter(r => r.entry_type !== 'income').reduce((s, r) => s + r.amount, 0)
+  const monthlyIncome  = recurring.filter(r => r.entry_type === 'income').reduce((s, r) => s + monthlyAmount(r), 0)
+  const fixedExpenses  = recurring.filter(r => r.entry_type !== 'income').reduce((s, r) => s + monthlyAmount(r), 0)
 
   const thisMonthTx = transactions.filter(t => isThisMonth(t.date))
   const varIncome   = thisMonthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
@@ -725,9 +749,17 @@ function RecurringItem({
         <div className="text-sm text-zinc-200 font-medium truncate">{item.title}</div>
         <div className="text-xs text-zinc-500">{item.category} · {cycleLabel}</div>
       </div>
-      <span className={`text-sm font-bold shrink-0 ${isIncome ? 'text-emerald-400' : 'text-rose-400'}`}>
-        {isIncome ? '+' : '-'}{brl(item.amount)}
-      </span>
+      <div className="shrink-0 text-right">
+        <span className={`text-sm font-bold ${isIncome ? 'text-emerald-400' : 'text-rose-400'}`}>
+          {isIncome ? '+' : '-'}{brl(item.amount)}
+        </span>
+        {/* O resumo trabalha em base mensal — deixa explícito quanto este item pesa lá. */}
+        {item.billing_cycle !== 'monthly' && (
+          <div className="text-[10px] text-zinc-500 leading-tight">
+            ≈ {brl(monthlyAmount(item))}/mês
+          </div>
+        )}
+      </div>
       <button
         onClick={onDelete}
         className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-rose-400 transition-all shrink-0"

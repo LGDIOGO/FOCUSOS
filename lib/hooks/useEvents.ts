@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore'
 import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, differenceInDays, isToday, subDays } from 'date-fns'
 import { CalendarEvent, HabitStatus } from '@/types'
+import { occursOn } from '@/lib/utils/recurrence'
 
 export function useEvents() {
   const user = useCurrentUser()
@@ -240,30 +241,15 @@ export function useEventsToday(selectedDate: Date = new Date()) {
       const snap = await getDocs(q)
       const allEvents = snap.docs.map(d => ({ id: d.id, ...d.data() })) as CalendarEvent[]
 
-      // Helper: check if an event occurs on a given date
-      function occursOnDate(e: CalendarEvent, targetStr: string, targetDate: Date): boolean {
-        if (!e.date || typeof e.date !== 'string') return false
-        if (targetStr < e.date) return false           // event hasn't started yet
-        if (!e.recurrence) return e.date === targetStr // non-recurring: only its own date
-        // Recurring events: ALWAYS run the pattern check — even for the start date.
-        // Previously `e.date === targetStr → true` caused specific_days events to appear
-        // on their creation day even when that day wasn't in days_of_week.
-        try {
-          const evDate = parseISO(e.date)
-          const targetDay = getDay(targetDate)
-          const interval = e.recurrence.interval || 1
-          const freq = e.recurrence.frequency
-          if (freq === 'daily') return Math.abs(differenceInDays(targetDate, evDate)) % interval === 0
-          if (freq === 'weekly') return Math.abs(differenceInWeeks(targetDate, evDate)) % interval === 0 && targetDay === getDay(evDate)
-          if (freq === 'specific_days') return Math.abs(differenceInWeeks(targetDate, evDate)) % interval === 0 && !!e.recurrence.days_of_week?.includes(targetDay)
-          if (freq === 'monthly') return getDate(targetDate) === getDate(evDate)
-          if (freq === 'yearly') return getDate(targetDate) === getDate(evDate) && getMonth(targetDate) === getMonth(evDate)
-        } catch { /* invalid date — skip */ }
-        return false
-      }
+      // Recurring events ALWAYS run the pattern check — even on the start date.
+      // Previously `e.date === targetStr → true` short-circuited it, so a
+      // specific_days event showed up on its creation day even when that
+      // weekday wasn't selected.
+      const occursOnDate = (e: CalendarEvent, targetStr: string) =>
+        occursOn(e.recurrence, e.date, targetStr, e.end_date)
 
       // Filter events that occur ON the selected date — skip drafts (no title)
-      const occurringToday = allEvents.filter(e => e.title && occursOnDate(e, dateStr, selectedDate))
+      const occurringToday = allEvents.filter(e => e.title && occursOnDate(e, dateStr))
 
       // Fetch each log by its known document ID — zero composite indexes needed
       // Use allSettled so a permission-denied on a non-existing doc doesn't abort all
@@ -273,7 +259,7 @@ export function useEventsToday(selectedDate: Date = new Date()) {
       const logTodayDocs = logTodayResults
         .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
         .map(r => r.value)
-      const logsTodayMap = new Map(
+      const logsTodayMap = new Map<string, CalendarEvent['status']>(
         logTodayDocs
           .filter(d => d.exists())
           .map(d => [d.data()!.event_id, d.data()!.status])
@@ -352,8 +338,7 @@ export function useEventsToday(selectedDate: Date = new Date()) {
             // This prevents an infinite chain of "missed" entries after a user logs one.
             if (lastHandled && pDate < lastHandled) continue
 
-            const pDateObj = parseISO(pDate)
-            if (!occursOnDate(e, pDate, pDateObj)) continue
+            if (!occursOnDate(e, pDate)) continue
 
             // Only track if this specific occurrence has no real status yet
             if (!handledMap.get(e.id)?.has(pDate)) {
@@ -400,6 +385,5 @@ export function useEventsToday(selectedDate: Date = new Date()) {
       return finalResults.sort(sortEvents)
     },
     enabled: !!user,
-    staleTime: 5_000,
   })
 }

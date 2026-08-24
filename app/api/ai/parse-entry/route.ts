@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     const systemPrompt = buildSystemPrompt(today, dayName, categories, type)
     const userMessage = `FRASE PARA PARSE: "${text}"\nTIPO: ${type}`
 
-    function extractJson(raw: string): Record<string, unknown> {
+    const extractJson = (raw: string): Record<string, unknown> => {
       const match = raw.match(/\{[\s\S]*\}/)
       if (!match) throw new Error('Formato de resposta da IA inválido')
       return JSON.parse(match[0])

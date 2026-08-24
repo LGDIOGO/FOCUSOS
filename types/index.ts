@@ -119,12 +119,13 @@ export interface CalendarEvent {
   user_id: string;
   title: string;
   description?: string;
-  date: string; // ISO yyyy-MM-dd
+  date: string; // ISO yyyy-MM-dd — primeira ocorrência quando há recurrence
   time?: string; // HH:mm
   type: EventType;
   status: 'todo' | 'done' | 'partial' | 'failed' | 'none';
   isOverdue?: boolean;
   recurrence?: RecurrenceRule;
+  end_date?: string;   // ISO yyyy-MM-dd — último dia da série, inclusive
   category_id?: string;
   color?: string;      // Curated Apple hex or tailwind class
   emoji?: string;      // Optional emoji

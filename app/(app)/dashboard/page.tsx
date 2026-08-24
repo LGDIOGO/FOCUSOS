@@ -151,7 +151,7 @@ export default function DashboardPage() {
   // Armazena status + streak para que o badge 🔥 apareça já no primeiro render.
   type HabitOverride = { status: HabitStatus; streak: number; last_completed_date: string | null }
   const [habitStatusOverrides, setHabitStatusOverrides] = useState<Record<string, HabitOverride>>({})
-  const [eventStatusOverrides, setEventStatusOverrides] = useState<Record<string, string>>({})
+  const [eventStatusOverrides, setEventStatusOverrides] = useState<Record<string, CalendarEvent['status']>>({})
 
   // Dispara tutorial apenas na primeira vez
   useEffect(() => {
@@ -382,7 +382,7 @@ export default function DashboardPage() {
         else if (diff === 1) { newStreak += 1; newLastDate = todayStr }
         else { newStreak = 1; newLastDate = todayStr }
       }
-    } else if (prevStatus === 'done' && nextStatus !== 'done' && nextStatus !== 'failed') {
+    } else if (prevStatus === 'done' && nextStatus !== 'done') {
       if (newLastDate === todayStr) {
         newStreak = Math.max(0, newStreak - 1)
         newLastDate = newStreak > 0 ? format(subDays(parseISO(todayStr), 1), 'yyyy-MM-dd') : null
@@ -826,9 +826,6 @@ export default function DashboardPage() {
                   onContextMenu={() => {
                     setIsSelectionMode(true)
                     toggleSelection(t.id, 'task')
-                  }}
-                  onEdit={() => {
-                    // This is now handled internally by TaskItem for inline editing
                   }}
                   onUpdate={(id, updates) => updateTask({ id, ...updates })}
                   onDelete={() => deleteTask(t.id)}

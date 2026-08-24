@@ -46,9 +46,44 @@ interface Message {
 function parseSuggestions(text: string) {
   const match = text.match(/\[SUGGESTIONS\]([\s\S]*?)\[\/SUGGESTIONS\]/)
   if (match) {
-    try { return JSON.parse(match[1]) } catch {}
+    try { return dedupeSuggestions(JSON.parse(match[1])) } catch {}
   }
   return null
+}
+
+const titleKey = (s: unknown) =>
+  typeof s === 'string' ? s.trim().toLowerCase().replace(/\s+/g, ' ') : ''
+
+/**
+ * O modelo às vezes lista a mesma coisa como hábito E como compromisso — pedir
+ * "organiza minha semana" já devolveu Academia nos dois arrays. Aplicar os dois
+ * criaria itens duplicados no Firestore, então o evento vence (tem data) e a
+ * cópia em hábitos cai fora. Também remove repetições dentro do mesmo array.
+ */
+function dedupeSuggestions(raw: any) {
+  if (!raw || typeof raw !== 'object') return raw
+
+  const uniqueBy = (list: any[], nameOf: (x: any) => unknown) => {
+    const seen = new Set<string>()
+    return list.filter(item => {
+      const key = titleKey(nameOf(item))
+      if (!key) return true            // sem título: deixa passar, a UI lida
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  }
+
+  const events = Array.isArray(raw.events) ? uniqueBy(raw.events, e => e.title) : []
+  const eventTitles = new Set(events.map((e: any) => titleKey(e.title)))
+
+  const habits = Array.isArray(raw.habits)
+    ? uniqueBy(raw.habits, h => h.name).filter((h: any) => !eventTitles.has(titleKey(h.name)))
+    : []
+
+  const goals = Array.isArray(raw.goals) ? uniqueBy(raw.goals, g => g.title) : []
+
+  return { ...raw, habits, events, goals }
 }
 
 function parseActions(text: string) {
