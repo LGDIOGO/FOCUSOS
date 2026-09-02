@@ -275,7 +275,9 @@ export function useLogHabit() {
       if (!user) return
       const targetDate = vars.logDate || format(new Date(), 'yyyy-MM-dd')
       const todayStr = format(new Date(), 'yyyy-MM-dd')
-      const isBackdating = targetDate < todayStr
+      // Qualquer data que não seja hoje — passada OU futura — só mexe no log
+      // daquele dia; o servidor recalcula a ofensiva depois.
+      const isOtherDay = targetDate !== todayStr
       const todayKey = ['habits', 'date', targetDate, user.uid]
       const allKey = ['habits', 'all', user.uid]
 
@@ -293,7 +295,7 @@ export function useLogHabit() {
       let newStreak = prevHabit?.streak || 0
       let newLastDate: string | null = (prevHabit?.last_completed_date as string | null | undefined) ?? null
 
-      if (!isBackdating && prevHabit) {
+      if (!isOtherDay && prevHabit) {
         if (newStatus === 'failed') {
           newStreak = 0
           newLastDate = null
@@ -326,7 +328,7 @@ export function useLogHabit() {
         if (!old) return old
         return old.map(h => {
           if (h.id !== vars.habitId) return h
-          if (isBackdating) {
+          if (isOtherDay) {
             // Only update status — streak recomputed server-side after invalidation
             return { ...h, status: vars.status }
           }
@@ -336,7 +338,7 @@ export function useLogHabit() {
 
       // Update all-habits list (skip streak for backdating)
       qc.setQueryData(allKey, (old: Habit[] | undefined) => {
-        if (!old || isBackdating) return old
+        if (!old || isOtherDay) return old
         return old.map(h => {
           if (h.id !== vars.habitId) return h
           return { ...h, streak: newStreak, last_completed_date: newLastDate }
@@ -416,34 +418,43 @@ export function useLogHabit() {
           let newLastDate: string | null = lastDate
 
           const todayStr = format(new Date(), 'yyyy-MM-dd')
-          const isBackdating = targetDate < todayStr
+          const isMarkingToday = targetDate === todayStr
+          const isFuture = targetDate > todayStr
 
-          if (status === 'failed') {
+          // Marcar um dia que não é hoje altera só o log daquele dia. A ofensiva
+          // é sempre relida dos logs, para refletir o novo passado sem carimbar
+          // o estado de hoje. Antes, `failed` zerava a ofensiva mesmo vindo de
+          // um dia passado ou futuro, e uma data futura entrava pelo caminho de
+          // "hoje", gravando last_completed_date lá na frente.
+          if (isFuture) {
+            // Nada a fazer: ofensiva é sobre o que já aconteceu.
+          } else if (!isMarkingToday) {
+            const computed = await computeStreakFromLogs(
+              habitId,
+              habitData,
+              status === 'done' ? undefined : targetDate,
+            )
+            newStreak = computed.streak
+            newLastDate = computed.lastDate
+          } else if (status === 'failed') {
             newStreak = 0
             newLastDate = null
           } else if (status === 'done' && prevStatus !== 'done') {
-            if (isBackdating) {
-              // Recompute from logs — handles gap-filling, out-of-order marking, midnight recovery
-              const computed = await computeStreakFromLogs(habitId, habitData)
-              newStreak = computed.streak
-              newLastDate = computed.lastDate
+            // Marking today: schedule-aware prev-day check (no extra Firestore reads)
+            const prevScheduled = getPrevScheduledDate(habitData, targetDate)
+            if (!lastDate) {
+              newStreak = 1
+            } else if (lastDate === targetDate) {
+              // Already counted (same day re-check) — keep streak
+            } else if (prevScheduled && lastDate === prevScheduled) {
+              // Completed the previous scheduled occurrence → extend streak
+              newStreak = currentStreak + 1
             } else {
-              // Marking today: schedule-aware prev-day check (no extra Firestore reads)
-              const prevScheduled = getPrevScheduledDate(habitData, targetDate)
-              if (!lastDate) {
-                newStreak = 1
-              } else if (lastDate === targetDate) {
-                // Already counted (same day re-check) — keep streak
-              } else if (prevScheduled && lastDate === prevScheduled) {
-                // Completed the previous scheduled occurrence → extend streak
-                newStreak = currentStreak + 1
-              } else {
-                // Missed at least one scheduled occurrence → reset
-                newStreak = 1
-              }
-              newLastDate = targetDate
+              // Missed at least one scheduled occurrence → reset
+              newStreak = 1
             }
-          } else if (prevStatus === 'done' && status !== 'done' && status !== 'failed') {
+            newLastDate = targetDate
+          } else if (prevStatus === 'done' && status !== 'done') {
             // Undoing done → recompute excluding this date
             const computed = await computeStreakFromLogs(habitId, habitData, targetDate)
             newStreak = computed.streak

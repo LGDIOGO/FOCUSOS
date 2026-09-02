@@ -88,9 +88,14 @@ export function useUpdateEvent() {
         if (!old) return old
         return old.map((e: any) => e.id === vars.id ? { ...e, ...vars } : e)
       })
+      // Em `eventsToday` o campo `date` é a data DAQUELA ocorrência, não a data
+      // da série — e é ela que decide em qual dia o status vai ser registrado.
+      // Deixar um update de série sobrescrever isso faria a marcação cair no
+      // dia errado até o refetch, então `date` e `status` ficam preservados.
+      const { date: _ignoredDate, status: _ignoredStatus, ...seriesFields } = vars
       qc.setQueriesData({ queryKey: ['eventsToday'] }, (old: any) => {
         if (!old) return old
-        return old.map((e: any) => e.id === vars.id ? { ...e, ...vars } : e)
+        return old.map((e: any) => e.id === vars.id ? { ...e, ...seriesFields } : e)
       })
     },
     onError: () => {
@@ -158,11 +163,16 @@ export function useLogEvent() {
       // Cancela queries em andamento para não sobrescrever o otimismo
       await qc.cancelQueries({ queryKey: ['eventsToday'] })
 
-      // Salva snapshot de TODOS os caches de eventsToday para rollback
+      const targetDate = vars.logDate || format(new Date(), 'yyyy-MM-dd')
+
+      // Cada dia tem seu próprio cache (['eventsToday', data, uid]) e o log é
+      // por data. Antes o status era escrito em TODOS eles, então concluir a
+      // ocorrência de ontem marcava a de hoje junto até o refetch chegar.
+      // Agora só o cache do dia registrado é tocado.
       const snapshots: Array<{ queryKey: readonly unknown[]; data: unknown }> = []
       qc.getQueriesData<any[]>({ queryKey: ['eventsToday'] }).forEach(([key, data]) => {
+        if ((key as unknown[])[1] !== targetDate) return
         snapshots.push({ queryKey: key, data })
-        // Atualiza imediatamente o evento em qualquer cache que o contenha
         qc.setQueryData(key, (old: any[] | undefined) => {
           if (!old) return old
           return old.map(e => e.id === vars.eventId ? { ...e, status: vars.status } : e)

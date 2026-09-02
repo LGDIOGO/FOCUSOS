@@ -266,7 +266,9 @@ export default function DashboardPage() {
     if (!habitsData) return []
     return [...habitsData]
       .map(h => {
-        const ov = habitStatusOverrides[h.id]
+        // Chaveado por hábito + dia: um override guardado só por id vazava para
+        // as outras datas, e marcar ontem aparecia como marcado hoje.
+        const ov = habitStatusOverrides[`${h.id}_${todayStr}`]
         if (ov !== undefined && ov.status !== h.status) {
           return { ...h, status: ov.status, streak: ov.streak, last_completed_date: ov.last_completed_date }
         }
@@ -283,7 +285,7 @@ export default function DashboardPage() {
         // Ambos sem horário: sort_order, depois streak
         return (a.sort_order || 0) - (b.sort_order || 0) || (b.streak || 0) - (a.streak || 0)
       })
-  }, [habitsData, habitStatusOverrides])
+  }, [habitsData, habitStatusOverrides, todayStr])
 
   const atRiskHabits = useMemo(() => {
     if (!isViewingToday || !allHabitsData) return []
@@ -365,31 +367,36 @@ export default function DashboardPage() {
   // Set habit status directly: none, done, partial, failed
   function setHabitStatus(id: string, nextStatus: HabitStatus) {
     const habit = habitsData?.find(h => h.id === id)
-    const currentOv = habitStatusOverrides[id]
+    const currentOv = habitStatusOverrides[`${id}_${todayStr}`]
     const prevStatus: HabitStatus = currentOv?.status ?? (habit?.status as HabitStatus) ?? 'none'
     let newStreak: number = currentOv?.streak ?? habit?.streak ?? 0
     let newLastDate: string | null = currentOv?.last_completed_date ?? (habit?.last_completed_date as string | null) ?? null
 
-    if (nextStatus === 'failed') {
-      newStreak = 0
-    } else if (nextStatus === 'done' && prevStatus !== 'done') {
-      if (!newLastDate) {
-        newStreak = 1
-        newLastDate = todayStr
-      } else {
-        const diff = differenceInDays(parseISO(todayStr), parseISO(newLastDate))
-        if (diff === 0) { if (newStreak === 0) newStreak = 1; newLastDate = todayStr }
-        else if (diff === 1) { newStreak += 1; newLastDate = todayStr }
-        else { newStreak = 1; newLastDate = todayStr }
-      }
-    } else if (prevStatus === 'done' && nextStatus !== 'done') {
-      if (newLastDate === todayStr) {
-        newStreak = Math.max(0, newStreak - 1)
-        newLastDate = newStreak > 0 ? format(subDays(parseISO(todayStr), 1), 'yyyy-MM-dd') : null
+    // A ofensiva sempre descreve a situação de HOJE. Registrando outro dia,
+    // deixamos o número intacto na tela e esperamos o servidor recalculá-lo a
+    // partir dos logs — palpitar aqui faria o contador piscar um valor errado.
+    if (isViewingToday) {
+      if (nextStatus === 'failed') {
+        newStreak = 0
+      } else if (nextStatus === 'done' && prevStatus !== 'done') {
+        if (!newLastDate) {
+          newStreak = 1
+          newLastDate = todayStr
+        } else {
+          const diff = differenceInDays(parseISO(todayStr), parseISO(newLastDate))
+          if (diff === 0) { if (newStreak === 0) newStreak = 1; newLastDate = todayStr }
+          else if (diff === 1) { newStreak += 1; newLastDate = todayStr }
+          else { newStreak = 1; newLastDate = todayStr }
+        }
+      } else if (prevStatus === 'done' && nextStatus !== 'done') {
+        if (newLastDate === todayStr) {
+          newStreak = Math.max(0, newStreak - 1)
+          newLastDate = newStreak > 0 ? format(subDays(parseISO(todayStr), 1), 'yyyy-MM-dd') : null
+        }
       }
     }
 
-    setHabitStatusOverrides(prev => ({ ...prev, [id]: { status: nextStatus, streak: newStreak, last_completed_date: newLastDate } }))
+    setHabitStatusOverrides(prev => ({ ...prev, [`${id}_${todayStr}`]: { status: nextStatus, streak: newStreak, last_completed_date: newLastDate } }))
 
     logHabit({
       habitId: id,
