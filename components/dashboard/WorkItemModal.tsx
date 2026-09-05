@@ -31,11 +31,55 @@ export const KIND_META: Record<WorkKind, { label: string; icon: any; color: stri
 export const SELECTABLE_KINDS: WorkKind[] =
   ['demand', 'listing', 'campaign', 'analysis', 'stock', 'service', 'meeting']
 
-/** Canais mais usados no Brasil. O campo aceita qualquer texto. */
+/** Canais em uso hoje. O campo aceita qualquer texto para os que vierem. */
 export const MARKETPLACES = [
-  'Mercado Livre', 'Amazon', 'Shopee', 'Magalu', 'Americanas',
-  'Casas Bahia', 'Netshoes', 'TikTok Shop', 'Shein', 'Site próprio',
+  'Amazon', 'Webcontinental', 'AliExpress', 'Mercado Livre', 'Shopee',
+  'Netshoes', 'Decathlon', 'Magalu', 'Casas Bahia', 'Tiktok', 'Temu',
+  'Loja própria', 'Todos',
 ]
+
+/**
+ * Demanda marcada como "Todos" vale para qualquer canal, então ela também
+ * aparece ao filtrar um marketplace específico.
+ */
+export const CHANNEL_ALL = 'Todos'
+/** Ausência de canal — trabalho que não é de marketplace. */
+export const CHANNEL_INTERNAL = 'Interno'
+
+/** Espelha as cores das etiquetas já usadas no quadro do trabalho. */
+export const CHANNEL_COLOR: Record<string, string> = {
+  'Amazon':         '#1F3864',
+  'Webcontinental': '#1E88E5',
+  'AliExpress':     '#B5A642',
+  'Mercado Livre':  '#F5C518',
+  'Shopee':         '#FF5722',
+  'Netshoes':       '#7B2D8E',
+  'Decathlon':      '#42A5F5',
+  'Magalu':         '#4FC3F7',
+  'Casas Bahia':    '#E91E4F',
+  'Tiktok':         '#333333',
+  'Temu':           '#FF6A00',
+  'Loja própria':   '#14524B',
+  'Todos':          '#00C853',
+  'Interno':        '#0277BD',
+}
+
+export const channelColor = (name?: string) =>
+  CHANNEL_COLOR[(name || '').trim()] || '#6B7280'
+
+/**
+ * Texto preto sobre fundo claro. Sem isto, o amarelo do Mercado Livre e o
+ * verde de "Todos" ficariam com texto branco e ilegíveis.
+ */
+export function channelTextColor(bg: string): string {
+  const hex = bg.replace('#', '')
+  const r = parseInt(hex.slice(0, 2), 16)
+  const g = parseInt(hex.slice(2, 4), 16)
+  const b = parseInt(hex.slice(4, 6), 16)
+  // Luminância relativa aproximada (ITU-R BT.601).
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return lum > 0.6 ? '#000' : '#fff'
+}
 
 export const PRIORITY_META: Record<TaskPriority, { label: string; color: string }> = {
   low:      { label: 'Baixa',   color: 'text-white/40 border-white/10' },
@@ -219,27 +263,23 @@ export function WorkItemModal({
               <div>
                 <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Canal</p>
                 <div className="flex flex-wrap gap-1.5 mb-2">
-                  <button
-                    onClick={() => setMarketplace('')}
-                    className={cn(
-                      'px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all',
-                      !marketplace ? 'bg-white text-black border-white' : 'text-white/35 border-white/8 hover:border-white/25'
-                    )}
-                  >
-                    Interno
-                  </button>
-                  {MARKETPLACES.map(mp => (
-                    <button
-                      key={mp}
-                      onClick={() => setMarketplace(mp)}
-                      className={cn(
-                        'px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all',
-                        marketplace === mp ? 'bg-white text-black border-white' : 'text-white/35 border-white/8 hover:border-white/25'
-                      )}
-                    >
-                      {mp}
-                    </button>
-                  ))}
+                  {['', ...MARKETPLACES].map(mp => {
+                    const label = mp || CHANNEL_INTERNAL
+                    const active = marketplace === mp
+                    const color = channelColor(label)
+                    return (
+                      <button
+                        key={label}
+                        onClick={() => setMarketplace(mp)}
+                        style={active
+                          ? { backgroundColor: color, borderColor: color, color: channelTextColor(color) }
+                          : { borderColor: `${color}66`, color }}
+                        className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all hover:brightness-125"
+                      >
+                        {label}
+                      </button>
+                    )
+                  })}
                 </div>
                 <input
                   value={MARKETPLACES.includes(marketplace) ? '' : marketplace}

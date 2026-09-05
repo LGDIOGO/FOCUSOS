@@ -11,7 +11,10 @@ import {
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
-import { WorkItemModal, KIND_META, PRIORITY_META, SELECTABLE_KINDS } from '@/components/dashboard/WorkItemModal'
+import {
+  WorkItemModal, KIND_META, PRIORITY_META, SELECTABLE_KINDS,
+  channelColor, channelTextColor, CHANNEL_ALL, CHANNEL_INTERNAL,
+} from '@/components/dashboard/WorkItemModal'
 import {
   useWorkItems, useWorkLogs, useLogWorkItem, expandOccurrences, buildReport,
   type WorkOccurrence,
@@ -33,13 +36,28 @@ const fmtMin = (m: number) => {
   return h ? `${h}h${r ? ` ${r}min` : ''}` : `${r}min`
 }
 
-function FilterChip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+function FilterChip({
+  active, onClick, label, color,
+}: {
+  active: boolean; onClick: () => void; label: string; color?: string
+}) {
+  const style = color
+    ? (active
+        ? { backgroundColor: color, borderColor: color, color: channelTextColor(color) }
+        : { borderColor: `${color}55`, color })
+    : undefined
+
   return (
     <button
       onClick={onClick}
+      style={style}
       className={cn(
         'shrink-0 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all',
-        active ? 'bg-white text-black border-white' : 'text-white/35 border-white/8 hover:border-white/25 hover:text-white/70'
+        color
+          ? 'hover:brightness-125'
+          : active
+            ? 'bg-white text-black border-white'
+            : 'text-white/35 border-white/8 hover:border-white/25 hover:text-white/70'
       )}
     >
       {label}
@@ -99,7 +117,12 @@ function OccurrenceCard({
           <div className="flex items-center gap-2 flex-wrap mt-1 text-[10px] font-bold text-white/35">
             <span className={cn('px-1.5 py-0.5 rounded-md', meta.color)}>{meta.label}</span>
             {occ.marketplace && (
-              <span className="px-1.5 py-0.5 rounded-md bg-white/[0.07] text-white/60">{occ.marketplace}</span>
+              <span
+                className="px-1.5 py-0.5 rounded-md font-black"
+                style={{ backgroundColor: channelColor(occ.marketplace), color: channelTextColor(channelColor(occ.marketplace)) }}
+              >
+                {occ.marketplace}
+              </span>
             )}
             {showDate && (
               <span className="capitalize">
@@ -180,7 +203,7 @@ export default function TrabalhoPage() {
   // marketplaces do catálogo, só os que aparecem nos itens dele.
   const usedChannels = useMemo(() => {
     const set = new Set<string>()
-    items.forEach(i => set.add(i.marketplace?.trim() || 'Interno'))
+    items.forEach(i => set.add(i.marketplace?.trim() || CHANNEL_INTERNAL))
     return Array.from(set).sort()
   }, [items])
 
@@ -191,7 +214,15 @@ export default function TrabalhoPage() {
   }, [items])
 
   const occurrences = useMemo(() => allOccurrences.filter(o => {
-    if (channelFilter && (o.marketplace?.trim() || 'Interno') !== channelFilter) return false
+    if (channelFilter) {
+      const ch = o.marketplace?.trim() || CHANNEL_INTERNAL
+      // Item marcado como "Todos" vale para qualquer marketplace, então entra
+      // junto ao filtrar um canal específico — mas não quando o filtro é
+      // "Interno", que é justamente o que não pertence a marketplace nenhum.
+      const matches = ch === channelFilter
+        || (ch === CHANNEL_ALL && channelFilter !== CHANNEL_INTERNAL && channelFilter !== CHANNEL_ALL)
+      if (!matches) return false
+    }
     if (kindFilter && o.kind !== kindFilter) return false
     return true
   }), [allOccurrences, channelFilter, kindFilter])
@@ -339,7 +370,13 @@ export default function TrabalhoPage() {
               <span className="text-[9px] font-black uppercase tracking-widest text-white/25 shrink-0 pr-1">Canal</span>
               <FilterChip active={!channelFilter} onClick={() => setChannelFilter('')} label="Todos" />
               {usedChannels.map(c => (
-                <FilterChip key={c} active={channelFilter === c} onClick={() => setChannelFilter(c)} label={c} />
+                <FilterChip
+                  key={c}
+                  active={channelFilter === c}
+                  onClick={() => setChannelFilter(c)}
+                  label={c}
+                  color={channelColor(c)}
+                />
               ))}
             </div>
           )}
@@ -558,17 +595,29 @@ export default function TrabalhoPage() {
 
                   {/* Por canal e por solicitante */}
                   {([
-                    { label: 'Por canal', rows: report.byMarketplace.map(m => ({ k: m.marketplace, ...m })), bar: 'bg-cyan-400' },
-                    { label: 'Por solicitante', rows: report.byProject.map(p => ({ k: p.project, ...p })), bar: 'bg-blue-400' },
+                    { label: 'Por canal', rows: report.byMarketplace.map(m => ({ k: m.marketplace, ...m })), colored: true },
+                    { label: 'Por solicitante', rows: report.byProject.map(p => ({ k: p.project, ...p })), colored: false },
                   ] as const).map(sec => sec.rows.length > 0 && (
                     <div key={sec.label} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
                       <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">{sec.label}</p>
                       <div className="space-y-2.5">
                         {sec.rows.map(r => (
                           <div key={r.k} className="flex items-center gap-3">
+                            {sec.colored && (
+                              <span
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{ backgroundColor: channelColor(r.k) }}
+                              />
+                            )}
                             <span className="text-xs font-bold text-white/70 flex-1 truncate">{r.k}</span>
                             <div className="w-24 h-1.5 rounded-full bg-white/[0.06] overflow-hidden shrink-0">
-                              <div className={cn('h-full rounded-full', sec.bar)} style={{ width: `${r.rate}%` }} />
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${r.rate}%`,
+                                  backgroundColor: sec.colored ? channelColor(r.k) : '#60A5FA',
+                                }}
+                              />
                             </div>
                             <span className="text-[10px] font-black tabular-nums text-white/40 w-14 text-right shrink-0">
                               {r.done}/{r.total}
