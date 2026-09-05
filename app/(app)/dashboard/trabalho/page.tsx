@@ -11,7 +11,7 @@ import {
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
-import { WorkItemModal, KIND_META, PRIORITY_META } from '@/components/dashboard/WorkItemModal'
+import { WorkItemModal, KIND_META, PRIORITY_META, SELECTABLE_KINDS } from '@/components/dashboard/WorkItemModal'
 import {
   useWorkItems, useWorkLogs, useLogWorkItem, expandOccurrences, buildReport,
   type WorkOccurrence,
@@ -31,6 +31,20 @@ const fmtMin = (m: number) => {
   const h = Math.floor(m / 60)
   const r = m % 60
   return h ? `${h}h${r ? ` ${r}min` : ''}` : `${r}min`
+}
+
+function FilterChip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'shrink-0 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all',
+        active ? 'bg-white text-black border-white' : 'text-white/35 border-white/8 hover:border-white/25 hover:text-white/70'
+      )}
+    >
+      {label}
+    </button>
+  )
 }
 
 // ─── Cartão de ocorrência ────────────────────────────────────────────────────
@@ -84,6 +98,9 @@ function OccurrenceCard({
 
           <div className="flex items-center gap-2 flex-wrap mt-1 text-[10px] font-bold text-white/35">
             <span className={cn('px-1.5 py-0.5 rounded-md', meta.color)}>{meta.label}</span>
+            {occ.marketplace && (
+              <span className="px-1.5 py-0.5 rounded-md bg-white/[0.07] text-white/60">{occ.marketplace}</span>
+            )}
             {showDate && (
               <span className="capitalize">
                 {format(parseISO(`${occ.occurrence_date}T12:00:00`), "EEE, dd/MM", { locale: ptBR })}
@@ -136,6 +153,8 @@ export default function TrabalhoPage() {
   const [editing, setEditing] = useState<WorkItem | null>(null)
   const [modalDate, setModalDate] = useState<string | undefined>()
   const [copied, setCopied] = useState(false)
+  const [channelFilter, setChannelFilter] = useState<string>('')
+  const [kindFilter, setKindFilter] = useState<string>('')
 
   const todayStr = format(new Date(), 'yyyy-MM-dd')
 
@@ -152,10 +171,30 @@ export default function TrabalhoPage() {
   const { data: logs = [] } = useWorkLogs(range.start, range.end)
   const logItem = useLogWorkItem()
 
-  const occurrences = useMemo(
+  const allOccurrences = useMemo(
     () => expandOccurrences(items, logs, range.start, range.end),
     [items, logs, range.start, range.end]
   )
+
+  // Canais que o usuário realmente usa — a barra de filtro não lista os 10
+  // marketplaces do catálogo, só os que aparecem nos itens dele.
+  const usedChannels = useMemo(() => {
+    const set = new Set<string>()
+    items.forEach(i => set.add(i.marketplace?.trim() || 'Interno'))
+    return Array.from(set).sort()
+  }, [items])
+
+  const usedKinds = useMemo(() => {
+    const set = new Set<string>()
+    items.forEach(i => set.add(i.kind))
+    return SELECTABLE_KINDS.filter(k => set.has(k))
+  }, [items])
+
+  const occurrences = useMemo(() => allOccurrences.filter(o => {
+    if (channelFilter && (o.marketplace?.trim() || 'Interno') !== channelFilter) return false
+    if (kindFilter && o.kind !== kindFilter) return false
+    return true
+  }), [allOccurrences, channelFilter, kindFilter])
 
   const report = useMemo(() => buildReport(occurrences, todayStr), [occurrences, todayStr])
 
@@ -187,19 +226,32 @@ export default function TrabalhoPage() {
   const weekLabel = `${format(weekStart, "d MMM", { locale: ptBR })} — ${format(addDays(weekStart, 6), "d MMM", { locale: ptBR })}`
 
   const copyReport = async () => {
+    const tag = (o: WorkOccurrence) => {
+      const parts = [o.marketplace, o.project].filter(Boolean)
+      return parts.length ? ` (${parts.join(' · ')})` : ''
+    }
+    const filtro = [
+      channelFilter && `canal: ${channelFilter}`,
+      kindFilter && `tipo: ${KIND_META[kindFilter as keyof typeof KIND_META]?.label}`,
+    ].filter(Boolean).join(' | ')
+
     const lines = [
       `RELATÓRIO DE TRABALHO — ${weekLabel}`,
+      filtro ? `Filtro aplicado: ${filtro}` : '',
       ``,
       `Aproveitamento: ${report.completionRate}%  (${report.done} concluídos, ${report.partial} parciais, ${report.failed} não feitos, ${report.pending} sem registro)`,
       report.plannedMinutes ? `Horas previstas: ${fmtMin(report.plannedMinutes)}` : '',
       ``,
       `CONCLUÍDO (${report.concluded.length})`,
-      ...report.concluded.map(o => `  - [${format(parseISO(`${o.occurrence_date}T12:00:00`), 'dd/MM')}] ${o.title}${o.project ? ` (${o.project})` : ''}${o.status === 'partial' ? ' — parcial' : ''}`),
+      ...report.concluded.map(o => `  - [${format(parseISO(`${o.occurrence_date}T12:00:00`), 'dd/MM')}] ${o.title}${tag(o)}${o.status === 'partial' ? ' — parcial' : ''}`),
       ``,
       `PENDENTE / NÃO FEITO (${report.unresolved.length})`,
-      ...report.unresolved.map(o => `  - [${format(parseISO(`${o.occurrence_date}T12:00:00`), 'dd/MM')}] ${o.title}${o.project ? ` (${o.project})` : ''}`),
+      ...report.unresolved.map(o => `  - [${format(parseISO(`${o.occurrence_date}T12:00:00`), 'dd/MM')}] ${o.title}${tag(o)}`),
       ``,
-      `POR PROJETO`,
+      `POR CANAL`,
+      ...report.byMarketplace.map(m => `  - ${m.marketplace}: ${m.done}/${m.total} (${m.rate}%)`),
+      ``,
+      `POR SOLICITANTE`,
       ...report.byProject.map(p => `  - ${p.project}: ${p.done}/${p.total} (${p.rate}%)`),
     ].filter(l => l !== '')
     try {
@@ -216,7 +268,7 @@ export default function TrabalhoPage() {
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">Trabalho</h1>
           <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mt-0.5">
-            Tarefas, reuniões e prazos
+            Demandas por canal
           </p>
         </div>
         <button
@@ -279,6 +331,30 @@ export default function TrabalhoPage() {
         </button>
       </div>
 
+      {/* Filtros — só aparecem quando há mais de um valor para escolher */}
+      {items.length > 0 && (usedChannels.length > 1 || usedKinds.length > 1) && (
+        <div className="space-y-2 mb-5">
+          {usedChannels.length > 1 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+              <span className="text-[9px] font-black uppercase tracking-widest text-white/25 shrink-0 pr-1">Canal</span>
+              <FilterChip active={!channelFilter} onClick={() => setChannelFilter('')} label="Todos" />
+              {usedChannels.map(c => (
+                <FilterChip key={c} active={channelFilter === c} onClick={() => setChannelFilter(c)} label={c} />
+              ))}
+            </div>
+          )}
+          {usedKinds.length > 1 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+              <span className="text-[9px] font-black uppercase tracking-widest text-white/25 shrink-0 pr-1">Tipo</span>
+              <FilterChip active={!kindFilter} onClick={() => setKindFilter('')} label="Todos" />
+              {usedKinds.map(k => (
+                <FilterChip key={k} active={kindFilter === k} onClick={() => setKindFilter(k)} label={KIND_META[k].label} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {isLoading ? (
         <div className="text-white/30 text-sm font-medium py-10 text-center">Carregando...</div>
       ) : items.length === 0 ? (
@@ -288,7 +364,8 @@ export default function TrabalhoPage() {
           </div>
           <p className="text-white font-bold mb-1">Nada por aqui ainda</p>
           <p className="text-white/35 text-sm mb-5 max-w-sm mx-auto">
-            Cadastre reuniões, tarefas e prazos do trabalho. Itens que se repetem entram uma vez só.
+            Registre demandas, anúncios, campanhas e análises — marcando o canal
+            de cada uma para filtrar depois. O que se repete entra uma vez só.
           </p>
           <button
             onClick={() => openNew()}
@@ -479,20 +556,40 @@ export default function TrabalhoPage() {
                     </div>
                   </div>
 
-                  {/* Por projeto */}
-                  {report.byProject.length > 0 && (
-                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">Por projeto</p>
+                  {/* Por canal e por solicitante */}
+                  {([
+                    { label: 'Por canal', rows: report.byMarketplace.map(m => ({ k: m.marketplace, ...m })), bar: 'bg-cyan-400' },
+                    { label: 'Por solicitante', rows: report.byProject.map(p => ({ k: p.project, ...p })), bar: 'bg-blue-400' },
+                  ] as const).map(sec => sec.rows.length > 0 && (
+                    <div key={sec.label} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">{sec.label}</p>
                       <div className="space-y-2.5">
-                        {report.byProject.map(p => (
-                          <div key={p.project} className="flex items-center gap-3">
-                            <span className="text-xs font-bold text-white/70 flex-1 truncate">{p.project}</span>
+                        {sec.rows.map(r => (
+                          <div key={r.k} className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-white/70 flex-1 truncate">{r.k}</span>
                             <div className="w-24 h-1.5 rounded-full bg-white/[0.06] overflow-hidden shrink-0">
-                              <div className="h-full rounded-full bg-blue-400" style={{ width: `${p.rate}%` }} />
+                              <div className={cn('h-full rounded-full', sec.bar)} style={{ width: `${r.rate}%` }} />
                             </div>
                             <span className="text-[10px] font-black tabular-nums text-white/40 w-14 text-right shrink-0">
-                              {p.done}/{p.total}
+                              {r.done}/{r.total}
                             </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Por tipo de item */}
+                  {report.byKind.length > 1 && (
+                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">Por tipo</p>
+                      <div className="flex flex-wrap gap-2">
+                        {report.byKind.map(k => (
+                          <div key={k.kind} className={cn(
+                            'px-2.5 py-1.5 rounded-xl border text-[10px] font-black',
+                            KIND_META[k.kind as keyof typeof KIND_META]?.color || 'text-white/50 border-white/10'
+                          )}>
+                            {KIND_META[k.kind as keyof typeof KIND_META]?.label || k.kind} · {k.done}/{k.total}
                           </div>
                         ))}
                       </div>

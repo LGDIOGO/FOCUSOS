@@ -227,6 +227,7 @@ export interface WorkReport {
   plannedMinutes: number
   spentMinutes: number
   byProject: Array<{ project: string; total: number; done: number; rate: number }>
+  byMarketplace: Array<{ marketplace: string; total: number; done: number; rate: number }>
   byKind: Array<{ kind: string; total: number; done: number }>
   byDay: Array<{ date: string; total: number; done: number; rate: number | null }>
   concluded: WorkOccurrence[]
@@ -268,6 +269,13 @@ export function buildReport(occurrences: WorkOccurrence[], todayStr: string): Wo
     }))
     .sort((a, b) => b.total - a.total)
 
+  const byMarketplace = Array.from(groupBy(o => (o.marketplace?.trim() || 'Interno') as string))
+    .map(([marketplace, v]) => ({
+      marketplace, total: v.total, done: v.done,
+      rate: v.total > 0 ? Math.round((v.done / v.total) * 100) : 0,
+    }))
+    .sort((a, b) => b.total - a.total)
+
   const byKind = Array.from(groupBy(o => o.kind as string))
     .map(([kind, v]) => ({ kind, total: v.total, done: v.done }))
     .sort((a, b) => b.total - a.total)
@@ -297,6 +305,7 @@ export function buildReport(occurrences: WorkOccurrence[], todayStr: string): Wo
     plannedMinutes: past.reduce((s, o) => s + (o.duration_min || 0), 0),
     spentMinutes: past.reduce((s, o) => s + (o.minutes_spent || 0), 0),
     byProject,
+    byMarketplace,
     byKind,
     byDay,
     concluded: [...done, ...partial].sort((a, b) => a.occurrence_date.localeCompare(b.occurrence_date)),

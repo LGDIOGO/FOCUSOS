@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Briefcase, Users, Flag, Package, Trash2, Loader2 } from 'lucide-react'
+import {
+  X, Users, Trash2, Loader2, Inbox, Tag, Megaphone, LineChart, Boxes, Headphones,
+} from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
 import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicker'
@@ -12,11 +14,28 @@ import type { WorkItem, WorkKind, RecurrenceRule, TaskPriority } from '@/types'
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 
 export const KIND_META: Record<WorkKind, { label: string; icon: any; color: string; dot: string }> = {
-  task:     { label: 'Tarefa',   icon: Briefcase, color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',       dot: 'bg-blue-400' },
-  meeting:  { label: 'Reunião',  icon: Users,     color: 'text-violet-400 bg-violet-400/10 border-violet-400/20', dot: 'bg-violet-400' },
-  deadline: { label: 'Prazo',    icon: Flag,      color: 'text-red-400 bg-red-400/10 border-red-400/20',          dot: 'bg-red-400' },
-  delivery: { label: 'Entrega',  icon: Package,   color: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20', dot: 'bg-emerald-400' },
+  demand:   { label: 'Demanda',     icon: Inbox,      color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',          dot: 'bg-blue-400' },
+  listing:  { label: 'Anúncio',     icon: Tag,        color: 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20',          dot: 'bg-cyan-400' },
+  campaign: { label: 'Campanha',    icon: Megaphone,  color: 'text-amber-400 bg-amber-400/10 border-amber-400/20',       dot: 'bg-amber-400' },
+  analysis: { label: 'Análise',     icon: LineChart,  color: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20', dot: 'bg-emerald-400' },
+  stock:    { label: 'Estoque',     icon: Boxes,      color: 'text-orange-400 bg-orange-400/10 border-orange-400/20',    dot: 'bg-orange-400' },
+  service:  { label: 'Atendimento', icon: Headphones, color: 'text-rose-400 bg-rose-400/10 border-rose-400/20',          dot: 'bg-rose-400' },
+  meeting:  { label: 'Reunião',     icon: Users,      color: 'text-violet-400 bg-violet-400/10 border-violet-400/20',    dot: 'bg-violet-400' },
+  // Legado da primeira versão — itens antigos continuam abrindo e editando.
+  task:     { label: 'Demanda',     icon: Inbox,      color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',          dot: 'bg-blue-400' },
+  deadline: { label: 'Demanda',     icon: Inbox,      color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',          dot: 'bg-blue-400' },
+  delivery: { label: 'Demanda',     icon: Inbox,      color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',          dot: 'bg-blue-400' },
 }
+
+/** Só estes aparecem para escolher; os legados existem apenas para leitura. */
+export const SELECTABLE_KINDS: WorkKind[] =
+  ['demand', 'listing', 'campaign', 'analysis', 'stock', 'service', 'meeting']
+
+/** Canais mais usados no Brasil. O campo aceita qualquer texto. */
+export const MARKETPLACES = [
+  'Mercado Livre', 'Amazon', 'Shopee', 'Magalu', 'Americanas',
+  'Casas Bahia', 'Netshoes', 'TikTok Shop', 'Shein', 'Site próprio',
+]
 
 export const PRIORITY_META: Record<TaskPriority, { label: string; color: string }> = {
   low:      { label: 'Baixa',   color: 'text-white/40 border-white/10' },
@@ -48,7 +67,8 @@ export function WorkItemModal({
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [kind, setKind] = useState<WorkKind>('task')
+  const [kind, setKind] = useState<WorkKind>('demand')
+  const [marketplace, setMarketplace] = useState('')
   const [project, setProject] = useState('')
   const [date, setDate] = useState(defaultDate || format(new Date(), 'yyyy-MM-dd'))
   const [time, setTime] = useState('09:00')
@@ -65,6 +85,7 @@ export function WorkItemModal({
       setTitle(itemToEdit.title)
       setDescription(itemToEdit.description || '')
       setKind(itemToEdit.kind)
+      setMarketplace(itemToEdit.marketplace || '')
       setProject(itemToEdit.project || '')
       setDate(itemToEdit.date)
       setTime(itemToEdit.time || '09:00')
@@ -73,7 +94,7 @@ export function WorkItemModal({
       setRecurrence(itemToEdit.recurrence)
       setEndDate(itemToEdit.end_date || '')
     } else {
-      setTitle(''); setDescription(''); setKind('task'); setProject('')
+      setTitle(''); setDescription(''); setKind('demand'); setMarketplace(''); setProject('')
       setDate(defaultDate || format(new Date(), 'yyyy-MM-dd'))
       setTime('09:00'); setDuration(''); setPriority('medium')
       setRecurrence(undefined); setEndDate('')
@@ -113,6 +134,7 @@ export function WorkItemModal({
       title: title.trim(),
       description: description.trim() || undefined,
       kind,
+      marketplace: marketplace.trim() || undefined,
       project: project.trim() || undefined,
       date,
       time: time || undefined,
@@ -174,14 +196,14 @@ export function WorkItemModal({
               <div>
                 <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Tipo</p>
                 <div className="grid grid-cols-4 gap-2">
-                  {(Object.keys(KIND_META) as WorkKind[]).map(k => {
+                  {SELECTABLE_KINDS.map(k => {
                     const m = KIND_META[k]
                     return (
                       <button
                         key={k}
                         onClick={() => setKind(k)}
                         className={cn(
-                          'py-2.5 rounded-xl border text-[9px] font-black uppercase tracking-wider flex flex-col items-center gap-1 transition-all',
+                          'py-2.5 rounded-xl border text-[8px] font-black uppercase tracking-wider flex flex-col items-center gap-1 transition-all',
                           kind === k ? m.color : 'text-white/35 border-white/8 bg-white/[0.03] hover:border-white/20'
                         )}
                       >
@@ -191,6 +213,40 @@ export function WorkItemModal({
                     )
                   })}
                 </div>
+              </div>
+
+              {/* Canal */}
+              <div>
+                <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Canal</p>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  <button
+                    onClick={() => setMarketplace('')}
+                    className={cn(
+                      'px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all',
+                      !marketplace ? 'bg-white text-black border-white' : 'text-white/35 border-white/8 hover:border-white/25'
+                    )}
+                  >
+                    Interno
+                  </button>
+                  {MARKETPLACES.map(mp => (
+                    <button
+                      key={mp}
+                      onClick={() => setMarketplace(mp)}
+                      className={cn(
+                        'px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all',
+                        marketplace === mp ? 'bg-white text-black border-white' : 'text-white/35 border-white/8 hover:border-white/25'
+                      )}
+                    >
+                      {mp}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  value={MARKETPLACES.includes(marketplace) ? '' : marketplace}
+                  onChange={e => setMarketplace(e.target.value)}
+                  placeholder="Outro canal..."
+                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-white/30 transition-all placeholder:text-white/20"
+                />
               </div>
 
               <div>
@@ -205,11 +261,11 @@ export function WorkItemModal({
               </div>
 
               <div>
-                <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Projeto / Cliente</p>
+                <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Solicitante / Área</p>
                 <input
                   value={project}
                   onChange={e => setProject(e.target.value)}
-                  placeholder="Opcional — agrupa no relatório"
+                  placeholder="Ex: Comercial, Diretoria, Marketing"
                   className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30 transition-all placeholder:text-white/20"
                 />
               </div>

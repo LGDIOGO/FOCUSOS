@@ -145,7 +145,20 @@ export interface CalendarEvent {
 
 // ─── Módulo Trabalho ─────────────────────────────────────────────────────────
 
-export type WorkKind = 'task' | 'meeting' | 'deadline' | 'delivery';
+/**
+ * Tipos de item do dia a dia de e-commerce. 'task' | 'deadline' | 'delivery'
+ * são os nomes da primeira versão, genérica demais; ficam aceitos para não
+ * quebrar itens já cadastrados e aparecem na UI como "Demanda".
+ */
+export type WorkKind =
+  | 'demand'    // demanda que chegou de alguma área
+  | 'listing'   // anúncio: cadastro, correção, otimização
+  | 'campaign'  // campanha, ads, cupom, promoção
+  | 'analysis'  // análise, relatório, número
+  | 'stock'     // estoque: reposição, ruptura, curva
+  | 'service'   // atendimento, reclamação, reputação
+  | 'meeting'   // reunião, alinhamento
+  | 'task' | 'deadline' | 'delivery'; // legado
 export type WorkStatus = 'none' | 'done' | 'partial' | 'failed';
 
 /** Compromisso ou tarefa de trabalho. Coleção `work_items`. */
@@ -155,7 +168,8 @@ export interface WorkItem {
   title: string;
   description?: string;
   kind: WorkKind;
-  project?: string;         // projeto, cliente ou área
+  marketplace?: string;     // canal: Mercado Livre, Amazon, Shopee... ou vazio p/ interno
+  project?: string;         // área ou pessoa que pediu a demanda
   date: string;             // ISO yyyy-MM-dd — primeira ocorrência quando há recurrence
   time?: string;            // HH:mm
   duration_min?: number;    // duração estimada, usada no total de horas do relatório
