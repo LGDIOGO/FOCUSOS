@@ -58,6 +58,18 @@ service cloud.firestore {
       allow create: if isOwnerByFieldOnCreate();
     }
 
+    match /work_items/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
+    // work_logs use getDoc(id) on potentially non-existing docs
+    match /work_logs/{docId} {
+      allow read: if canReadLog();
+      allow update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
     match /goals/{docId} {
       allow read, update, delete: if isOwnerByField();
       allow create: if isOwnerByFieldOnCreate();

@@ -1,0 +1,545 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Plus, ChevronLeft, ChevronRight, Check, Minus, X, Clock, Copy,
+  CalendarDays, ListTodo, BarChart3, Pencil, AlertTriangle, Briefcase,
+} from 'lucide-react'
+import {
+  format, addDays, addWeeks, startOfWeek, isSameDay, isFuture, startOfDay, parseISO,
+} from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { cn } from '@/lib/utils/cn'
+import { WorkItemModal, KIND_META, PRIORITY_META } from '@/components/dashboard/WorkItemModal'
+import {
+  useWorkItems, useWorkLogs, useLogWorkItem, expandOccurrences, buildReport,
+  type WorkOccurrence,
+} from '@/lib/hooks/useWork'
+import type { WorkItem, WorkStatus } from '@/types'
+
+type View = 'semana' | 'pendencias' | 'relatorio'
+
+const STATUS_BTN: { id: WorkStatus; label: string; icon: any; on: string }[] = [
+  { id: 'done',    label: 'Concluído', icon: Check, on: 'bg-emerald-500 text-white border-emerald-400' },
+  { id: 'partial', label: 'Parcial',   icon: Minus, on: 'bg-amber-400 text-black border-amber-300' },
+  { id: 'failed',  label: 'Não feito', icon: X,     on: 'bg-red-500 text-white border-red-400' },
+]
+
+const fmtMin = (m: number) => {
+  if (!m) return '0h'
+  const h = Math.floor(m / 60)
+  const r = m % 60
+  return h ? `${h}h${r ? ` ${r}min` : ''}` : `${r}min`
+}
+
+// ─── Cartão de ocorrência ────────────────────────────────────────────────────
+
+function OccurrenceCard({
+  occ, onSetStatus, onEdit, showDate,
+}: {
+  occ: WorkOccurrence
+  onSetStatus: (s: WorkStatus) => void
+  onEdit: () => void
+  showDate?: boolean
+}) {
+  const meta = KIND_META[occ.kind]
+  const isPast = occ.occurrence_date < format(new Date(), 'yyyy-MM-dd')
+  const missed = isPast && occ.status === 'none'
+
+  return (
+    <div className={cn(
+      'rounded-2xl border p-3.5 transition-all',
+      occ.status === 'done'    ? 'bg-emerald-500/[0.06] border-emerald-500/20'
+      : occ.status === 'partial' ? 'bg-amber-400/[0.06] border-amber-400/20'
+      : occ.status === 'failed'  ? 'bg-red-500/[0.06] border-red-500/20'
+      : missed                   ? 'bg-white/[0.02] border-amber-500/25'
+      : 'bg-white/[0.03] border-white/[0.08]'
+    )}>
+      <div className="flex items-start gap-3">
+        <span className={cn('w-1.5 h-1.5 rounded-full mt-2 shrink-0', meta.dot)} />
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={cn(
+              'text-sm font-bold truncate',
+              occ.status === 'done' ? 'text-white/50 line-through' : 'text-white'
+            )}>
+              {occ.title}
+            </span>
+            {occ.priority && occ.priority !== 'medium' && (
+              <span className={cn(
+                'text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border',
+                PRIORITY_META[occ.priority].color
+              )}>
+                {PRIORITY_META[occ.priority].label}
+              </span>
+            )}
+            {missed && (
+              <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-wider text-amber-400">
+                <AlertTriangle size={9} /> sem registro
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap mt-1 text-[10px] font-bold text-white/35">
+            <span className={cn('px-1.5 py-0.5 rounded-md', meta.color)}>{meta.label}</span>
+            {showDate && (
+              <span className="capitalize">
+                {format(parseISO(`${occ.occurrence_date}T12:00:00`), "EEE, dd/MM", { locale: ptBR })}
+              </span>
+            )}
+            {occ.time && <span className="flex items-center gap-1"><Clock size={9} />{occ.time}</span>}
+            {occ.duration_min ? <span>{fmtMin(occ.duration_min)}</span> : null}
+            {occ.project && <span className="text-white/50">· {occ.project}</span>}
+          </div>
+
+          {occ.description && (
+            <p className="text-[11px] text-white/30 mt-1.5 line-clamp-2">{occ.description}</p>
+          )}
+        </div>
+
+        <button
+          onClick={onEdit}
+          className="p-1.5 rounded-lg text-white/25 hover:text-white hover:bg-white/10 transition-all shrink-0"
+          aria-label="Editar"
+        >
+          <Pencil size={13} />
+        </button>
+      </div>
+
+      <div className="flex gap-1.5 mt-3">
+        {STATUS_BTN.map(b => (
+          <button
+            key={b.id}
+            onClick={() => onSetStatus(occ.status === b.id ? 'none' : b.id)}
+            className={cn(
+              'flex-1 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all',
+              occ.status === b.id ? b.on : 'border-white/8 text-white/30 hover:border-white/25 hover:text-white/70'
+            )}
+          >
+            <b.icon size={11} strokeWidth={3} />
+            {b.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Página ──────────────────────────────────────────────────────────────────
+
+export default function TrabalhoPage() {
+  const [view, setView] = useState<View>('semana')
+  const [weekOffset, setWeekOffset] = useState(0)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editing, setEditing] = useState<WorkItem | null>(null)
+  const [modalDate, setModalDate] = useState<string | undefined>()
+  const [copied, setCopied] = useState(false)
+
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+
+  const weekStart = useMemo(
+    () => startOfWeek(addWeeks(new Date(), weekOffset), { weekStartsOn: 1 }), // semana comercial: segunda
+    [weekOffset]
+  )
+  const range = useMemo(() => ({
+    start: format(weekStart, 'yyyy-MM-dd'),
+    end: format(addDays(weekStart, 6), 'yyyy-MM-dd'),
+  }), [weekStart])
+
+  const { data: items = [], isLoading } = useWorkItems()
+  const { data: logs = [] } = useWorkLogs(range.start, range.end)
+  const logItem = useLogWorkItem()
+
+  const occurrences = useMemo(
+    () => expandOccurrences(items, logs, range.start, range.end),
+    [items, logs, range.start, range.end]
+  )
+
+  const report = useMemo(() => buildReport(occurrences, todayStr), [occurrences, todayStr])
+
+  const byDay = useMemo(() => {
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = addDays(weekStart, i)
+      const iso = format(d, 'yyyy-MM-dd')
+      return { date: d, iso, items: occurrences.filter(o => o.occurrence_date === iso) }
+    })
+    return days
+  }, [weekStart, occurrences])
+
+  // Pendências: tudo que já passou e não foi resolvido, mais o que ainda vem.
+  const pendencias = useMemo(() => ({
+    atrasadas: occurrences.filter(o => o.occurrence_date < todayStr && o.status === 'none'),
+    hoje: occurrences.filter(o => o.occurrence_date === todayStr && o.status === 'none'),
+    proximas: occurrences.filter(o => o.occurrence_date > todayStr),
+  }), [occurrences, todayStr])
+
+  const setStatus = (occ: WorkOccurrence, status: WorkStatus) =>
+    logItem.mutate({ itemId: occ.id, status, logDate: occ.occurrence_date })
+
+  const openNew = (date?: string) => { setEditing(null); setModalDate(date); setModalOpen(true) }
+  const openEdit = (occ: WorkOccurrence) => {
+    const full = items.find(i => i.id === occ.id)
+    if (full) { setEditing(full); setModalDate(undefined); setModalOpen(true) }
+  }
+
+  const weekLabel = `${format(weekStart, "d MMM", { locale: ptBR })} — ${format(addDays(weekStart, 6), "d MMM", { locale: ptBR })}`
+
+  const copyReport = async () => {
+    const lines = [
+      `RELATÓRIO DE TRABALHO — ${weekLabel}`,
+      ``,
+      `Aproveitamento: ${report.completionRate}%  (${report.done} concluídos, ${report.partial} parciais, ${report.failed} não feitos, ${report.pending} sem registro)`,
+      report.plannedMinutes ? `Horas previstas: ${fmtMin(report.plannedMinutes)}` : '',
+      ``,
+      `CONCLUÍDO (${report.concluded.length})`,
+      ...report.concluded.map(o => `  - [${format(parseISO(`${o.occurrence_date}T12:00:00`), 'dd/MM')}] ${o.title}${o.project ? ` (${o.project})` : ''}${o.status === 'partial' ? ' — parcial' : ''}`),
+      ``,
+      `PENDENTE / NÃO FEITO (${report.unresolved.length})`,
+      ...report.unresolved.map(o => `  - [${format(parseISO(`${o.occurrence_date}T12:00:00`), 'dd/MM')}] ${o.title}${o.project ? ` (${o.project})` : ''}`),
+      ``,
+      `POR PROJETO`,
+      ...report.byProject.map(p => `  - ${p.project}: ${p.done}/${p.total} (${p.rate}%)`),
+    ].filter(l => l !== '')
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard bloqueado — ignora */ }
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-6 pb-28 lg:pb-10">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-2xl font-black text-white tracking-tight">Trabalho</h1>
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mt-0.5">
+            Tarefas, reuniões e prazos
+          </p>
+        </div>
+        <button
+          onClick={() => openNew()}
+          className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-white text-black font-black text-xs uppercase tracking-wider hover:bg-neutral-200 transition-all"
+        >
+          <Plus size={15} /> Novo
+        </button>
+      </div>
+
+      {/* Abas */}
+      <div className="flex items-center gap-1 p-1 rounded-2xl bg-white/[0.04] border border-white/[0.07] w-fit mb-5">
+        {([
+          { id: 'semana', label: 'Semana', icon: CalendarDays },
+          { id: 'pendencias', label: 'Pendências', icon: ListTodo },
+          { id: 'relatorio', label: 'Relatório', icon: BarChart3 },
+        ] as const).map(t => (
+          <button
+            key={t.id}
+            onClick={() => setView(t.id)}
+            className={cn(
+              'flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all',
+              view === t.id ? 'bg-white text-black' : 'text-white/40 hover:text-white'
+            )}
+          >
+            <t.icon size={12} /> {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Navegação de semana — comum às três abas */}
+      <div className="flex items-center justify-between gap-3 mb-5">
+        <button
+          onClick={() => setWeekOffset(w => w - 1)}
+          aria-label="Semana anterior"
+          className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/40 hover:text-white hover:border-white/25 transition-all"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <div className="text-center">
+          <div className="text-sm font-black text-white">
+            {weekOffset === 0 ? 'Esta semana' : weekOffset === -1 ? 'Semana passada' : weekLabel}
+          </div>
+          <button
+            onClick={() => setWeekOffset(0)}
+            className={cn(
+              'text-[9px] font-black uppercase tracking-widest transition-colors mt-0.5',
+              weekOffset === 0 ? 'text-white/30 pointer-events-none' : 'text-white/40 hover:text-white'
+            )}
+          >
+            {weekOffset === 0 ? weekLabel : 'Voltar para hoje'}
+          </button>
+        </div>
+        <button
+          onClick={() => setWeekOffset(w => w + 1)}
+          aria-label="Próxima semana"
+          className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/40 hover:text-white hover:border-white/25 transition-all"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="text-white/30 text-sm font-medium py-10 text-center">Carregando...</div>
+      ) : items.length === 0 ? (
+        <div className="text-center py-16">
+          <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mx-auto mb-4">
+            <Briefcase size={22} className="text-white/25" />
+          </div>
+          <p className="text-white font-bold mb-1">Nada por aqui ainda</p>
+          <p className="text-white/35 text-sm mb-5 max-w-sm mx-auto">
+            Cadastre reuniões, tarefas e prazos do trabalho. Itens que se repetem entram uma vez só.
+          </p>
+          <button
+            onClick={() => openNew()}
+            className="px-5 py-2.5 rounded-2xl bg-white text-black font-black text-xs uppercase tracking-wider hover:bg-neutral-200 transition-all"
+          >
+            Adicionar o primeiro
+          </button>
+        </div>
+      ) : (
+        <AnimatePresence mode="wait">
+          {/* ── SEMANA ── */}
+          {view === 'semana' && (
+            <motion.div key="semana" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5">
+              {byDay.map(({ date, iso, items: dayItems }) => {
+                const isToday = isSameDay(date, new Date())
+                const future = isFuture(startOfDay(date)) && !isToday
+                return (
+                  <div key={iso}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          'text-[11px] font-black uppercase tracking-widest capitalize',
+                          isToday ? 'text-white' : 'text-white/35'
+                        )}>
+                          {format(date, 'EEEE', { locale: ptBR })}
+                        </span>
+                        <span className={cn(
+                          'text-[10px] font-black tabular-nums px-1.5 py-0.5 rounded-md',
+                          isToday ? 'bg-white text-black' : 'text-white/25'
+                        )}>
+                          {format(date, 'dd/MM')}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => openNew(iso)}
+                        className="text-white/20 hover:text-white transition-colors p-1"
+                        aria-label={`Adicionar em ${format(date, 'dd/MM')}`}
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+
+                    {dayItems.length === 0 ? (
+                      <div className={cn(
+                        'rounded-2xl border border-dashed border-white/[0.06] py-3 text-center text-[11px] font-bold',
+                        future ? 'text-white/15' : 'text-white/20'
+                      )}>
+                        {future ? 'Livre' : 'Nada registrado'}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {dayItems.map(occ => (
+                          <OccurrenceCard
+                            key={`${occ.id}_${occ.occurrence_date}`}
+                            occ={occ}
+                            onSetStatus={s => setStatus(occ, s)}
+                            onEdit={() => openEdit(occ)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </motion.div>
+          )}
+
+          {/* ── PENDÊNCIAS ── */}
+          {view === 'pendencias' && (
+            <motion.div key="pend" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+              {([
+                { key: 'atrasadas', label: 'Sem registro (já passou)', list: pendencias.atrasadas, tone: 'text-amber-400' },
+                { key: 'hoje',      label: 'Hoje',                     list: pendencias.hoje,      tone: 'text-white' },
+                { key: 'proximas',  label: 'Próximos dias',            list: pendencias.proximas,  tone: 'text-white/40' },
+              ] as const).map(sec => (
+                <div key={sec.key}>
+                  <p className={cn('text-[10px] font-black uppercase tracking-widest mb-2', sec.tone)}>
+                    {sec.label} · {sec.list.length}
+                  </p>
+                  {sec.list.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-white/[0.06] py-3 text-center text-[11px] font-bold text-white/20">
+                      Nada aqui
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {sec.list.map(occ => (
+                        <OccurrenceCard
+                          key={`${occ.id}_${occ.occurrence_date}`}
+                          occ={occ}
+                          showDate
+                          onSetStatus={s => setStatus(occ, s)}
+                          onEdit={() => openEdit(occ)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </motion.div>
+          )}
+
+          {/* ── RELATÓRIO ── */}
+          {view === 'relatorio' && (
+            <motion.div key="rel" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5">
+              {report.total === 0 ? (
+                <div className="rounded-2xl border border-dashed border-white/[0.08] py-10 text-center">
+                  <p className="text-white/40 text-sm font-bold">Nada a relatar nesta semana ainda.</p>
+                  <p className="text-white/20 text-xs mt-1">O relatório conta apenas dias que já passaram.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Destaque */}
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5">
+                    <div className="flex items-end justify-between mb-3">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Aproveitamento</p>
+                        <p className={cn(
+                          'text-4xl font-black tabular-nums leading-none mt-1',
+                          report.completionRate >= 80 ? 'text-emerald-400'
+                            : report.completionRate >= 50 ? 'text-amber-400' : 'text-red-400'
+                        )}>
+                          {report.completionRate}%
+                        </p>
+                      </div>
+                      <button
+                        onClick={copyReport}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.06] border border-white/10 hover:border-white/25 text-[9px] font-black uppercase tracking-wider text-white/50 hover:text-white transition-all"
+                      >
+                        <Copy size={11} /> {copied ? 'Copiado!' : 'Copiar'}
+                      </button>
+                    </div>
+
+                    <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden flex">
+                      {[
+                        { n: report.done, cls: 'bg-emerald-500' },
+                        { n: report.partial, cls: 'bg-amber-400' },
+                        { n: report.failed, cls: 'bg-red-500' },
+                        { n: report.pending, cls: 'bg-white/15' },
+                      ].map((s, i) => s.n > 0 && (
+                        <div key={i} className={s.cls} style={{ width: `${(s.n / report.total) * 100}%` }} />
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-2 mt-4">
+                      {[
+                        { label: 'Concluídos', v: report.done, c: 'text-emerald-400' },
+                        { label: 'Parciais', v: report.partial, c: 'text-amber-400' },
+                        { label: 'Não feitos', v: report.failed, c: 'text-red-400' },
+                        { label: 'Sem registro', v: report.pending, c: 'text-white/40' },
+                      ].map(s => (
+                        <div key={s.label}>
+                          <p className={cn('text-lg font-black tabular-nums leading-none', s.c)}>{s.v}</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-white/25 mt-1">{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {report.plannedMinutes > 0 && (
+                      <p className="text-[10px] font-bold text-white/30 mt-4 pt-3 border-t border-white/[0.06]">
+                        Tempo previsto na semana: <span className="text-white/60">{fmtMin(report.plannedMinutes)}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Por dia */}
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">Por dia</p>
+                    <div className="space-y-2">
+                      {report.byDay.map(d => (
+                        <div key={d.date} className="flex items-center gap-3">
+                          <span className="text-[10px] font-black text-white/40 w-16 capitalize shrink-0">
+                            {format(parseISO(`${d.date}T12:00:00`), 'EEE dd', { locale: ptBR })}
+                          </span>
+                          <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                            <div
+                              className={cn(
+                                'h-full rounded-full',
+                                (d.rate ?? 0) >= 80 ? 'bg-emerald-500' : (d.rate ?? 0) >= 50 ? 'bg-amber-400' : 'bg-red-500'
+                              )}
+                              style={{ width: `${d.rate ?? 0}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] font-black tabular-nums text-white/40 w-14 text-right shrink-0">
+                            {d.done}/{d.total}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Por projeto */}
+                  {report.byProject.length > 0 && (
+                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">Por projeto</p>
+                      <div className="space-y-2.5">
+                        {report.byProject.map(p => (
+                          <div key={p.project} className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-white/70 flex-1 truncate">{p.project}</span>
+                            <div className="w-24 h-1.5 rounded-full bg-white/[0.06] overflow-hidden shrink-0">
+                              <div className="h-full rounded-full bg-blue-400" style={{ width: `${p.rate}%` }} />
+                            </div>
+                            <span className="text-[10px] font-black tabular-nums text-white/40 w-14 text-right shrink-0">
+                              {p.done}/{p.total}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Listas */}
+                  {([
+                    { label: `Concluído nesta semana`, list: report.concluded, tone: 'text-emerald-400' },
+                    { label: `Ficou para trás`, list: report.unresolved, tone: 'text-amber-400' },
+                  ] as const).map(sec => sec.list.length > 0 && (
+                    <div key={sec.label} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                      <p className={cn('text-[10px] font-black uppercase tracking-widest mb-3', sec.tone)}>
+                        {sec.label} · {sec.list.length}
+                      </p>
+                      <div className="space-y-1.5">
+                        {sec.list.map(o => (
+                          <div key={`${o.id}_${o.occurrence_date}`} className="flex items-center gap-2 text-xs">
+                            <span className="text-[9px] font-black tabular-nums text-white/25 w-11 shrink-0">
+                              {format(parseISO(`${o.occurrence_date}T12:00:00`), 'dd/MM')}
+                            </span>
+                            <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', KIND_META[o.kind].dot)} />
+                            <span className="font-bold text-white/75 truncate flex-1">{o.title}</span>
+                            {o.status === 'partial' && (
+                              <span className="text-[8px] font-black uppercase text-amber-400 shrink-0">parcial</span>
+                            )}
+                            {o.project && (
+                              <span className="text-[9px] font-bold text-white/25 truncate max-w-[90px] shrink-0">{o.project}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
+
+      <WorkItemModal
+        isOpen={modalOpen}
+        onClose={() => { setModalOpen(false); setEditing(null); setModalDate(undefined) }}
+        itemToEdit={editing}
+        defaultDate={modalDate}
+      />
+    </div>
+  )
+}

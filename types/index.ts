@@ -143,6 +143,40 @@ export interface CalendarEvent {
   google_calendar_synced_at?: string;
 }
 
+// ─── Módulo Trabalho ─────────────────────────────────────────────────────────
+
+export type WorkKind = 'task' | 'meeting' | 'deadline' | 'delivery';
+export type WorkStatus = 'none' | 'done' | 'partial' | 'failed';
+
+/** Compromisso ou tarefa de trabalho. Coleção `work_items`. */
+export interface WorkItem {
+  id: string;
+  user_id: string;
+  title: string;
+  description?: string;
+  kind: WorkKind;
+  project?: string;         // projeto, cliente ou área
+  date: string;             // ISO yyyy-MM-dd — primeira ocorrência quando há recurrence
+  time?: string;            // HH:mm
+  duration_min?: number;    // duração estimada, usada no total de horas do relatório
+  recurrence?: RecurrenceRule;
+  end_date?: string;        // ISO yyyy-MM-dd — último dia da série, inclusive
+  priority: TaskPriority;
+  is_archived?: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+/** Registro por dia. Coleção `work_logs`, id = `{item_id}_{log_date}`. */
+export interface WorkLog {
+  user_id: string;
+  item_id: string;
+  log_date: string;         // ISO yyyy-MM-dd
+  status: WorkStatus;
+  note?: string | null;
+  minutes_spent?: number | null;
+}
+
 export interface FinanceTransaction {
   id: string;
   user_id: string;

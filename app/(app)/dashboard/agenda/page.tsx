@@ -21,6 +21,7 @@ import {
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useLongPress } from '@/lib/hooks/useLongPress'
+import { occursOn } from '@/lib/utils/recurrence'
 import { isAfter, subMinutes } from 'date-fns'
 
 const EVENT_TYPES: { type: EventType; label: string; icon: any; color: string }[] = [
@@ -33,26 +34,13 @@ const EVENT_TYPES: { type: EventType; label: string; icon: any; color: string }[
 
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 
-// Pure helper — shared by groupedEvents and overdue injection
-function occursOnDate(e: CalendarEvent, targetStr: string, targetDate: Date): boolean {
-  if (!e.date || typeof e.date !== 'string') return false
-  if (targetStr < e.date) return false           // event hasn't started yet
-  if (!e.recurrence) return e.date === targetStr // non-recurring: only its own date
-  // Recurring events: ALWAYS run the pattern check — even for the start date.
-  // Previously `e.date === targetStr → true` caused specific_days events to appear
-  // on their creation day even when that day wasn't in days_of_week.
-  try {
-    const evDate = parseISO(e.date)
-    const targetDay = getDay(targetDate)
-    const interval = e.recurrence.interval || 1
-    const freq = e.recurrence.frequency
-    if (freq === 'daily') return Math.abs(differenceInDays(targetDate, evDate)) % interval === 0
-    if (freq === 'weekly') return getDay(evDate) === targetDay && Math.abs(differenceInDays(targetDate, evDate)) % (7 * interval) === 0
-    if (freq === 'specific_days') return Math.abs(differenceInWeeks(targetDate, evDate)) % interval === 0 && !!e.recurrence.days_of_week?.includes(targetDay)
-    if (freq === 'monthly') return format(targetDate, 'dd') === format(evDate, 'dd')
-    if (freq === 'yearly') return format(targetDate, 'MM-dd') === format(evDate, 'MM-dd')
-  } catch { /* invalid date */ }
-  return false
+// Terceira cópia desta regra que existia no app; agora todas chamam occursOn.
+// As diferenças não eram cosméticas: aqui `end_date` era ignorado (série com
+// prazo nunca terminava), `monthly`/`yearly` comparavam o dia formatado, então
+// algo marcado no dia 31 sumia nos meses de 30 dias, e nenhuma delas respeitava
+// `interval` no modo mensal.
+function occursOnDate(e: CalendarEvent, targetStr: string): boolean {
+  return occursOn(e.recurrence, e.date, targetStr, e.end_date)
 }
 
 function EventItem({ 
@@ -342,7 +330,7 @@ function AgendaPage() {
       if (dateStr < todayStr) return
 
       const rawEvents = validEvents
-        .filter(e => occursOnDate(e, dateStr, day))
+        .filter(e => occursOnDate(e, dateStr))
         .map(e => ({
           ...e,
           status: (logs.get(`${e.id}_${dateStr}`) || 'none') as CalendarEvent['status'],
@@ -401,7 +389,7 @@ function AgendaPage() {
             } catch { return }
           }
 
-          if (!occursOnDate(e, pastDateStr, pastDate)) return
+          if (!occursOnDate(e, pastDateStr)) return
 
           const status = logs.get(`${e.id}_${pastDateStr}`) || 'none'
           const isCompleted = status === 'done' || status === 'partial' || status === 'failed'

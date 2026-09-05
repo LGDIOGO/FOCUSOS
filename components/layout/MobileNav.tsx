@@ -3,12 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Calendar, RefreshCcw, Target, Brain, Wallet, BookOpen, GraduationCap, PiggyBank, Sparkles } from 'lucide-react'
+import { LayoutDashboard, Calendar, RefreshCcw, Target, Brain, Wallet, BookOpen, GraduationCap, PiggyBank, Sparkles, Briefcase } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 const NAV_ITEMS = [
   { label: 'Resumo',   icon: LayoutDashboard, href: '/dashboard' },
   { label: 'Agenda',   icon: Calendar,        href: '/dashboard/agenda' },
+  { label: 'Trabalho', icon: Briefcase,       href: '/dashboard/trabalho' },
   { label: 'Hábitos',  icon: RefreshCcw,      href: '/dashboard/habits' },
   { label: 'Metas',   icon: Target,          href: '/dashboard/goals' },
   { label: 'Insights', icon: Brain,           href: '/dashboard/insights' },
