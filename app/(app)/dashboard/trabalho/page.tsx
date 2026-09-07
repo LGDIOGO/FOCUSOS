@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, ChevronLeft, ChevronRight, Check, Minus, X, Clock, Copy,
   CalendarDays, ListTodo, BarChart3, Pencil, AlertTriangle, Briefcase,
+  Sun, FileDown,
 } from 'lucide-react'
 import {
   format, addDays, addWeeks, startOfWeek, isSameDay, isFuture, startOfDay, parseISO,
@@ -21,7 +22,7 @@ import {
 } from '@/lib/hooks/useWork'
 import type { WorkItem, WorkStatus } from '@/types'
 
-type View = 'semana' | 'pendencias' | 'relatorio'
+type View = 'hoje' | 'semana' | 'pendencias' | 'relatorio'
 
 const STATUS_BTN: { id: WorkStatus; label: string; icon: any; on: string }[] = [
   { id: 'done',    label: 'Concluído', icon: Check, on: 'bg-emerald-500 text-white border-emerald-400' },
@@ -170,12 +171,15 @@ function OccurrenceCard({
 // ─── Página ──────────────────────────────────────────────────────────────────
 
 export default function TrabalhoPage() {
-  const [view, setView] = useState<View>('semana')
+  const [view, setView] = useState<View>('hoje')
   const [weekOffset, setWeekOffset] = useState(0)
+  const [dayOffset, setDayOffset] = useState(0)  // navegação da aba Hoje
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<WorkItem | null>(null)
   const [modalDate, setModalDate] = useState<string | undefined>()
   const [copied, setCopied] = useState(false)
+  const [copyError, setCopyError] = useState(false)
+  const [pdfError, setPdfError] = useState(false)
   const [channelFilter, setChannelFilter] = useState<string>('')
   const [kindFilter, setKindFilter] = useState<string>('')
 
@@ -190,8 +194,13 @@ export default function TrabalhoPage() {
     end: format(addDays(weekStart, 6), 'yyyy-MM-dd'),
   }), [weekStart])
 
+  // A aba Hoje navega por dia, independente da semana que as outras mostram.
+  const selectedDay = useMemo(() => addDays(new Date(), dayOffset), [dayOffset])
+  const selectedDayStr = useMemo(() => format(selectedDay, 'yyyy-MM-dd'), [selectedDay])
+
   const { data: items = [], isLoading } = useWorkItems()
   const { data: logs = [] } = useWorkLogs(range.start, range.end)
+  const { data: dayLogs = [] } = useWorkLogs(selectedDayStr, selectedDayStr)
   const logItem = useLogWorkItem()
 
   const allOccurrences = useMemo(
@@ -228,6 +237,31 @@ export default function TrabalhoPage() {
   }), [allOccurrences, channelFilter, kindFilter])
 
   const report = useMemo(() => buildReport(occurrences, todayStr), [occurrences, todayStr])
+
+  const matchesFilters = (o: WorkOccurrence) => {
+    if (channelFilter) {
+      const ch = o.marketplace?.trim() || CHANNEL_INTERNAL
+      const ok = ch === channelFilter
+        || (ch === CHANNEL_ALL && channelFilter !== CHANNEL_INTERNAL && channelFilter !== CHANNEL_ALL)
+      if (!ok) return false
+    }
+    if (kindFilter && o.kind !== kindFilter) return false
+    return true
+  }
+
+  const dayOccurrences = useMemo(
+    () => expandOccurrences(items, dayLogs, selectedDayStr, selectedDayStr).filter(matchesFilters),
+    [items, dayLogs, selectedDayStr, channelFilter, kindFilter] // eslint-disable-line react-hooks/exhaustive-deps
+  )
+
+  const dayStats = useMemo(() => {
+    const done = dayOccurrences.filter(o => o.status === 'done').length
+    const partial = dayOccurrences.filter(o => o.status === 'partial').length
+    const open = dayOccurrences.filter(o => o.status === 'none').length
+    const total = dayOccurrences.length
+    const rate = total > 0 ? Math.round(((done + partial * 0.5) / total) * 100) : null
+    return { done, partial, open, total, rate }
+  }, [dayOccurrences])
 
   const byDay = useMemo(() => {
     const days = Array.from({ length: 7 }, (_, i) => {
@@ -285,11 +319,124 @@ export default function TrabalhoPage() {
       `POR SOLICITANTE`,
       ...report.byProject.map(p => `  - ${p.project}: ${p.done}/${p.total} (${p.rate}%)`),
     ].filter(l => l !== '')
+    const text = lines.join('\n')
     try {
-      await navigator.clipboard.writeText(lines.join('\n'))
+      await navigator.clipboard.writeText(text)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch { /* clipboard bloqueado — ignora */ }
+    } catch {
+      // navigator.clipboard exige HTTPS e permissão; em PWA/iOS pode falhar.
+      // O fallback antigo era silencioso — o botão parecia não fazer nada.
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      let ok = false
+      try { ok = document.execCommand('copy') } catch { /* sem suporte */ }
+      document.body.removeChild(ta)
+      if (ok) {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } else {
+        setCopyError(true)
+        setTimeout(() => setCopyError(false), 4000)
+      }
+    }
+  }
+
+  /**
+   * Sem biblioteca de PDF: monta um documento próprio numa janela e chama a
+   * impressão do navegador, onde "Salvar como PDF" já existe. Evita ~500kB de
+   * bundle e sai com texto selecionável.
+   */
+  const exportPdf = () => {
+    const esc = (s: unknown) => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] as string))
+    const linha = (o: WorkOccurrence) => `
+      <tr>
+        <td class="d">${format(parseISO(`${o.occurrence_date}T12:00:00`), 'dd/MM')}</td>
+        <td>${esc(o.title)}</td>
+        <td class="m">${esc(o.marketplace || CHANNEL_INTERNAL)}</td>
+        <td class="m">${esc(o.project || '—')}</td>
+        <td class="s ${o.status}">${
+          o.status === 'done' ? 'Concluído'
+          : o.status === 'partial' ? 'Parcial'
+          : o.status === 'failed' ? 'Não feito' : 'Sem registro'
+        }</td>
+      </tr>`
+
+    const filtro = [
+      channelFilter && `Canal: ${channelFilter}`,
+      kindFilter && `Tipo: ${KIND_META[kindFilter as keyof typeof KIND_META]?.label}`,
+    ].filter(Boolean).join(' · ')
+
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<title>Relatório de trabalho — ${esc(weekLabel)}</title>
+<style>
+  *{box-sizing:border-box}
+  body{font:13px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;margin:32px;}
+  h1{font-size:19px;margin:0 0 2px}
+  .sub{color:#666;font-size:12px;margin-bottom:18px}
+  .kpis{display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap}
+  .kpi{border:1px solid #ddd;border-radius:8px;padding:10px 14px;min-width:104px}
+  .kpi b{display:block;font-size:21px;line-height:1}
+  .kpi span{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:#777}
+  h2{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#666;margin:22px 0 8px;border-bottom:1px solid #e5e5e5;padding-bottom:5px}
+  table{width:100%;border-collapse:collapse}
+  td,th{padding:5px 6px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}
+  th{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#888}
+  td.d{white-space:nowrap;color:#888;width:46px}
+  td.m{color:#666;font-size:11px;white-space:nowrap}
+  td.s{white-space:nowrap;font-weight:600;font-size:11px;width:88px}
+  td.s.done{color:#06843c}td.s.partial{color:#9a6a00}
+  td.s.failed{color:#c62828}td.s.none{color:#888}
+  .bars td{border:none;padding:3px 6px 3px 0}
+  .bar{height:7px;background:#eee;border-radius:4px;overflow:hidden;width:150px}
+  .bar>i{display:block;height:100%;background:#333}
+  .foot{margin-top:26px;color:#999;font-size:10px;border-top:1px solid #eee;padding-top:8px}
+  @media print{body{margin:14mm}.noprint{display:none}}
+</style></head><body>
+<h1>Relatório de trabalho</h1>
+<div class="sub">${esc(weekLabel)}${filtro ? ` · ${esc(filtro)}` : ''}</div>
+
+<div class="kpis">
+  <div class="kpi"><b>${report.completionRate}%</b><span>Aproveitamento</span></div>
+  <div class="kpi"><b>${report.done}</b><span>Concluídos</span></div>
+  <div class="kpi"><b>${report.partial}</b><span>Parciais</span></div>
+  <div class="kpi"><b>${report.failed}</b><span>Não feitos</span></div>
+  <div class="kpi"><b>${report.pending}</b><span>Sem registro</span></div>
+  ${report.plannedMinutes ? `<div class="kpi"><b>${esc(fmtMin(report.plannedMinutes))}</b><span>Previsto</span></div>` : ''}
+</div>
+
+${report.concluded.length ? `<h2>Concluído (${report.concluded.length})</h2>
+<table><tr><th>Data</th><th>Item</th><th>Canal</th><th>Solicitante</th><th>Status</th></tr>
+${report.concluded.map(linha).join('')}</table>` : ''}
+
+${report.unresolved.length ? `<h2>Ficou para trás (${report.unresolved.length})</h2>
+<table><tr><th>Data</th><th>Item</th><th>Canal</th><th>Solicitante</th><th>Status</th></tr>
+${report.unresolved.map(linha).join('')}</table>` : ''}
+
+${report.byMarketplace.length ? `<h2>Por canal</h2><table class="bars">
+${report.byMarketplace.map(m => `<tr><td style="width:150px">${esc(m.marketplace)}</td>
+<td><div class="bar"><i style="width:${m.rate}%"></i></div></td>
+<td style="width:70px;text-align:right;color:#666">${m.done}/${m.total} · ${m.rate}%</td></tr>`).join('')}
+</table>` : ''}
+
+${report.byProject.length ? `<h2>Por solicitante</h2><table class="bars">
+${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
+<td><div class="bar"><i style="width:${p.rate}%"></i></div></td>
+<td style="width:70px;text-align:right;color:#666">${p.done}/${p.total} · ${p.rate}%</td></tr>`).join('')}
+</table>` : ''}
+
+<div class="foot">FocusOS · gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div>
+<script>window.onload=function(){window.print()}<\/script>
+</body></html>`
+
+    const win = window.open('', '_blank')
+    if (!win) { setPdfError(true); setTimeout(() => setPdfError(false), 5000); return }
+    win.document.write(html)
+    win.document.close()
   }
 
   return (
@@ -313,6 +460,7 @@ export default function TrabalhoPage() {
       {/* Abas */}
       <div className="flex items-center gap-1 p-1 rounded-2xl bg-white/[0.04] border border-white/[0.07] w-fit mb-5">
         {([
+          { id: 'hoje', label: 'Hoje', icon: Sun },
           { id: 'semana', label: 'Semana', icon: CalendarDays },
           { id: 'pendencias', label: 'Pendências', icon: ListTodo },
           { id: 'relatorio', label: 'Relatório', icon: BarChart3 },
@@ -330,7 +478,45 @@ export default function TrabalhoPage() {
         ))}
       </div>
 
-      {/* Navegação de semana — comum às três abas */}
+      {/* Navegação de dia — só na aba Hoje */}
+      {view === 'hoje' && (
+        <div className="flex items-center justify-between gap-3 mb-5">
+          <button
+            onClick={() => setDayOffset(d => d - 1)}
+            aria-label="Dia anterior"
+            className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/40 hover:text-white hover:border-white/25 transition-all"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <div className="text-center">
+            <div className="text-sm font-black text-white capitalize">
+              {dayOffset === 0 ? 'Hoje' : dayOffset === -1 ? 'Ontem' : dayOffset === 1 ? 'Amanhã'
+                : format(selectedDay, "EEEE", { locale: ptBR })}
+            </div>
+            <button
+              onClick={() => setDayOffset(0)}
+              className={cn(
+                'text-[9px] font-black uppercase tracking-widest transition-colors mt-0.5',
+                dayOffset === 0 ? 'text-white/30 pointer-events-none' : 'text-white/40 hover:text-white'
+              )}
+            >
+              {dayOffset === 0
+                ? format(selectedDay, "d 'de' MMMM", { locale: ptBR })
+                : `${format(selectedDay, 'dd/MM')} · voltar para hoje`}
+            </button>
+          </div>
+          <button
+            onClick={() => setDayOffset(d => d + 1)}
+            aria-label="Próximo dia"
+            className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/40 hover:text-white hover:border-white/25 transition-all"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Navegação de semana — nas demais abas */}
+      {view !== 'hoje' && (
       <div className="flex items-center justify-between gap-3 mb-5">
         <button
           onClick={() => setWeekOffset(w => w - 1)}
@@ -361,6 +547,7 @@ export default function TrabalhoPage() {
           <ChevronRight size={16} />
         </button>
       </div>
+      )}
 
       {/* Filtros — só aparecem quando há mais de um valor para escolher */}
       {items.length > 0 && (usedChannels.length > 1 || usedKinds.length > 1) && (
@@ -413,6 +600,84 @@ export default function TrabalhoPage() {
         </div>
       ) : (
         <AnimatePresence mode="wait">
+          {/* ── HOJE ── */}
+          {view === 'hoje' && (
+            <motion.div key="hoje" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+              {dayOccurrences.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-white/[0.08] py-12 text-center">
+                  <p className="text-white/40 text-sm font-bold">
+                    {dayOffset === 0 ? 'Nada marcado para hoje.' : 'Nada marcado para este dia.'}
+                  </p>
+                  <button
+                    onClick={() => openNew(selectedDayStr)}
+                    className="mt-4 px-4 py-2 rounded-xl bg-white/[0.06] border border-white/10 hover:border-white/25 text-[10px] font-black uppercase tracking-wider text-white/60 hover:text-white transition-all"
+                  >
+                    Adicionar neste dia
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Placar do dia */}
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 flex items-center gap-4">
+                    <div className="shrink-0">
+                      <p className={cn(
+                        'text-3xl font-black tabular-nums leading-none',
+                        dayStats.rate === null ? 'text-white/30'
+                          : dayStats.rate >= 80 ? 'text-emerald-400'
+                          : dayStats.rate >= 50 ? 'text-amber-400' : 'text-red-400'
+                      )}>
+                        {dayStats.rate === null ? '—' : `${dayStats.rate}%`}
+                      </p>
+                      <p className="text-[8px] font-black uppercase tracking-widest text-white/25 mt-1">do dia</p>
+                    </div>
+                    <div className="h-10 w-px bg-white/[0.08]" />
+                    <div className="flex-1 grid grid-cols-3 gap-2">
+                      {[
+                        { label: 'Concluídos', v: dayStats.done, c: 'text-emerald-400' },
+                        { label: 'Parciais', v: dayStats.partial, c: 'text-amber-400' },
+                        { label: 'Em aberto', v: dayStats.open, c: 'text-white/50' },
+                      ].map(s => (
+                        <div key={s.label}>
+                          <p className={cn('text-lg font-black tabular-nums leading-none', s.c)}>{s.v}</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-white/25 mt-1">{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Em aberto primeiro — é o que precisa de ação hoje. */}
+                  {([
+                    { label: 'Em aberto', list: dayOccurrences.filter(o => o.status === 'none'), tone: 'text-white' },
+                    { label: 'Já respondidos', list: dayOccurrences.filter(o => o.status !== 'none'), tone: 'text-white/35' },
+                  ] as const).map(sec => sec.list.length > 0 && (
+                    <div key={sec.label}>
+                      <p className={cn('text-[10px] font-black uppercase tracking-widest mb-2', sec.tone)}>
+                        {sec.label} · {sec.list.length}
+                      </p>
+                      <div className="space-y-2">
+                        {sec.list.map(occ => (
+                          <OccurrenceCard
+                            key={`${occ.id}_${occ.occurrence_date}`}
+                            occ={occ}
+                            onSetStatus={s => setStatus(occ, s)}
+                            onEdit={() => openEdit(occ)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  <button
+                    onClick={() => openNew(selectedDayStr)}
+                    className="w-full py-3 rounded-2xl border border-dashed border-white/[0.1] text-[10px] font-black uppercase tracking-wider text-white/30 hover:text-white hover:border-white/30 transition-all"
+                  >
+                    + Adicionar neste dia
+                  </button>
+                </>
+              )}
+            </motion.div>
+          )}
+
           {/* ── SEMANA ── */}
           {view === 'semana' && (
             <motion.div key="semana" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5">
@@ -527,12 +792,20 @@ export default function TrabalhoPage() {
                           {report.completionRate}%
                         </p>
                       </div>
-                      <button
-                        onClick={copyReport}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.06] border border-white/10 hover:border-white/25 text-[9px] font-black uppercase tracking-wider text-white/50 hover:text-white transition-all"
-                      >
-                        <Copy size={11} /> {copied ? 'Copiado!' : 'Copiar'}
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={copyReport}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.06] border border-white/10 hover:border-white/25 text-[9px] font-black uppercase tracking-wider text-white/50 hover:text-white transition-all"
+                        >
+                          <Copy size={11} /> {copied ? 'Copiado!' : 'Copiar'}
+                        </button>
+                        <button
+                          onClick={exportPdf}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.06] border border-white/10 hover:border-white/25 text-[9px] font-black uppercase tracking-wider text-white/50 hover:text-white transition-all"
+                        >
+                          <FileDown size={11} /> PDF
+                        </button>
+                      </div>
                     </div>
 
                     <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden flex">
@@ -563,6 +836,16 @@ export default function TrabalhoPage() {
                     {report.plannedMinutes > 0 && (
                       <p className="text-[10px] font-bold text-white/30 mt-4 pt-3 border-t border-white/[0.06]">
                         Tempo previsto na semana: <span className="text-white/60">{fmtMin(report.plannedMinutes)}</span>
+                      </p>
+                    )}
+                    {copyError && (
+                      <p className="text-[10px] font-bold text-amber-400 mt-2">
+                        O navegador bloqueou a cópia. Use o PDF ou copie da tela.
+                      </p>
+                    )}
+                    {pdfError && (
+                      <p className="text-[10px] font-bold text-amber-400 mt-2">
+                        O navegador bloqueou a nova janela. Libere pop-ups para este site e tente de novo.
                       </p>
                     )}
                   </div>

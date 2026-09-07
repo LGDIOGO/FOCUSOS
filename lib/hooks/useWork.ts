@@ -4,11 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, db } from '@/lib/firebase/config'
 import { useCurrentUser } from '@/lib/context/AuthContext'
 import {
-  collection, query, where, getDocs, getDoc, addDoc, setDoc, updateDoc, deleteDoc, doc, Timestamp,
+  collection, query, where, getDocs, getDoc, addDoc, setDoc, updateDoc, deleteDoc, deleteField, doc, Timestamp,
 } from 'firebase/firestore'
 import { format, eachDayOfInterval, parseISO } from 'date-fns'
 import { occursOn } from '@/lib/utils/recurrence'
-import type { WorkItem, WorkLog, WorkStatus } from '@/types'
+import type { WorkItem, WorkLog, WorkNote, WorkStatus } from '@/types'
 
 function stripUndefined<T extends Record<string, any>>(data: T) {
   return Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined)) as T
@@ -69,27 +69,108 @@ export function useCreateWorkItem() {
   })
 }
 
+/**
+ * Campo esvaziado na edição chega como `undefined`. Descartá-lo — como fazia
+ * antes — deixava o valor antigo no banco, então tirar a repetição de um item
+ * ou limpar o canal simplesmente não pegava. `deleteField()` apaga de fato.
+ */
 export function useUpdateWorkItem() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<WorkItem> & { id: string }) => {
-      await updateDoc(doc(db, 'work_items', id), stripUndefined({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      }))
+      const patch: Record<string, any> = { updated_at: new Date().toISOString() }
+      for (const [k, v] of Object.entries(updates)) {
+        patch[k] = v === undefined ? deleteField() : v
+      }
+      await updateDoc(doc(db, 'work_items', id), patch)
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['work_items'] }),
   })
 }
 
+/**
+ * Remove o item e tudo que pende dele. Antes só o documento em `work_items`
+ * saía, deixando os registros diários e as anotações órfãos no banco — e num
+ * item recorrente isso é uma ocorrência por dia acumulada.
+ */
 export function useDeleteWorkItem() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (id: string) => { await deleteDoc(doc(db, 'work_items', id)) },
+    mutationFn: async (id: string) => {
+      const user = auth.currentUser
+      if (!user) throw new Error('Sessão expirada. Entre novamente para excluir.')
+
+      // Consulta por user_id (campo único, sem índice composto) e filtra o
+      // item aqui, do mesmo jeito que o resto do módulo faz.
+      const [logsSnap, notesSnap] = await Promise.all([
+        getDocs(query(collection(db, 'work_logs'), where('user_id', '==', user.uid))),
+        getDocs(query(collection(db, 'work_notes'), where('user_id', '==', user.uid))),
+      ])
+
+      const orphans = [
+        ...logsSnap.docs.filter(d => d.data().item_id === id),
+        ...notesSnap.docs.filter(d => d.data().item_id === id),
+      ]
+
+      // allSettled: um log sem permissão não pode impedir a exclusão do item.
+      await Promise.allSettled(orphans.map(d => deleteDoc(d.ref)))
+      await deleteDoc(doc(db, 'work_items', id))
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['work_items'] })
       qc.invalidateQueries({ queryKey: ['work_logs'] })
+      qc.invalidateQueries({ queryKey: ['work_notes'] })
     },
+  })
+}
+
+// ─── Anotações ───────────────────────────────────────────────────────────────
+
+/** Histórico completo de um item, do mais recente para o mais antigo. */
+export function useWorkNotes(itemId?: string) {
+  const user = useCurrentUser()
+
+  return useQuery({
+    queryKey: ['work_notes', user?.uid, itemId],
+    queryFn: async () => {
+      if (!user || !itemId) return []
+      const snap = await getDocs(query(collection(db, 'work_notes'), where('user_id', '==', user.uid)))
+      return snap.docs
+        .map(d => ({ id: d.id, ...d.data() }) as WorkNote)
+        .filter(n => n.item_id === itemId)
+        .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    },
+    enabled: !!user && !!itemId,
+    staleTime: 5_000,
+  })
+}
+
+export function useAddWorkNote() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ itemId, body, occurrenceDate, attachments }: {
+      itemId: string; body: string; occurrenceDate?: string; attachments?: string[]
+    }) => {
+      const user = auth.currentUser
+      if (!user) throw new Error('Sessão expirada. Entre novamente.')
+      await addDoc(collection(db, 'work_notes'), stripUndefined({
+        user_id: user.uid,
+        item_id: itemId,
+        occurrence_date: occurrenceDate,
+        body: body.trim(),
+        attachments: attachments?.length ? attachments : undefined,
+        created_at: new Date().toISOString(),
+      }))
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['work_notes'] }),
+  })
+}
+
+export function useDeleteWorkNote() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => { await deleteDoc(doc(db, 'work_notes', id)) },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['work_notes'] }),
   })
 }
 

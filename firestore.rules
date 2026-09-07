@@ -70,6 +70,11 @@ service cloud.firestore {
       allow create: if isOwnerByFieldOnCreate();
     }
 
+    match /work_notes/{docId} {
+      allow read, update, delete: if isOwnerByField();
+      allow create: if isOwnerByFieldOnCreate();
+    }
+
     match /goals/{docId} {
       allow read, update, delete: if isOwnerByField();
       allow create: if isOwnerByFieldOnCreate();

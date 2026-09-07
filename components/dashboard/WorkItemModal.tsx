@@ -9,6 +9,7 @@ import { format } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
 import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicker'
 import { useCreateWorkItem, useUpdateWorkItem, useDeleteWorkItem } from '@/lib/hooks/useWork'
+import { WorkNotes } from '@/components/dashboard/WorkNotes'
 import type { WorkItem, WorkKind, RecurrenceRule, TaskPriority } from '@/types'
 
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
@@ -121,6 +122,7 @@ export function WorkItemModal({
   const [recurrence, setRecurrence] = useState<RecurrenceRule | undefined>(undefined)
   const [endDate, setEndDate] = useState('')
   const [error, setError] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   // Recarrega os campos sempre que o modal abre, para não herdar o item anterior.
   useEffect(() => {
@@ -144,6 +146,7 @@ export function WorkItemModal({
       setRecurrence(undefined); setEndDate('')
     }
     setError('')
+    setConfirmDelete(false)
   }, [isOpen, itemToEdit, defaultDate])
 
   const busy = create.isPending || update.isPending || remove.isPending
@@ -197,14 +200,18 @@ export function WorkItemModal({
     }
   }
 
+  // window.confirm() é suprimido quando o app roda instalado como PWA: ele
+  // retornava false na hora e a exclusão nunca começava. A confirmação passa a
+  // ser um estado do próprio modal.
   const handleDelete = async () => {
     if (!itemToEdit) return
-    if (!confirm(`Excluir "${itemToEdit.title}" e todo o histórico dele?`)) return
+    if (!confirmDelete) { setConfirmDelete(true); return }
     try {
       await remove.mutateAsync(itemToEdit.id)
       onClose()
     } catch (e: any) {
       setError(e?.message || 'Não foi possível excluir.')
+      setConfirmDelete(false)
     }
   }
 
@@ -435,27 +442,64 @@ export function WorkItemModal({
                 />
               </div>
 
+              {/* Histórico só existe depois que o item foi salvo. */}
+              {itemToEdit && (
+                <div className="pt-4 border-t border-white/[0.07]">
+                  <WorkNotes itemId={itemToEdit.id} occurrenceDate={defaultDate} />
+                </div>
+              )}
+
               {error && <p className="text-red-400 text-xs font-bold">{error}</p>}
 
-              <div className="flex gap-2 pt-1">
-                {itemToEdit && (
+              {confirmDelete ? (
+                <div className="rounded-2xl border border-red-500/30 bg-red-500/[0.07] p-4">
+                  <p className="text-xs font-bold text-white mb-1">Excluir &quot;{itemToEdit?.title}&quot;?</p>
+                  <p className="text-[11px] text-white/50 mb-3">
+                    {itemToEdit?.recurrence
+                      ? 'Some a série inteira, com todas as ocorrências, registros e anotações.'
+                      : 'Some o item com todos os registros e anotações.'}
+                    {' '}Não dá para desfazer.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setConfirmDelete(false)}
+                      disabled={busy}
+                      className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 hover:text-white hover:border-white/25 text-[10px] font-black uppercase tracking-wider transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={busy}
+                      className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-[10px] font-black uppercase tracking-wider hover:bg-red-400 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {busy && <Loader2 size={12} className="animate-spin" />}
+                      Excluir tudo
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2 pt-1">
+                  {itemToEdit && (
+                    <button
+                      onClick={handleDelete}
+                      disabled={busy}
+                      aria-label="Excluir item"
+                      className="px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                   <button
-                    onClick={handleDelete}
+                    onClick={handleSave}
                     disabled={busy}
-                    className="px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
+                    className="flex-1 py-3 rounded-2xl bg-white text-black font-black text-xs uppercase tracking-wider hover:bg-neutral-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    <Trash2 size={16} />
+                    {busy && <Loader2 size={14} className="animate-spin" />}
+                    {itemToEdit ? 'Salvar alterações' : 'Adicionar'}
                   </button>
-                )}
-                <button
-                  onClick={handleSave}
-                  disabled={busy}
-                  className="flex-1 py-3 rounded-2xl bg-white text-black font-black text-xs uppercase tracking-wider hover:bg-neutral-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {busy && <Loader2 size={14} className="animate-spin" />}
-                  {itemToEdit ? 'Salvar alterações' : 'Adicionar'}
-                </button>
-              </div>
+                </div>
+              )}
             </div>
           </motion.div>
         </div>

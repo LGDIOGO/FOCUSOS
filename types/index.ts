@@ -181,6 +181,21 @@ export interface WorkItem {
   updated_at?: string;
 }
 
+/**
+ * Anotação num item de trabalho. Coleção `work_notes`, append-only: nunca
+ * sobrescreve, cada entrada guarda o instante em que foi feita. É o histórico
+ * que sustenta relatórios de período longo mais adiante.
+ */
+export interface WorkNote {
+  id: string;
+  user_id: string;
+  item_id: string;
+  occurrence_date?: string; // dia a que a anotação se refere, quando aplicável
+  body: string;
+  attachments?: string[];   // URLs no Firebase Storage
+  created_at: string;       // ISO completo, com hora
+}
+
 /** Registro por dia. Coleção `work_logs`, id = `{item_id}_{log_date}`. */
 export interface WorkLog {
   user_id: string;
