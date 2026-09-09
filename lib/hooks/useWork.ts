@@ -185,8 +185,23 @@ export async function uploadNoteAttachment(itemId: string, file: File): Promise<
   const path = `work_notes/${user.uid}/${itemId}/${Date.now()}_${safe}`
 
   const fileRef = storageRef(storage, path)
-  await uploadBytes(fileRef, file, { contentType: file.type })
-  return getDownloadURL(fileRef)
+  try {
+    await uploadBytes(fileRef, file, { contentType: file.type })
+    return await getDownloadURL(fileRef)
+  } catch (err: any) {
+    const code = String(err?.code || err?.message || '')
+    // O bucket do Storage precisa ser criado uma vez no Console do Firebase.
+    // Sem isso o SDK devolve unknown/404 e a mensagem crua não diz o que fazer.
+    if (/unknown|404|bucket|not-found|does not exist/i.test(code)) {
+      throw new Error(
+        'O Storage do projeto ainda não foi ativado. No Console do Firebase, abra Storage e clique em "Começar".'
+      )
+    }
+    if (/unauthorized|permission/i.test(code)) {
+      throw new Error('Sem permissão para enviar. As regras do Storage precisam ser publicadas.')
+    }
+    throw new Error(err?.message || 'Falha ao enviar a imagem.')
+  }
 }
 
 export function useDeleteWorkNote() {
