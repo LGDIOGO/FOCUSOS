@@ -1,7 +1,8 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { auth, db } from '@/lib/firebase/config'
+import { auth, db, storage } from '@/lib/firebase/config'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useCurrentUser } from '@/lib/context/AuthContext'
 import {
   collection, query, where, getDocs, getDoc, addDoc, setDoc, updateDoc, deleteDoc, deleteField, doc, Timestamp,
@@ -164,6 +165,28 @@ export function useAddWorkNote() {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['work_notes'] }),
   })
+}
+
+export const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024
+
+/**
+ * Sobe um print para o Storage e devolve a URL. O caminho começa com o uid
+ * porque as regras do bucket autorizam por ele — ninguém alcança pasta alheia.
+ */
+export async function uploadNoteAttachment(itemId: string, file: File): Promise<string> {
+  const user = auth.currentUser
+  if (!user) throw new Error('Sessão expirada. Entre novamente.')
+  if (!storage) throw new Error('Armazenamento indisponível no momento.')
+  if (!file.type.startsWith('image/')) throw new Error('Só imagens são aceitas.')
+  if (file.size > ATTACHMENT_MAX_BYTES) throw new Error('Imagem acima de 10 MB.')
+
+  // Nome único e sem caracteres problemáticos para o Storage.
+  const safe = file.name.replace(/[^\w.\-]/g, '_').slice(-60)
+  const path = `work_notes/${user.uid}/${itemId}/${Date.now()}_${safe}`
+
+  const fileRef = storageRef(storage, path)
+  await uploadBytes(fileRef, file, { contentType: file.type })
+  return getDownloadURL(fileRef)
 }
 
 export function useDeleteWorkNote() {

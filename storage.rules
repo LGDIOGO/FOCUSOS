@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// Anexos das anotações do módulo Trabalho.
+// O caminho carrega o uid, então cada usuário só alcança a própria pasta —
+// ninguém lê nem escreve fora dela, mesmo conhecendo o caminho.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    match /work_notes/{uid}/{allPaths=**} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      // Teto de 10 MB e só imagem: evita que o bucket vire depósito de
+      // arquivo arbitrário e que um print de tela estoure a cota.
+      allow write: if request.auth != null
+                   && request.auth.uid == uid
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Nada mais é acessível.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

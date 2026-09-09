@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { initializeFirestore, getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyCygZqrfMcMXZXAMoVEAKz30GWmCmsMi4I",
@@ -17,6 +18,7 @@ const isConfigValid = !!(firebaseConfig.apiKey && firebaseConfig.apiKey.startsWi
 let app: any;
 let auth: any;
 let db: any;
+let storage: any;
 
 try {
   if (getApps().length > 0) {
@@ -38,9 +40,16 @@ try {
       // Already initialised (e.g. HMR) — reuse existing instance
       db = getFirestore(app);
     }
+    // Anexos das anotações de trabalho. Falha aqui não deve derrubar o resto
+    // do app — quem usa storage checa se ele existe.
+    try {
+      storage = getStorage(app);
+    } catch (err) {
+      console.warn('Firebase Storage unavailable:', err);
+    }
   }
 } catch (error) {
   console.error('Firebase initialization error:', error);
 }
 
-export { auth, db, app };
+export { auth, db, storage, app };

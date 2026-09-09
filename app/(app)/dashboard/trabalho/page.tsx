@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import {
   format, addDays, addWeeks, startOfWeek, isSameDay, isFuture, startOfDay, parseISO,
+  subDays, differenceInCalendarDays,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
@@ -23,6 +24,9 @@ import {
 import type { WorkItem, WorkStatus } from '@/types'
 
 type View = 'hoje' | 'semana' | 'pendencias' | 'relatorio'
+
+/** Quantos dias para trás procuramos pendência não resolvida para arrastar. */
+const CARRY_DAYS = 60
 
 const STATUS_BTN: { id: WorkStatus; label: string; icon: any; on: string }[] = [
   { id: 'done',    label: 'Concluído', icon: Check, on: 'bg-emerald-500 text-white border-emerald-400' },
@@ -69,16 +73,22 @@ function FilterChip({
 // ─── Cartão de ocorrência ────────────────────────────────────────────────────
 
 function OccurrenceCard({
-  occ, onSetStatus, onEdit, showDate,
+  occ, onSetStatus, onEdit, showDate, carriedFrom,
 }: {
   occ: WorkOccurrence
   onSetStatus: (s: WorkStatus) => void
   onEdit: () => void
   showDate?: boolean
+  /** Data de origem, quando o item está sendo arrastado para outro dia. */
+  carriedFrom?: string
 }) {
   const meta = KIND_META[occ.kind]
   const isPast = occ.occurrence_date < format(new Date(), 'yyyy-MM-dd')
   const missed = isPast && occ.status === 'none'
+
+  const lateDays = carriedFrom
+    ? differenceInCalendarDays(new Date(), parseISO(`${carriedFrom}T12:00:00`))
+    : 0
 
   return (
     <div className={cn(
@@ -108,7 +118,15 @@ function OccurrenceCard({
                 {PRIORITY_META[occ.priority].label}
               </span>
             )}
-            {missed && (
+            {carriedFrom ? (
+              <span
+                className="flex items-center gap-1 text-[8px] font-black uppercase tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/25 px-1.5 py-0.5 rounded-md"
+                title={`Era para ${format(parseISO(`${carriedFrom}T12:00:00`), 'dd/MM')} e segue em aberto`}
+              >
+                <AlertTriangle size={9} />
+                {lateDays === 1 ? '1 dia atrás' : `${lateDays} dias atrás`}
+              </span>
+            ) : missed && (
               <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-wider text-amber-400">
                 <AlertTriangle size={9} /> sem registro
               </span>
@@ -198,14 +216,31 @@ export default function TrabalhoPage() {
   const selectedDay = useMemo(() => addDays(new Date(), dayOffset), [dayOffset])
   const selectedDayStr = useMemo(() => format(selectedDay, 'yyyy-MM-dd'), [selectedDay])
 
+  // Janela única cobrindo tudo que a tela precisa. O hook lê todos os logs do
+  // usuário e filtra em memória, então pedir várias faixas era ler o mesmo
+  // dado várias vezes. CARRY_DAYS é o quanto olhamos para trás procurando
+  // pendência não resolvida — é o que faz a tarefa não se perder.
+  const wideRange = useMemo(() => {
+    const earliest = [selectedDayStr, todayStr, range.start].sort()[0]
+    const latest = [selectedDayStr, todayStr, range.end].sort().slice(-1)[0]
+    return {
+      start: format(subDays(parseISO(earliest), CARRY_DAYS), 'yyyy-MM-dd'),
+      end: latest,
+    }
+  }, [selectedDayStr, todayStr, range.start, range.end])
+
   const { data: items = [], isLoading } = useWorkItems()
-  const { data: logs = [] } = useWorkLogs(range.start, range.end)
-  const { data: dayLogs = [] } = useWorkLogs(selectedDayStr, selectedDayStr)
+  const { data: allLogs = [] } = useWorkLogs(wideRange.start, wideRange.end)
   const logItem = useLogWorkItem()
 
+  const wideOccurrences = useMemo(
+    () => expandOccurrences(items, allLogs, wideRange.start, wideRange.end),
+    [items, allLogs, wideRange.start, wideRange.end]
+  )
+
   const allOccurrences = useMemo(
-    () => expandOccurrences(items, logs, range.start, range.end),
-    [items, logs, range.start, range.end]
+    () => wideOccurrences.filter(o => o.occurrence_date >= range.start && o.occurrence_date <= range.end),
+    [wideOccurrences, range.start, range.end]
   )
 
   // Canais que o usuário realmente usa — a barra de filtro não lista os 10
@@ -249,10 +284,37 @@ export default function TrabalhoPage() {
     return true
   }
 
+  /** Ocorrências do próprio dia selecionado. */
   const dayOccurrences = useMemo(
-    () => expandOccurrences(items, dayLogs, selectedDayStr, selectedDayStr).filter(matchesFilters),
-    [items, dayLogs, selectedDayStr, channelFilter, kindFilter] // eslint-disable-line react-hooks/exhaustive-deps
+    () => wideOccurrences.filter(o => o.occurrence_date === selectedDayStr).filter(matchesFilters),
+    [wideOccurrences, selectedDayStr, channelFilter, kindFilter] // eslint-disable-line react-hooks/exhaustive-deps
   )
+
+  /**
+   * Pendências de dias anteriores que ninguém respondeu. Elas reaparecem no dia
+   * seguinte — e nos próximos — até receberem um status, para não sumirem só
+   * porque o dia virou. O registro continua indo para a data original, então o
+   * relatório daquele dia permanece correto.
+   */
+  const carriedOver = useMemo(() => {
+    const abertas = wideOccurrences
+      .filter(o => o.occurrence_date < selectedDayStr && o.status === 'none')
+      .filter(matchesFilters)
+      .sort((a, b) => a.occurrence_date.localeCompare(b.occurrence_date))
+
+    // Numa série, cada dia perdido geraria um cartão: duas semanas sem marcar a
+    // daily viravam catorze avisos iguais. Recorrente arrasta só a ocorrência
+    // mais recente; item único arrasta cada um, porque são coisas distintas.
+    const ultimaPorSerie = new Map<string, WorkOccurrence>()
+    const unicos: WorkOccurrence[] = []
+    for (const o of abertas) {
+      if (o.recurrence?.frequency) ultimaPorSerie.set(o.id, o)
+      else unicos.push(o)
+    }
+
+    return [...unicos, ...Array.from(ultimaPorSerie.values())]
+      .sort((a, b) => a.occurrence_date.localeCompare(b.occurrence_date))
+  }, [wideOccurrences, selectedDayStr, channelFilter, kindFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const dayStats = useMemo(() => {
     const done = dayOccurrences.filter(o => o.status === 'done').length
@@ -260,8 +322,10 @@ export default function TrabalhoPage() {
     const open = dayOccurrences.filter(o => o.status === 'none').length
     const total = dayOccurrences.length
     const rate = total > 0 ? Math.round(((done + partial * 0.5) / total) * 100) : null
-    return { done, partial, open, total, rate }
-  }, [dayOccurrences])
+    // O arrastado entra na carga do dia mas não no percentual: ele pertence ao
+    // dia de origem, senão o dia de hoje herdaria a culpa do atraso passado.
+    return { done, partial, open, total, rate, carried: carriedOver.length }
+  }, [dayOccurrences, carriedOver])
 
   const byDay = useMemo(() => {
     const days = Array.from({ length: 7 }, (_, i) => {
@@ -273,11 +337,16 @@ export default function TrabalhoPage() {
   }, [weekStart, occurrences])
 
   // Pendências: tudo que já passou e não foi resolvido, mais o que ainda vem.
-  const pendencias = useMemo(() => ({
-    atrasadas: occurrences.filter(o => o.occurrence_date < todayStr && o.status === 'none'),
-    hoje: occurrences.filter(o => o.occurrence_date === todayStr && o.status === 'none'),
-    proximas: occurrences.filter(o => o.occurrence_date > todayStr),
-  }), [occurrences, todayStr])
+  // Atrasadas varrem toda a janela de arraste, não só a semana visível: uma
+  // pendência de três semanas atrás precisa continuar aparecendo aqui.
+  const pendencias = useMemo(() => {
+    const filtered = wideOccurrences.filter(matchesFilters)
+    return {
+      atrasadas: filtered.filter(o => o.occurrence_date < todayStr && o.status === 'none'),
+      hoje: filtered.filter(o => o.occurrence_date === todayStr && o.status === 'none'),
+      proximas: filtered.filter(o => o.occurrence_date > todayStr),
+    }
+  }, [wideOccurrences, todayStr, channelFilter, kindFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const setStatus = (occ: WorkOccurrence, status: WorkStatus) =>
     logItem.mutate({ itemId: occ.id, status, logDate: occ.occurrence_date })
@@ -457,8 +526,10 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
         </button>
       </div>
 
-      {/* Abas */}
-      <div className="flex items-center gap-1 p-1 rounded-2xl bg-white/[0.04] border border-white/[0.07] w-fit mb-5">
+      {/* Abas — com quatro delas o `w-fit` passava de 430px e empurrava a
+          página inteira para o lado no celular. O trilho rola por dentro. */}
+      <div className="-mx-4 px-4 mb-5 overflow-x-auto sm:mx-0 sm:px-0">
+      <div className="flex items-center gap-1 p-1 rounded-2xl bg-white/[0.04] border border-white/[0.07] w-max">
         {([
           { id: 'hoje', label: 'Hoje', icon: Sun },
           { id: 'semana', label: 'Semana', icon: CalendarDays },
@@ -469,13 +540,14 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
             key={t.id}
             onClick={() => setView(t.id)}
             className={cn(
-              'flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all',
+              'flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shrink-0',
               view === t.id ? 'bg-white text-black' : 'text-white/40 hover:text-white'
             )}
           >
             <t.icon size={12} /> {t.label}
           </button>
         ))}
+      </div>
       </div>
 
       {/* Navegação de dia — só na aba Hoje */}
@@ -553,7 +625,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
       {items.length > 0 && (usedChannels.length > 1 || usedKinds.length > 1) && (
         <div className="space-y-2 mb-5">
           {usedChannels.length > 1 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
               <span className="text-[9px] font-black uppercase tracking-widest text-white/25 shrink-0 pr-1">Canal</span>
               <FilterChip active={!channelFilter} onClick={() => setChannelFilter('')} label="Todos" />
               {usedChannels.map(c => (
@@ -568,7 +640,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
             </div>
           )}
           {usedKinds.length > 1 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
               <span className="text-[9px] font-black uppercase tracking-widest text-white/25 shrink-0 pr-1">Tipo</span>
               <FilterChip active={!kindFilter} onClick={() => setKindFilter('')} label="Todos" />
               {usedKinds.map(k => (
@@ -603,7 +675,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
           {/* ── HOJE ── */}
           {view === 'hoje' && (
             <motion.div key="hoje" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
-              {dayOccurrences.length === 0 ? (
+              {dayOccurrences.length === 0 && carriedOver.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/[0.08] py-12 text-center">
                   <p className="text-white/40 text-sm font-bold">
                     {dayOffset === 0 ? 'Nada marcado para hoje.' : 'Nada marcado para este dia.'}
@@ -631,11 +703,12 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                       <p className="text-[8px] font-black uppercase tracking-widest text-white/25 mt-1">do dia</p>
                     </div>
                     <div className="h-10 w-px bg-white/[0.08]" />
-                    <div className="flex-1 grid grid-cols-3 gap-2">
+                    <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[
                         { label: 'Concluídos', v: dayStats.done, c: 'text-emerald-400' },
                         { label: 'Parciais', v: dayStats.partial, c: 'text-amber-400' },
                         { label: 'Em aberto', v: dayStats.open, c: 'text-white/50' },
+                        { label: 'Atrasados', v: dayStats.carried, c: dayStats.carried > 0 ? 'text-amber-400' : 'text-white/25' },
                       ].map(s => (
                         <div key={s.label}>
                           <p className={cn('text-lg font-black tabular-nums leading-none', s.c)}>{s.v}</p>
@@ -644,6 +717,29 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                       ))}
                     </div>
                   </div>
+
+                  {/* Arrastados de dias anteriores — primeiro, porque já venceram. */}
+                  {carriedOver.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertTriangle size={11} className="text-amber-400 shrink-0" />
+                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+                          Vieram de dias anteriores · {carriedOver.length}
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        {carriedOver.map(occ => (
+                          <OccurrenceCard
+                            key={`carry_${occ.id}_${occ.occurrence_date}`}
+                            occ={occ}
+                            carriedFrom={occ.occurrence_date}
+                            onSetStatus={s => setStatus(occ, s)}
+                            onEdit={() => openEdit(occ)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Em aberto primeiro — é o que precisa de ação hoje. */}
                   {([
