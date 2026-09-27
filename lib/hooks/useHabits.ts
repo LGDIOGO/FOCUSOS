@@ -20,6 +20,7 @@ import {
 } from 'firebase/firestore'
 import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks } from 'date-fns'
 import { occursOn } from '@/lib/utils/recurrence'
+import { scheduleCalendarSync } from '@/lib/hooks/useGoogleCalendar'
 import { Habit, HabitLog } from '@/types'
 import {
   isScheduledOn as isScheduledOnUtil,
@@ -189,6 +190,7 @@ export function useAddHabit() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['habits'] })
+      scheduleCalendarSync('habits')
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })
@@ -205,6 +207,7 @@ export function useUpdateHabit() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['habits'] })
+      scheduleCalendarSync('habits')
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
     },
   })

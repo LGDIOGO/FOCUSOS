@@ -7,6 +7,8 @@ export interface GCalEvent {
   description?: string
   start: { dateTime?: string; date?: string; timeZone?: string }
   end: { dateTime?: string; date?: string; timeZone?: string }
+  /** RRULE (RFC 5545) — série vira um evento recorrente, não uma cópia por dia. */
+  recurrence?: string[]
 }
 
 export async function refreshAccessToken(refreshToken: string): Promise<string> {

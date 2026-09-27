@@ -17,6 +17,7 @@ import {
 import { format, getDay, parseISO, getDate, getMonth, differenceInWeeks, differenceInDays, isToday, subDays } from 'date-fns'
 import { CalendarEvent, HabitStatus } from '@/types'
 import { occursOn } from '@/lib/utils/recurrence'
+import { scheduleCalendarSync } from '@/lib/hooks/useGoogleCalendar'
 
 export function useEvents() {
   const user = useCurrentUser()
@@ -71,6 +72,7 @@ export function useAddEvent() {
       qc.invalidateQueries({ queryKey: ['events', user?.uid] })
       qc.invalidateQueries({ queryKey: ['eventsToday'] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
+      scheduleCalendarSync('events')
     },
   })
 }
@@ -115,6 +117,7 @@ export function useUpdateEvent() {
       qc.invalidateQueries({ queryKey: ['events', user?.uid] })
       qc.invalidateQueries({ queryKey: ['eventsToday'] })
       qc.invalidateQueries({ queryKey: ['performance-metrics', user?.uid] })
+      scheduleCalendarSync('events')
     },
   })
 }

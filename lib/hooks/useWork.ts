@@ -10,6 +10,7 @@ import {
 import { format, eachDayOfInterval, parseISO } from 'date-fns'
 import { occursOn } from '@/lib/utils/recurrence'
 import type { WorkItem, WorkLog, WorkNote, WorkStatus } from '@/types'
+import { scheduleCalendarSync } from '@/lib/hooks/useGoogleCalendar'
 
 function stripUndefined<T extends Record<string, any>>(data: T) {
   return Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined)) as T
@@ -66,7 +67,7 @@ export function useCreateWorkItem() {
         created_at: new Date().toISOString(),
       }))
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['work_items'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['work_items'] }); scheduleCalendarSync('work') },
   })
 }
 
@@ -85,7 +86,7 @@ export function useUpdateWorkItem() {
       }
       await updateDoc(doc(db, 'work_items', id), patch)
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['work_items'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['work_items'] }); scheduleCalendarSync('work') },
   })
 }
 

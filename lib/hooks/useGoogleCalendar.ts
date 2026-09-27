@@ -25,6 +25,45 @@ async function apiFetch(path: string, options: RequestInit = {}) {
   return data
 }
 
+/**
+ * Envia para o Google Agenda em segundo plano depois que algo é criado ou
+ * editado, sem prender a interface e sem estourar erro na cara de quem só
+ * queria salvar um item.
+ *
+ * As chamadas são agrupadas numa janela curta: salvar três itens seguidos
+ * dispara uma sincronização, não três. Quem não conectou a conta não paga
+ * nada — a chamada é simplesmente ignorada.
+ */
+let autoSyncTimer: ReturnType<typeof setTimeout> | null = null
+let autoSyncPending = new Set<string>()
+
+export function scheduleCalendarSync(source: 'events' | 'work' | 'habits') {
+  if (typeof window === 'undefined') return
+  autoSyncPending.add(source)
+
+  if (autoSyncTimer) clearTimeout(autoSyncTimer)
+  autoSyncTimer = setTimeout(async () => {
+    const sources = Array.from(autoSyncPending)
+    autoSyncPending = new Set()
+    autoSyncTimer = null
+
+    try {
+      const status = await apiFetch('/api/integrations/google-calendar/status')
+      if (!status?.connected) return
+      await apiFetch('/api/integrations/google-calendar/sync', {
+        method: 'POST',
+        body: JSON.stringify({
+          sources,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo',
+        }),
+      })
+    } catch {
+      // Silencioso de propósito: falhar a sincronização não pode parecer que
+      // o item não foi salvo. O botão manual continua reportando erro.
+    }
+  }, 4000)
+}
+
 export function useGoogleCalendarStatus() {
   const user = auth.currentUser
   return useQuery({
