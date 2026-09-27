@@ -2,85 +2,41 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  X, Users, Trash2, Loader2, Inbox, Tag, Megaphone, LineChart, Boxes, Headphones,
-} from 'lucide-react'
+import { X, Trash2, Loader2, Settings2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
 import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicker'
 import { useCreateWorkItem, useUpdateWorkItem, useDeleteWorkItem } from '@/lib/hooks/useWork'
 import { WorkNotes } from '@/components/dashboard/WorkNotes'
+import { useResolvedLabels, labelTextColor } from '@/lib/hooks/useWorkLabels'
 import type { WorkItem, WorkKind, RecurrenceRule, TaskPriority } from '@/types'
 
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 
-export const KIND_META: Record<WorkKind, { label: string; icon: any; color: string; dot: string }> = {
-  demand:   { label: 'Demanda',     icon: Inbox,      color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',          dot: 'bg-blue-400' },
-  listing:  { label: 'Anúncio',     icon: Tag,        color: 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20',          dot: 'bg-cyan-400' },
-  campaign: { label: 'Campanha',    icon: Megaphone,  color: 'text-amber-400 bg-amber-400/10 border-amber-400/20',       dot: 'bg-amber-400' },
-  analysis: { label: 'Análise',     icon: LineChart,  color: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20', dot: 'bg-emerald-400' },
-  stock:    { label: 'Estoque',     icon: Boxes,      color: 'text-orange-400 bg-orange-400/10 border-orange-400/20',    dot: 'bg-orange-400' },
-  service:  { label: 'Atendimento', icon: Headphones, color: 'text-rose-400 bg-rose-400/10 border-rose-400/20',          dot: 'bg-rose-400' },
-  meeting:  { label: 'Reunião',     icon: Users,      color: 'text-violet-400 bg-violet-400/10 border-violet-400/20',    dot: 'bg-violet-400' },
-  // Legado da primeira versão — itens antigos continuam abrindo e editando.
-  task:     { label: 'Demanda',     icon: Inbox,      color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',          dot: 'bg-blue-400' },
-  deadline: { label: 'Demanda',     icon: Inbox,      color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',          dot: 'bg-blue-400' },
-  delivery: { label: 'Demanda',     icon: Inbox,      color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',          dot: 'bg-blue-400' },
+/**
+ * Nomes da primeira versão, quando o tipo era um enum de e-commerce. Itens já
+ * gravados continuam com estes valores, então eles são traduzidos na exibição.
+ */
+const LEGACY_KIND_LABEL: Record<string, string> = {
+  demand: 'Demanda', listing: 'Anúncio', campaign: 'Campanha',
+  analysis: 'Análise', stock: 'Estoque', service: 'Atendimento',
+  meeting: 'Reunião', task: 'Tarefa', deadline: 'Prazo', delivery: 'Entrega',
 }
 
-/** Só estes aparecem para escolher; os legados existem apenas para leitura. */
-export const SELECTABLE_KINDS: WorkKind[] =
-  ['demand', 'listing', 'campaign', 'analysis', 'stock', 'service', 'meeting']
+/** Rótulo legível de um tipo, seja ele legado ou criado pelo usuário. */
+export const kindLabel = (kind?: string) => {
+  const k = (kind || '').trim()
+  return LEGACY_KIND_LABEL[k] || k || 'Sem tipo'
+}
 
-/** Canais em uso hoje. O campo aceita qualquer texto para os que vierem. */
-export const MARKETPLACES = [
-  'Amazon', 'Webcontinental', 'AliExpress', 'Mercado Livre', 'Shopee',
-  'Netshoes', 'Decathlon', 'Magalu', 'Casas Bahia', 'Tiktok', 'Temu',
-  'Loja própria', 'Todos',
-]
-
-/**
- * Demanda marcada como "Todos" vale para qualquer canal, então ela também
- * aparece ao filtrar um marketplace específico.
- */
-export const CHANNEL_ALL = 'Todos'
-/** Ausência de canal — trabalho que não é de marketplace. */
+/** Categoria vazia — trabalho que não pertence a nenhuma. */
 export const CHANNEL_INTERNAL = 'Interno'
 
-/** Espelha as cores das etiquetas já usadas no quadro do trabalho. */
-export const CHANNEL_COLOR: Record<string, string> = {
-  'Amazon':         '#1F3864',
-  'Webcontinental': '#1E88E5',
-  'AliExpress':     '#B5A642',
-  'Mercado Livre':  '#F5C518',
-  'Shopee':         '#FF5722',
-  'Netshoes':       '#7B2D8E',
-  'Decathlon':      '#42A5F5',
-  'Magalu':         '#4FC3F7',
-  'Casas Bahia':    '#E91E4F',
-  'Tiktok':         '#333333',
-  'Temu':           '#FF6A00',
-  'Loja própria':   '#14524B',
-  'Todos':          '#00C853',
-  'Interno':        '#0277BD',
-}
-
-export const channelColor = (name?: string) =>
-  CHANNEL_COLOR[(name || '').trim()] || '#6B7280'
-
 /**
- * Texto preto sobre fundo claro. Sem isto, o amarelo do Mercado Livre e o
- * verde de "Todos" ficariam com texto branco e ilegíveis.
+ * Item marcado como "Todos" vale para qualquer categoria, então continua
+ * aparecendo ao filtrar uma específica. Quem não usa esse nome não é afetado.
  */
-export function channelTextColor(bg: string): string {
-  const hex = bg.replace('#', '')
-  const r = parseInt(hex.slice(0, 2), 16)
-  const g = parseInt(hex.slice(2, 4), 16)
-  const b = parseInt(hex.slice(4, 6), 16)
-  // Luminância relativa aproximada (ITU-R BT.601).
-  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-  return lum > 0.6 ? '#000' : '#fff'
-}
+export const CHANNEL_ALL = 'Todos'
 
 export const PRIORITY_META: Record<TaskPriority, { label: string; color: string }> = {
   low:      { label: 'Baixa',   color: 'text-white/40 border-white/10' },
@@ -99,20 +55,25 @@ const FREQ_OPTIONS = [
 ] as const
 
 export function WorkItemModal({
-  isOpen, onClose, itemToEdit, defaultDate,
+  isOpen, onClose, itemToEdit, defaultDate, items = [], onManageLabels,
 }: {
   isOpen: boolean
   onClose: () => void
   itemToEdit?: WorkItem | null
   defaultDate?: string
+  /** Usado para oferecer também rótulos que só existem nos itens. */
+  items?: WorkItem[]
+  onManageLabels?: () => void
 }) {
   const create = useCreateWorkItem()
   const update = useUpdateWorkItem()
   const remove = useDeleteWorkItem()
+  const { labels: tipos } = useResolvedLabels('work_type', items)
+  const { labels: categorias } = useResolvedLabels('work_category', items)
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [kind, setKind] = useState<WorkKind>('demand')
+  const [kind, setKind] = useState<WorkKind>('')
   const [marketplace, setMarketplace] = useState('')
   const [project, setProject] = useState('')
   const [date, setDate] = useState(defaultDate || format(new Date(), 'yyyy-MM-dd'))
@@ -140,7 +101,7 @@ export function WorkItemModal({
       setRecurrence(itemToEdit.recurrence)
       setEndDate(itemToEdit.end_date || '')
     } else {
-      setTitle(''); setDescription(''); setKind('demand'); setMarketplace(''); setProject('')
+      setTitle(''); setDescription(''); setKind(''); setMarketplace(''); setProject('')
       setDate(defaultDate || format(new Date(), 'yyyy-MM-dd'))
       setTime('09:00'); setDuration(''); setPriority('medium')
       setRecurrence(undefined); setEndDate('')
@@ -243,58 +204,66 @@ export function WorkItemModal({
             </div>
 
             <div className="space-y-5">
-              {/* Tipo */}
-              <div>
-                <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Tipo</p>
-                <div className="grid grid-cols-4 gap-2">
-                  {SELECTABLE_KINDS.map(k => {
-                    const m = KIND_META[k]
-                    return (
-                      <button
-                        key={k}
-                        onClick={() => setKind(k)}
-                        className={cn(
-                          'py-2.5 rounded-xl border text-[8px] font-black uppercase tracking-wider flex flex-col items-center gap-1 transition-all',
-                          kind === k ? m.color : 'text-white/35 border-white/8 bg-white/[0.03] hover:border-white/20'
-                        )}
-                      >
-                        <m.icon size={14} />
-                        {m.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
+              {/* Tipo e Categoria — listas do próprio usuário */}
+              {([
+                { scope: 'work_type' as const, titulo: 'Tipo', valor: kind, set: setKind, vazio: false },
+                { scope: 'work_category' as const, titulo: 'Categoria', valor: marketplace, set: setMarketplace, vazio: true },
+              ]).map(campo => {
+                const opcoes = campo.scope === 'work_type' ? tipos : categorias
+                return (
+                  <div key={campo.scope}>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[9px] uppercase tracking-widest font-black text-white/30">{campo.titulo}</p>
+                      {onManageLabels && (
+                        <button
+                          onClick={onManageLabels}
+                          className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-white/30 hover:text-white transition-colors"
+                        >
+                          <Settings2 size={10} /> Gerenciar
+                        </button>
+                      )}
+                    </div>
 
-              {/* Canal */}
-              <div>
-                <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Canal</p>
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {['', ...MARKETPLACES].map(mp => {
-                    const label = mp || CHANNEL_INTERNAL
-                    const active = marketplace === mp
-                    const color = channelColor(label)
-                    return (
+                    {opcoes.length === 0 ? (
                       <button
-                        key={label}
-                        onClick={() => setMarketplace(mp)}
-                        style={active
-                          ? { backgroundColor: color, borderColor: color, color: channelTextColor(color) }
-                          : { borderColor: `${color}66`, color }}
-                        className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all hover:brightness-125"
+                        onClick={onManageLabels}
+                        className="w-full py-3 rounded-xl border border-dashed border-white/10 text-[10px] font-black uppercase tracking-wider text-white/30 hover:text-white hover:border-white/30 transition-all"
                       >
-                        {label}
+                        Criar {campo.titulo.toLowerCase()}s
                       </button>
-                    )
-                  })}
-                </div>
-                <input
-                  value={MARKETPLACES.includes(marketplace) ? '' : marketplace}
-                  onChange={e => setMarketplace(e.target.value)}
-                  placeholder="Outro canal..."
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-white/30 transition-all placeholder:text-white/20"
-                />
-              </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {campo.vazio && (
+                          <button
+                            onClick={() => campo.set('')}
+                            className={cn(
+                              'px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all',
+                              !campo.valor ? 'bg-white text-black border-white' : 'text-white/35 border-white/10 hover:border-white/30'
+                            )}
+                          >
+                            Nenhuma
+                          </button>
+                        )}
+                        {opcoes.map(l => {
+                          const active = campo.valor === l.name
+                          return (
+                            <button
+                              key={l.name}
+                              onClick={() => campo.set(l.name)}
+                              style={active
+                                ? { backgroundColor: l.color, borderColor: l.color, color: labelTextColor(l.color) }
+                                : { borderColor: `${l.color}66`, color: l.color }}
+                              className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all hover:brightness-125"
+                            >
+                              {l.name}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
 
               <div>
                 <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Título</p>

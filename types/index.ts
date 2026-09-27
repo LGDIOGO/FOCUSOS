@@ -146,19 +146,12 @@ export interface CalendarEvent {
 // ─── Módulo Trabalho ─────────────────────────────────────────────────────────
 
 /**
- * Tipos de item do dia a dia de e-commerce. 'task' | 'deadline' | 'delivery'
- * são os nomes da primeira versão, genérica demais; ficam aceitos para não
- * quebrar itens já cadastrados e aparecem na UI como "Demanda".
+ * Tipo do item, definido pelo usuário (coleção `categories`, escopo
+ * `work_type`). Era um enum fechado de e-commerce, o que prendia o app a um
+ * único público; virou texto livre para cada um nomear como o trabalho dele
+ * realmente é. Os valores antigos continuam válidos e aparecem traduzidos.
  */
-export type WorkKind =
-  | 'demand'    // demanda que chegou de alguma área
-  | 'listing'   // anúncio: cadastro, correção, otimização
-  | 'campaign'  // campanha, ads, cupom, promoção
-  | 'analysis'  // análise, relatório, número
-  | 'stock'     // estoque: reposição, ruptura, curva
-  | 'service'   // atendimento, reclamação, reputação
-  | 'meeting'   // reunião, alinhamento
-  | 'task' | 'deadline' | 'delivery'; // legado
+export type WorkKind = string;
 export type WorkStatus = 'none' | 'done' | 'partial' | 'failed';
 
 /** Compromisso ou tarefa de trabalho. Coleção `work_items`. */
@@ -168,7 +161,12 @@ export interface WorkItem {
   title: string;
   description?: string;
   kind: WorkKind;
-  marketplace?: string;     // canal: Mercado Livre, Amazon, Shopee... ou vazio p/ interno
+  /**
+   * Categoria do item, definida pelo usuário (escopo `work_category`). O nome
+   * do campo vem da primeira versão, quando isto era o marketplace; renomear a
+   * coluna exigiria migrar todos os documentos já gravados.
+   */
+  marketplace?: string;
   project?: string;         // área ou pessoa que pediu a demanda
   date: string;             // ISO yyyy-MM-dd — primeira ocorrência quando há recurrence
   time?: string;            // HH:mm

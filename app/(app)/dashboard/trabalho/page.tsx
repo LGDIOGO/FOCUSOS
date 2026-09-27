@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, ChevronLeft, ChevronRight, Check, Minus, X, Clock, Copy,
   CalendarDays, ListTodo, BarChart3, Pencil, AlertTriangle, Briefcase,
-  Sun, FileDown,
+  Sun, FileDown, Settings2,
 } from 'lucide-react'
 import {
   format, addDays, addWeeks, startOfWeek, isSameDay, isFuture, startOfDay, parseISO,
@@ -14,9 +14,10 @@ import {
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 import {
-  WorkItemModal, KIND_META, PRIORITY_META, SELECTABLE_KINDS,
-  channelColor, channelTextColor, CHANNEL_ALL, CHANNEL_INTERNAL,
+  WorkItemModal, PRIORITY_META, kindLabel, CHANNEL_ALL, CHANNEL_INTERNAL,
 } from '@/components/dashboard/WorkItemModal'
+import { WorkLabelManager } from '@/components/dashboard/WorkLabelManager'
+import { useLabelColor, useResolvedLabels, labelTextColor } from '@/lib/hooks/useWorkLabels'
 import {
   useWorkItems, useWorkLogs, useLogWorkItem, expandOccurrences, buildReport,
   type WorkOccurrence,
@@ -48,7 +49,7 @@ function FilterChip({
 }) {
   const style = color
     ? (active
-        ? { backgroundColor: color, borderColor: color, color: channelTextColor(color) }
+        ? { backgroundColor: color, borderColor: color, color: labelTextColor(color) }
         : { borderColor: `${color}55`, color })
     : undefined
 
@@ -73,7 +74,7 @@ function FilterChip({
 // ─── Cartão de ocorrência ────────────────────────────────────────────────────
 
 function OccurrenceCard({
-  occ, onSetStatus, onEdit, showDate, carriedFrom,
+  occ, onSetStatus, onEdit, showDate, carriedFrom, typeColor, catColor,
 }: {
   occ: WorkOccurrence
   onSetStatus: (s: WorkStatus) => void
@@ -81,8 +82,10 @@ function OccurrenceCard({
   showDate?: boolean
   /** Data de origem, quando o item está sendo arrastado para outro dia. */
   carriedFrom?: string
+  typeColor: (n?: string) => string
+  catColor: (n?: string) => string
 }) {
-  const meta = KIND_META[occ.kind]
+  const tipoCor = typeColor(occ.kind)
   const isPast = occ.occurrence_date < format(new Date(), 'yyyy-MM-dd')
   const missed = isPast && occ.status === 'none'
 
@@ -100,7 +103,7 @@ function OccurrenceCard({
       : 'bg-white/[0.03] border-white/[0.08]'
     )}>
       <div className="flex items-start gap-3">
-        <span className={cn('w-1.5 h-1.5 rounded-full mt-2 shrink-0', meta.dot)} />
+        <span className="w-1.5 h-1.5 rounded-full mt-2 shrink-0" style={{ backgroundColor: tipoCor }} />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -134,11 +137,16 @@ function OccurrenceCard({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap mt-1 text-[10px] font-bold text-white/35">
-            <span className={cn('px-1.5 py-0.5 rounded-md', meta.color)}>{meta.label}</span>
+            <span
+              className="px-1.5 py-0.5 rounded-md font-black"
+              style={{ backgroundColor: `${tipoCor}22`, color: tipoCor }}
+            >
+              {kindLabel(occ.kind)}
+            </span>
             {occ.marketplace && (
               <span
                 className="px-1.5 py-0.5 rounded-md font-black"
-                style={{ backgroundColor: channelColor(occ.marketplace), color: channelTextColor(channelColor(occ.marketplace)) }}
+                style={{ backgroundColor: catColor(occ.marketplace), color: labelTextColor(catColor(occ.marketplace)) }}
               >
                 {occ.marketplace}
               </span>
@@ -198,6 +206,7 @@ export default function TrabalhoPage() {
   const [copied, setCopied] = useState(false)
   const [copyError, setCopyError] = useState(false)
   const [pdfError, setPdfError] = useState(false)
+  const [labelsOpen, setLabelsOpen] = useState(false)
   const [channelFilter, setChannelFilter] = useState<string>('')
   const [kindFilter, setKindFilter] = useState<string>('')
 
@@ -230,6 +239,10 @@ export default function TrabalhoPage() {
   }, [selectedDayStr, todayStr, range.start, range.end])
 
   const { data: items = [], isLoading } = useWorkItems()
+
+  // Cores vêm dos rótulos do usuário; nome não cadastrado cai no cinza neutro.
+  const typeColor = useLabelColor('work_type', items)
+  const catColor = useLabelColor('work_category', items)
   const { data: allLogs = [] } = useWorkLogs(wideRange.start, wideRange.end)
   const logItem = useLogWorkItem()
 
@@ -253,15 +266,15 @@ export default function TrabalhoPage() {
 
   const usedKinds = useMemo(() => {
     const set = new Set<string>()
-    items.forEach(i => set.add(i.kind))
-    return SELECTABLE_KINDS.filter(k => set.has(k))
+    items.forEach(i => { if (i.kind) set.add(i.kind) })
+    return Array.from(set).sort((a, b) => kindLabel(a).localeCompare(kindLabel(b)))
   }, [items])
 
   const occurrences = useMemo(() => allOccurrences.filter(o => {
     if (channelFilter) {
       const ch = o.marketplace?.trim() || CHANNEL_INTERNAL
       // Item marcado como "Todos" vale para qualquer marketplace, então entra
-      // junto ao filtrar um canal específico — mas não quando o filtro é
+      // junto ao filtrar uma categoria específica — mas não quando o filtro é
       // "Interno", que é justamente o que não pertence a marketplace nenhum.
       const matches = ch === channelFilter
         || (ch === CHANNEL_ALL && channelFilter !== CHANNEL_INTERNAL && channelFilter !== CHANNEL_ALL)
@@ -365,8 +378,8 @@ export default function TrabalhoPage() {
       return parts.length ? ` (${parts.join(' · ')})` : ''
     }
     const filtro = [
-      channelFilter && `canal: ${channelFilter}`,
-      kindFilter && `tipo: ${KIND_META[kindFilter as keyof typeof KIND_META]?.label}`,
+      channelFilter && `categoria: ${channelFilter}`,
+      kindFilter && `tipo: ${kindLabel(kindFilter)}`,
     ].filter(Boolean).join(' | ')
 
     const lines = [
@@ -382,7 +395,7 @@ export default function TrabalhoPage() {
       `PENDENTE / NÃO FEITO (${report.unresolved.length})`,
       ...report.unresolved.map(o => `  - [${format(parseISO(`${o.occurrence_date}T12:00:00`), 'dd/MM')}] ${o.title}${tag(o)}`),
       ``,
-      `POR CANAL`,
+      `POR CATEGORIA`,
       ...report.byMarketplace.map(m => `  - ${m.marketplace}: ${m.done}/${m.total} (${m.rate}%)`),
       ``,
       `POR SOLICITANTE`,
@@ -436,8 +449,8 @@ export default function TrabalhoPage() {
       </tr>`
 
     const filtro = [
-      channelFilter && `Canal: ${channelFilter}`,
-      kindFilter && `Tipo: ${KIND_META[kindFilter as keyof typeof KIND_META]?.label}`,
+      channelFilter && `Categoria: ${channelFilter}`,
+      kindFilter && `Tipo: ${kindLabel(kindFilter)}`,
     ].filter(Boolean).join(' · ')
 
     const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
@@ -479,14 +492,14 @@ export default function TrabalhoPage() {
 </div>
 
 ${report.concluded.length ? `<h2>Concluído (${report.concluded.length})</h2>
-<table><tr><th>Data</th><th>Item</th><th>Canal</th><th>Solicitante</th><th>Status</th></tr>
+<table><tr><th>Data</th><th>Item</th><th>Categoria</th><th>Solicitante</th><th>Status</th></tr>
 ${report.concluded.map(linha).join('')}</table>` : ''}
 
 ${report.unresolved.length ? `<h2>Ficou para trás (${report.unresolved.length})</h2>
-<table><tr><th>Data</th><th>Item</th><th>Canal</th><th>Solicitante</th><th>Status</th></tr>
+<table><tr><th>Data</th><th>Item</th><th>Categoria</th><th>Solicitante</th><th>Status</th></tr>
 ${report.unresolved.map(linha).join('')}</table>` : ''}
 
-${report.byMarketplace.length ? `<h2>Por canal</h2><table class="bars">
+${report.byMarketplace.length ? `<h2>Por categoria</h2><table class="bars">
 ${report.byMarketplace.map(m => `<tr><td style="width:150px">${esc(m.marketplace)}</td>
 <td><div class="bar"><i style="width:${m.rate}%"></i></div></td>
 <td style="width:70px;text-align:right;color:#666">${m.done}/${m.total} · ${m.rate}%</td></tr>`).join('')}
@@ -515,15 +528,25 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">Trabalho</h1>
           <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mt-0.5">
-            Demandas por canal
+            Suas demandas e compromissos
           </p>
         </div>
+        <div className="flex items-center gap-2 shrink-0">
         <button
           onClick={() => openNew()}
           className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-white text-black font-black text-xs uppercase tracking-wider hover:bg-neutral-200 transition-all"
         >
           <Plus size={15} /> Novo
         </button>
+        <button
+          onClick={() => setLabelsOpen(true)}
+          aria-label="Gerenciar tipos e categorias"
+          title="Tipos e categorias"
+          className="w-10 h-10 shrink-0 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:border-white/30 transition-all"
+        >
+          <Settings2 size={16} />
+        </button>
+        </div>
       </div>
 
       {/* Abas — com quatro delas o `w-fit` passava de 430px e empurrava a
@@ -626,7 +649,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
         <div className="space-y-2 mb-5">
           {usedChannels.length > 1 && (
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
-              <span className="text-[9px] font-black uppercase tracking-widest text-white/25 shrink-0 pr-1">Canal</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-white/25 shrink-0 pr-1">Categoria</span>
               <FilterChip active={!channelFilter} onClick={() => setChannelFilter('')} label="Todos" />
               {usedChannels.map(c => (
                 <FilterChip
@@ -634,7 +657,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                   active={channelFilter === c}
                   onClick={() => setChannelFilter(c)}
                   label={c}
-                  color={channelColor(c)}
+                  color={catColor(c)}
                 />
               ))}
             </div>
@@ -644,7 +667,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
               <span className="text-[9px] font-black uppercase tracking-widest text-white/25 shrink-0 pr-1">Tipo</span>
               <FilterChip active={!kindFilter} onClick={() => setKindFilter('')} label="Todos" />
               {usedKinds.map(k => (
-                <FilterChip key={k} active={kindFilter === k} onClick={() => setKindFilter(k)} label={KIND_META[k].label} />
+                <FilterChip key={k} active={kindFilter === k} onClick={() => setKindFilter(k)} label={kindLabel(k)} color={typeColor(k)} />
               ))}
             </div>
           )}
@@ -660,8 +683,8 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
           </div>
           <p className="text-white font-bold mb-1">Nada por aqui ainda</p>
           <p className="text-white/35 text-sm mb-5 max-w-sm mx-auto">
-            Registre demandas, anúncios, campanhas e análises — marcando o canal
-            de cada uma para filtrar depois. O que se repete entra uma vez só.
+            Registre tarefas, reuniões e prazos com o tipo e a categoria que você
+            mesmo criar. O que se repete entra uma vez só.
           </p>
           <button
             onClick={() => openNew()}
@@ -735,6 +758,8 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                             carriedFrom={occ.occurrence_date}
                             onSetStatus={s => setStatus(occ, s)}
                             onEdit={() => openEdit(occ)}
+                            typeColor={typeColor}
+                            catColor={catColor}
                           />
                         ))}
                       </div>
@@ -757,6 +782,8 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                             occ={occ}
                             onSetStatus={s => setStatus(occ, s)}
                             onEdit={() => openEdit(occ)}
+                            typeColor={typeColor}
+                            catColor={catColor}
                           />
                         ))}
                       </div>
@@ -821,6 +848,8 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                             occ={occ}
                             onSetStatus={s => setStatus(occ, s)}
                             onEdit={() => openEdit(occ)}
+                            typeColor={typeColor}
+                            catColor={catColor}
                           />
                         ))}
                       </div>
@@ -856,6 +885,8 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                           showDate
                           onSetStatus={s => setStatus(occ, s)}
                           onEdit={() => openEdit(occ)}
+                          typeColor={typeColor}
+                          catColor={catColor}
                         />
                       ))}
                     </div>
@@ -972,9 +1003,9 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                     </div>
                   </div>
 
-                  {/* Por canal e por solicitante */}
+                  {/* Por categoria e por solicitante */}
                   {([
-                    { label: 'Por canal', rows: report.byMarketplace.map(m => ({ k: m.marketplace, ...m })), colored: true },
+                    { label: 'Por categoria', rows: report.byMarketplace.map(m => ({ k: m.marketplace, ...m })), colored: true },
                     { label: 'Por solicitante', rows: report.byProject.map(p => ({ k: p.project, ...p })), colored: false },
                   ] as const).map(sec => sec.rows.length > 0 && (
                     <div key={sec.label} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
@@ -985,7 +1016,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                             {sec.colored && (
                               <span
                                 className="w-2 h-2 rounded-full shrink-0"
-                                style={{ backgroundColor: channelColor(r.k) }}
+                                style={{ backgroundColor: catColor(r.k) }}
                               />
                             )}
                             <span className="text-xs font-bold text-white/70 flex-1 truncate">{r.k}</span>
@@ -994,7 +1025,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                                 className="h-full rounded-full"
                                 style={{
                                   width: `${r.rate}%`,
-                                  backgroundColor: sec.colored ? channelColor(r.k) : '#60A5FA',
+                                  backgroundColor: sec.colored ? catColor(r.k) : '#60A5FA',
                                 }}
                               />
                             </div>
@@ -1015,9 +1046,9 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                         {report.byKind.map(k => (
                           <div key={k.kind} className={cn(
                             'px-2.5 py-1.5 rounded-xl border text-[10px] font-black',
-                            KIND_META[k.kind as keyof typeof KIND_META]?.color || 'text-white/50 border-white/10'
+                            'border-white/10'
                           )}>
-                            {KIND_META[k.kind as keyof typeof KIND_META]?.label || k.kind} · {k.done}/{k.total}
+                            {kindLabel(k.kind)} · {k.done}/{k.total}
                           </div>
                         ))}
                       </div>
@@ -1039,7 +1070,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                             <span className="text-[9px] font-black tabular-nums text-white/25 w-11 shrink-0">
                               {format(parseISO(`${o.occurrence_date}T12:00:00`), 'dd/MM')}
                             </span>
-                            <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', KIND_META[o.kind].dot)} />
+                            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: typeColor(o.kind) }} />
                             <span className="font-bold text-white/75 truncate flex-1">{o.title}</span>
                             {o.status === 'partial' && (
                               <span className="text-[8px] font-black uppercase text-amber-400 shrink-0">parcial</span>
@@ -1064,6 +1095,14 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
         onClose={() => { setModalOpen(false); setEditing(null); setModalDate(undefined) }}
         itemToEdit={editing}
         defaultDate={modalDate}
+        items={items}
+        onManageLabels={() => setLabelsOpen(true)}
+      />
+
+      <WorkLabelManager
+        isOpen={labelsOpen}
+        onClose={() => setLabelsOpen(false)}
+        items={items}
       />
     </div>
   )
