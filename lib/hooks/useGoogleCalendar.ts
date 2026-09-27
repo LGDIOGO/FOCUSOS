@@ -20,8 +20,24 @@ async function apiFetch(path: string, options: RequestInit = {}) {
       ...(options.headers as any),
     },
   })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'Request failed')
+  // A rota pode cair antes de escrever o corpo (erro não tratado no servidor,
+  // timeout, página de erro HTML). `res.json()` direto transformava isso em
+  // "Unexpected end of JSON input", que não diz nada a quem está usando.
+  const raw = await res.text()
+  let data: any = null
+  if (raw) {
+    try { data = JSON.parse(raw) } catch { /* resposta não é JSON */ }
+  }
+
+  if (!data) {
+    throw new Error(
+      res.ok
+        ? 'O servidor respondeu vazio. Tente de novo em alguns segundos.'
+        : `Falha no servidor (${res.status}). ${raw.slice(0, 160) || 'Sem detalhes.'}`
+    )
+  }
+
+  if (!res.ok) throw new Error(data.error || data.details || `Falha (${res.status}).`)
   return data
 }
 

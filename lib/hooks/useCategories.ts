@@ -12,13 +12,38 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
 
+/**
+ * Onde a etiqueta é aplicada. O módulo Trabalho usa dois escopos próprios —
+ * tipo e categoria são eixos diferentes lá — por isso são cinco, e não três.
+ */
+export type CategoryScope =
+  | 'habits' | 'agenda' | 'goals'
+  | 'work_type' | 'work_category'
+
+/** Fonte única dos escopos: o seletor e a listagem leem daqui. */
+export const CATEGORY_SCOPES: Array<{ id: CategoryScope; label: string; short: string }> = [
+  { id: 'habits',        label: 'Hábitos',             short: 'Hábitos' },
+  { id: 'agenda',        label: 'Agenda',              short: 'Agenda' },
+  { id: 'goals',         label: 'Metas',               short: 'Metas' },
+  { id: 'work_type',     label: 'Trabalho · Tipo',     short: 'Trab. Tipo' },
+  { id: 'work_category', label: 'Trabalho · Categoria', short: 'Trab. Categ.' },
+]
+
+/**
+ * Nome do escopo. Antes um ternário decidia entre três valores e mandava
+ * qualquer outro para "Metas", então etiqueta de Trabalho aparecia rotulada
+ * como meta na lista.
+ */
+export const categoryScopeLabel = (type?: string) =>
+  CATEGORY_SCOPES.find(s => s.id === type)?.label || 'Sem aplicação'
+
 export interface Category {
   id: string
   user_id: string
   name: string
   icon: string
   color: string
-  type: 'habits' | 'agenda' | 'goals'
+  type: CategoryScope
 }
 
 export function useCategories() {

@@ -14,7 +14,7 @@ import {
   useSyncToGoogleCalendar,
 } from '@/lib/hooks/useGoogleCalendar'
 import { TutorialModal } from '@/components/dashboard/TutorialModal'
-import { useCategories, useAddCategory, useDeleteCategory } from '@/lib/hooks/useCategories'
+import { useCategories, useAddCategory, useDeleteCategory, CATEGORY_SCOPES, categoryScopeLabel } from '@/lib/hooks/useCategories'
 import { useSettings, useUpdateSettings } from '@/lib/hooks/useSettings'
 import { useProfile, useUpdateProfile } from '@/lib/hooks/useProfile'
 import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
@@ -283,17 +283,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </div>
                           <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Tipo de Aplicação</label>
-                            <div className="flex gap-2">
-                              {['habits', 'agenda', 'goals'].map((type) => (
+                            {/* Cinco escopos não cabem lado a lado num celular. */}
+                            <div className="grid grid-cols-3 gap-2">
+                              {CATEGORY_SCOPES.map((scope) => (
                                 <button
-                                  key={type}
-                                  onClick={() => setNewCat({ ...newCat, type: type as any })}
+                                  key={scope.id}
+                                  onClick={() => setNewCat({ ...newCat, type: scope.id as any })}
+                                  title={scope.label}
                                   className={cn(
-                                    "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
-                                    newCat.type === type ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/5"
+                                    "py-3 px-1 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all",
+                                    newCat.type === scope.id ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/5 hover:border-white/20"
                                   )}
                                 >
-                                  {type === 'habits' ? 'Hábitos' : type === 'agenda' ? 'Agenda' : 'Metas'}
+                                  {scope.short}
                                 </button>
                               ))}
                             </div>
@@ -355,7 +357,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <div className="flex-1">
                         <h4 className="font-bold text-white">{cat.name}</h4>
                         <p className="text-[9px] font-black uppercase tracking-widest text-white/20">
-                          {cat.type === 'habits' ? 'Hábitos' : cat.type === 'agenda' ? 'Agenda' : 'Metas'}
+                          {categoryScopeLabel(cat.type)}
                         </p>
                       </div>
                       <button 
