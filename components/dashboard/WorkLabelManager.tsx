@@ -6,9 +6,10 @@ import { X, Plus, Pencil, Trash2, Loader2, Check, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import {
   useResolvedLabels, useCreateWorkLabel, useUpdateWorkLabel, useDeleteWorkLabel,
-  useSeedWorkLabels, LABEL_COLORS, DEFAULT_TYPES, DEFAULT_CATEGORIES, FALLBACK_COLOR,
+  useSeedWorkLabels, useAdoptWorkLabel, LABEL_COLORS, DEFAULT_TYPES, DEFAULT_CATEGORIES, FALLBACK_COLOR,
   labelTextColor, type LabelScope, type ResolvedLabel,
 } from '@/lib/hooks/useWorkLabels'
+import { kindLabel } from '@/components/dashboard/WorkItemModal'
 import type { WorkItem } from '@/types'
 
 const SCOPE_META: Record<LabelScope, { title: string; hint: string; defaults: Array<{ name: string; color: string }> }> = {
@@ -51,6 +52,7 @@ function ScopeSection({ scope, items }: { scope: LabelScope; items: WorkItem[] }
   const update = useUpdateWorkLabel()
   const remove = useDeleteWorkLabel()
   const seed = useSeedWorkLabels()
+  const adopt = useAdoptWorkLabel()
 
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<ResolvedLabel | null>(null)
@@ -59,13 +61,13 @@ function ScopeSection({ scope, items }: { scope: LabelScope; items: WorkItem[] }
   const [confirmDel, setConfirmDel] = useState<string | null>(null)
   const [error, setError] = useState('')
 
-  const busy = create.isPending || update.isPending || remove.isPending || seed.isPending
+  const busy = create.isPending || update.isPending || remove.isPending || seed.isPending || adopt.isPending
   const implicit = labels.filter(l => l.implicit)
 
   const openAdd = () => { setEditing(null); setName(''); setColor(LABEL_COLORS[6]); setAdding(true); setError('') }
   const openEdit = (l: ResolvedLabel) => {
     setAdding(false); setEditing(l)
-    setName(l.name); setColor(l.color === FALLBACK_COLOR ? LABEL_COLORS[6] : l.color); setError('')
+    setName(scope === 'work_type' ? kindLabel(l.name) : l.name); setColor(l.color === FALLBACK_COLOR ? LABEL_COLORS[6] : l.color); setError('')
   }
   const close = () => { setAdding(false); setEditing(null); setError('') }
 
@@ -75,8 +77,10 @@ function ScopeSection({ scope, items }: { scope: LabelScope; items: WorkItem[] }
       if (editing?.id) {
         await update.mutateAsync({ id: editing.id, name, color, scope, previousName: editing.name })
       } else if (editing?.implicit) {
-        // Rótulo que só existia nos itens: cadastrar dá cor e permite renomear.
-        await create.mutateAsync({ name: editing.name, color, scope })
+        // Rótulo que só existia nos itens. Antes o nome digitado era descartado
+        // e ele voltava a ser cadastrado com o valor cru; agora vale o que foi
+        // escrito, e os itens que usavam o valor antigo são reescritos junto.
+        await adopt.mutateAsync({ rawName: editing.name, newName: name, color, scope })
       } else {
         await create.mutateAsync({ name, color, scope })
       }
@@ -127,7 +131,11 @@ function ScopeSection({ scope, items }: { scope: LabelScope; items: WorkItem[] }
             <button
               onClick={() => seed.mutate({
                 scope,
-                names: implicit.map((l, i) => ({ name: l.name, color: LABEL_COLORS[i % LABEL_COLORS.length] })),
+                names: implicit.map((l, i) => ({
+                  name: scope === 'work_type' ? kindLabel(l.name) : l.name,
+                  from: l.name,
+                  color: LABEL_COLORS[i % LABEL_COLORS.length],
+                })),
               })}
               disabled={busy}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/10 hover:border-white/30 text-[10px] font-black uppercase tracking-wider text-white/60 hover:text-white transition-all"
@@ -197,7 +205,7 @@ function ScopeSection({ scope, items }: { scope: LabelScope; items: WorkItem[] }
                 className="px-2 py-0.5 rounded-md text-[10px] font-black shrink-0"
                 style={{ backgroundColor: l.color, color: labelTextColor(l.color) }}
               >
-                {l.name}
+                {scope === 'work_type' ? kindLabel(l.name) : l.name}
               </span>
               {l.implicit && (
                 <span className="text-[8px] font-black uppercase tracking-wider text-white/25 shrink-0">

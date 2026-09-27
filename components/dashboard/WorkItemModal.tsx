@@ -255,7 +255,7 @@ export function WorkItemModal({
                                 : { borderColor: `${l.color}66`, color: l.color }}
                               className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all hover:brightness-125"
                             >
-                              {l.name}
+                              {campo.scope === 'work_type' ? kindLabel(l.name) : l.name}
                             </button>
                           )
                         })}

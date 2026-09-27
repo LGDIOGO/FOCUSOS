@@ -232,11 +232,68 @@ export function useDeleteWorkLabel() {
   })
 }
 
+/**
+ * Adota um rótulo que só existia dentro dos itens: cria o documento e reescreve
+ * os itens que usavam o valor antigo.
+ *
+ * É o caminho de quem tinha os tipos fixos em inglês — `listing` vira "Anúncio"
+ * no banco também, não só na tela, e a partir daí pode ser renomeado à vontade.
+ */
+export function useAdoptWorkLabel() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ rawName, newName, color, scope }: {
+      rawName: string; newName: string; color: string; scope: LabelScope
+    }) => {
+      const user = auth.currentUser
+      if (!user) throw new Error('Sessão expirada. Entre novamente.')
+      const clean = newName.trim()
+      if (!clean) throw new Error('Dê um nome ao rótulo.')
+
+      const catSnap = await getDocs(query(collection(db, 'categories'), where('user_id', '==', user.uid)))
+      const duplicate = catSnap.docs.some(d => {
+        const data = d.data()
+        return data.type === scope && String(data.name || '').trim().toLowerCase() === clean.toLowerCase()
+      })
+      if (duplicate) throw new Error(`"${clean}" já existe.`)
+
+      const batch = writeBatch(db)
+      batch.set(doc(collection(db, 'categories')), {
+        user_id: user.uid,
+        name: clean,
+        color,
+        type: scope,
+        icon: '',
+        created_at: new Date().toISOString(),
+      })
+
+      if (clean !== rawName) {
+        const field = scope === 'work_category' ? 'marketplace' : 'kind'
+        const itemsSnap = await getDocs(query(collection(db, 'work_items'), where('user_id', '==', user.uid)))
+        itemsSnap.docs
+          .filter(d => String(d.data()[field] || '').trim() === rawName)
+          .forEach(d => batch.update(d.ref, { [field]: clean }))
+      }
+
+      await batch.commit()
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['work_labels'] })
+      qc.invalidateQueries({ queryKey: ['work_items'] })
+    },
+  })
+}
+
 /** Cria de uma vez os rótulos que já aparecem nos itens, ou o conjunto padrão. */
 export function useSeedWorkLabels() {
   const qc = useQueryClient()
+  // Renomear ao adotar mexe nos itens, então ambos precisam ser invalidados.
   return useMutation({
-    mutationFn: async ({ scope, names }: { scope: LabelScope; names: Array<{ name: string; color: string }> }) => {
+    mutationFn: async ({ scope, names }: {
+      scope: LabelScope
+      /** `from` é o valor cru gravado nos itens, quando diferente do nome final. */
+      names: Array<{ name: string; color: string; from?: string }>
+    }) => {
       const user = auth.currentUser
       if (!user) throw new Error('Sessão expirada. Entre novamente.')
 
@@ -247,9 +304,16 @@ export function useSeedWorkLabels() {
           .map(d => String(d.data().name || '').trim().toLowerCase())
       )
 
+      // Só lê os itens se algum rótulo for renomeado ao ser adotado.
+      const renames = names.filter(n => n.from && n.from !== n.name.trim())
+      const itemsSnap = renames.length
+        ? await getDocs(query(collection(db, 'work_items'), where('user_id', '==', user.uid)))
+        : null
+      const field = scope === 'work_category' ? 'marketplace' : 'kind'
+
       const batch = writeBatch(db)
       let created = 0
-      for (const { name, color } of names) {
+      for (const { name, color, from } of names) {
         const clean = name.trim()
         if (!clean || existing.has(clean.toLowerCase())) continue
         batch.set(doc(collection(db, 'categories')), {
@@ -260,11 +324,21 @@ export function useSeedWorkLabels() {
           icon: '',
           created_at: new Date().toISOString(),
         })
+        existing.add(clean.toLowerCase())
         created++
+
+        if (itemsSnap && from && from !== clean) {
+          itemsSnap.docs
+            .filter(d => String(d.data()[field] || '').trim() === from)
+            .forEach(d => batch.update(d.ref, { [field]: clean }))
+        }
       }
       if (created > 0) await batch.commit()
       return created
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['work_labels'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['work_labels'] })
+      qc.invalidateQueries({ queryKey: ['work_items'] })
+    },
   })
 }
