@@ -1,12 +1,13 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, db } from '@/lib/firebase/config'
 import { useCurrentUser } from '@/lib/context/AuthContext'
 import {
   collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch,
 } from 'firebase/firestore'
+import { useSettings, useUpdateSettings } from '@/lib/hooks/useSettings'
 import type { WorkItem } from '@/types'
 
 /**
@@ -50,18 +51,23 @@ export const LABEL_COLORS = [
 ]
 
 /** Conjunto inicial neutro, servindo a qualquer profissão. */
+/**
+ * Três de cada, criados sozinhos na primeira vez que alguém abre o módulo.
+ *
+ * São propositalmente genéricos: servem a quem é CLT, autônomo ou estudante.
+ * Uma lista maior viraria faxina antes do primeiro uso, e uma lista de nicho
+ * repetiria o erro dos canais de e-commerce fixos no código.
+ */
 export const DEFAULT_TYPES: Array<{ name: string; color: string }> = [
-  { name: 'Tarefa',     color: '#3B82F6' },
-  { name: 'Reunião',    color: '#8B5CF6' },
-  { name: 'Prazo',      color: '#EF4444' },
-  { name: 'Entrega',    color: '#10B981' },
-  { name: 'Acompanhar', color: '#F97316' },
+  { name: 'Tarefa',  color: '#3B82F6' },
+  { name: 'Reunião', color: '#8B5CF6' },
+  { name: 'Prazo',   color: '#EF4444' },
 ]
 
 export const DEFAULT_CATEGORIES: Array<{ name: string; color: string }> = [
-  { name: 'Interno',  color: '#0277BD' },
-  { name: 'Cliente',  color: '#22C55E' },
+  { name: 'Trabalho', color: '#0277BD' },
   { name: 'Pessoal',  color: '#EC4899' },
+  { name: 'Projeto',  color: '#22C55E' },
 ]
 
 /** Texto preto sobre fundo claro, para o rótulo continuar legível. */
@@ -282,6 +288,39 @@ export function useAdoptWorkLabel() {
       qc.invalidateQueries({ queryKey: ['work_items'] })
     },
   })
+}
+
+/**
+ * Cria os rótulos padrão na primeira visita, e só nela.
+ *
+ * As três guardas existem para não mexer em conta alguma que já esteja em uso:
+ * a flag em settings impede recriar o que a pessoa apagou de propósito, a
+ * ausência de rótulos impede duplicar, e a ausência de itens garante que
+ * ninguém com histórico receba rótulos que não pediu.
+ */
+export function useSeedDefaultLabelsOnce(items: WorkItem[] | undefined, itemsLoaded: boolean) {
+  const { data: labels, isLoading: labelsLoading } = useWorkLabels()
+  const { data: settings, isLoading: settingsLoading } = useSettings()
+  const updateSettings = useUpdateSettings()
+  const seed = useSeedWorkLabels()
+  const ranRef = useRef(false)
+
+  useEffect(() => {
+    if (ranRef.current) return
+    if (labelsLoading || settingsLoading || !itemsLoaded) return
+    if (!settings) return                              // deslogado
+    if (settings.work_labels_seeded) return            // já passou por aqui
+    if ((labels?.length ?? 0) > 0) return              // conta já tem rótulos
+    if ((items?.length ?? 0) > 0) return               // conta já tem trabalho
+
+    ranRef.current = true
+    Promise.all([
+      seed.mutateAsync({ scope: 'work_type', names: DEFAULT_TYPES }),
+      seed.mutateAsync({ scope: 'work_category', names: DEFAULT_CATEGORIES }),
+    ])
+      .then(() => updateSettings.mutate({ work_labels_seeded: true }))
+      .catch(() => { ranRef.current = false })         // deixa tentar de novo
+  }, [labelsLoading, settingsLoading, itemsLoaded, settings, labels, items]) // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /** Cria de uma vez os rótulos que já aparecem nos itens, ou o conjunto padrão. */

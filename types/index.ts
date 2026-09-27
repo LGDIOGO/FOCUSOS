@@ -85,7 +85,8 @@ export interface UserSettings {
     sound: 'focus' | 'none';
   };
   score_target?: number; // 0-100 %, default 80
-  finance_onboarded?: boolean; // wizard de finanças concluído (persiste entre dispositivos)
+  finance_onboarded?: boolean;  // wizard de finanças concluído (persiste entre dispositivos)
+  work_labels_seeded?: boolean; // rótulos padrão do módulo Trabalho já criados
   updated_at: string;
   theme: 'light' | 'dark';
 }

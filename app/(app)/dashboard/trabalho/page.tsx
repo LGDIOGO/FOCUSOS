@@ -17,7 +17,7 @@ import {
   WorkItemModal, PRIORITY_META, kindLabel, CHANNEL_ALL, CHANNEL_INTERNAL,
 } from '@/components/dashboard/WorkItemModal'
 import { WorkLabelManager } from '@/components/dashboard/WorkLabelManager'
-import { useLabelColor, useResolvedLabels, labelTextColor } from '@/lib/hooks/useWorkLabels'
+import { useLabelColor, useResolvedLabels, labelTextColor, useSeedDefaultLabelsOnce } from '@/lib/hooks/useWorkLabels'
 import {
   useWorkItems, useWorkLogs, useLogWorkItem, expandOccurrences, buildReport,
   type WorkOccurrence,
@@ -241,6 +241,9 @@ export default function TrabalhoPage() {
   const { data: items = [], isLoading } = useWorkItems()
 
   // Cores vêm dos rótulos do usuário; nome não cadastrado cai no cinza neutro.
+  // Conta nova recebe os três tipos e três categorias padrão na primeira visita.
+  useSeedDefaultLabelsOnce(items, !isLoading)
+
   const typeColor = useLabelColor('work_type', items)
   const catColor = useLabelColor('work_category', items)
   const { data: allLogs = [] } = useWorkLogs(wideRange.start, wideRange.end)
