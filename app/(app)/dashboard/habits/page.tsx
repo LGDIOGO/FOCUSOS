@@ -90,7 +90,9 @@ function HabitGridItem({
 
 
       <div className="relative z-10 flex justify-between items-start">
-        <div className="flex items-center gap-2 md:gap-4">
+        {/* min-w-0 + flex-1: sem eles o flex não deixa o título encolher, o texto
+            vaza e o overflow-hidden do card o corta no meio da letra. */}
+        <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
           <div
             className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center text-lg md:text-2xl shadow-inner transition-transform group-hover:scale-110 shrink-0"
             style={{ backgroundColor: habit.color ? `${habit.color}20` : 'rgba(255,255,255,0.05)', color: habit.color || '#FFFFFF' }}
@@ -98,7 +100,7 @@ function HabitGridItem({
             {habit.emoji || (habit.type === 'positive' ? <Sparkles size={16} /> : <ShieldAlert size={16} />)}
           </div>
           <div className="space-y-0.5 min-w-0">
-            <h3 className="text-sm md:text-xl font-bold text-[var(--text-primary)] transition-colors leading-tight truncate">{habit.name}</h3>
+            <h3 className="text-sm md:text-xl font-bold text-[var(--text-primary)] transition-colors leading-tight line-clamp-2 break-words" title={habit.name}>{habit.name}</h3>
             <p className="text-[var(--text-muted)] text-xs md:text-base font-medium line-clamp-1 italic hidden sm:block">{habit.description || 'Sem descrição'}</p>
           </div>
         </div>

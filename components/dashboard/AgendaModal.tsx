@@ -20,7 +20,7 @@ function defaultEventTime(): string {
 }
 
 export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean, onClose: () => void, eventToEdit?: CalendarEvent | null }) {
-  const { data: categories } = useCategories()
+  const { data: categories } = useCategories('agenda')
   const addEvent = useAddEvent()
   const updateEvent = useUpdateEvent()
   const addCategory = useAddCategory()

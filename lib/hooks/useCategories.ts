@@ -46,8 +46,20 @@ export interface Category {
   type: CategoryScope
 }
 
-export function useCategories() {
+/**
+ * @param scope quando informado, devolve só as categorias daquela aplicação.
+ *
+ * A coleção é compartilhada entre Hábitos, Agenda, Metas e Trabalho. Os modais
+ * chamavam sem filtro e ofereciam tudo, então ao criar um hábito apareciam
+ * "Mercado Livre", "Campaign" e os tipos de trabalho como se fossem categorias
+ * de hábito. O filtro roda em `select`, sobre o mesmo cache — uma só leitura.
+ *
+ * Sem argumento continua devolvendo todas: a tela de gestão e as buscas por id
+ * (resolver o nome da categoria de um item) precisam enxergar tudo.
+ */
+export function useCategories(scope?: CategoryScope | CategoryScope[]) {
   const user = useCurrentUser()
+  const scopes = scope ? (Array.isArray(scope) ? scope : [scope]) : null
 
   return useQuery({
     queryKey: ['categories', user?.uid],
@@ -60,6 +72,7 @@ export function useCategories() {
       const snap = await getDocs(q)
       return snap.docs.map(d => ({ id: d.id, ...d.data() })) as Category[]
     },
+    select: (all: Category[]) => (scopes ? all.filter(c => scopes.includes(c.type)) : all),
     enabled: !!user,
     staleTime: 5_000,
   })

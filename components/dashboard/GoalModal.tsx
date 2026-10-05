@@ -24,7 +24,7 @@ const PRIORITIES: { id: TaskPriority; label: string; color: string }[] = [
     ]
 
 export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
-  const { data: categories } = useCategories()
+  const { data: categories } = useCategories('goals')
   const addGoal = useAddGoal()
   const updateGoal = useUpdateGoal()
   const addCategory = useAddCategory()

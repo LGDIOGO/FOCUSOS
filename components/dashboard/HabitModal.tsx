@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils/cn'
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 
 export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, onClose: () => void, habitToEdit?: Habit | null }) {
-  const { data: categories } = useCategories()
+  const { data: categories } = useCategories('habits')
   const { data: goals } = useGoals()
   const addHabit = useAddHabit()
   const updateHabit = useUpdateHabit()
