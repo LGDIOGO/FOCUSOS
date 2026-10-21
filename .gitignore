@@ -55,3 +55,10 @@ yarn-error.log*
 .tmp-status-server.log
 app/status-bubble-harness/
 components/dashboard/AgendaEventListItem.tsx
+
+# Servidor MCP auxiliar: dependências e lockfile gerados localmente
+focusos-mcp/node_modules/
+
+# Symlink criado pelo Claude Code apontando para .claude/ (o build da Vercel quebra com ele)
+/claude
+

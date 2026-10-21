@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# FocusOS
 
-## Getting Started
+App de produtividade pessoal: hábitos, agenda, metas, trabalho, finanças, estudos e um assistente de IA.
 
-First, run the development server:
+**Stack:** Next.js 14 (App Router) · TypeScript · Tailwind · Framer Motion · Firebase (Auth, Firestore, Storage) · TanStack Query · Groq + Gemini.
+
+**Produção:** https://focusos-rlvs.vercel.app · **Repositório:** https://github.com/LGDIOGO/FOCUSOS
+
+## Rodando localmente
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # no Windows: copy .env.example .env.local
+# preencha o .env.local (veja os comentários no .env.example)
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Sem o `.env.local` preenchido o app abre, mas login, IA e Google Calendar não funcionam.
+O `.env.local` **nunca** vai para o git.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Antes de subir qualquer mudança (o build da Vercel **pula** a checagem de tipos, então erros passam batido):
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+```bash
+npx tsc --noEmit     # tipos
+npm test             # vitest — hoje cobre o cálculo de ofensiva dos hábitos
+```
 
-## Learn More
+## Fluxo de trabalho
 
-To learn more about Next.js, take a look at the following resources:
+- Branch única de produção: **`main`**. **Todo push para `main` faz deploy automático na Vercel.**
+- Não use `vercel --prod` pela CLI: o push já publica, e o token da CLI expira.
+- ⚠️ **Cuidado com `sync.bat` / `git-sync.sh`.** Eles fazem `git add .` + commit "Sync: Auto Update"
+  + push direto na `main`. Como push na `main` publica, isso manda para produção **tudo o que
+  estiver na pasta, sem revisão** — é daí que vêm os commits do autor "FocusOS Auto-Sync".
+  Prefira commitar à mão, com `git status` e `git diff` antes.
+- Mudou `firestore.rules` ou `storage.rules`? O push **não** publica regras. Rode:
+  ```bash
+  npx firebase-tools deploy --only firestore:rules
+  npx firebase-tools deploy --only storage
+  ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Estrutura
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+```
+app/(app)/dashboard/   páginas: agenda, habits, goals, trabalho, finance, study, ia, insights...
+app/api/               rotas de servidor (IA, integrações, API pública v1, webhooks)
+components/            UI; dashboard/ tem os modais e componentes de cada módulo
+lib/hooks/             acesso a dados (React Query + Firestore), um arquivo por domínio
+lib/utils/             lógica pura: recurrence.ts, calendarScheduling.ts, googleCalendar.ts...
+lib/ai/models.ts       lista ordenada de modelos de IA com fallback
+firestore.rules        regras de segurança do banco
+storage.rules          regras do Storage (anexos do Trabalho)
+focusos-mcp/           servidor MCP auxiliar (instale com npm install dentro da pasta)
+```
 
-## Deploy on Vercel
+## Coisas que valem saber
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- **Recorrência** tem uma única implementação: `lib/utils/recurrence.ts` (`occursOn`).
+  Hábitos, compromissos, trabalho e Google Calendar usam ela. Não crie outra cópia.
+- **Categorias** vivem numa coleção só (`categories`), separadas pelo campo `type`:
+  `habits | agenda | goals | work_type | work_category`. Use `useCategories('escopo')` para filtrar.
+- **Modelos de IA** são aposentados de tempos em tempos. Edite as listas em `lib/ai/models.ts`;
+  a cascata tenta o próximo sozinha.
+- **Google Calendar** exige `FIREBASE_CLIENT_EMAIL` e `FIREBASE_PRIVATE_KEY` no servidor,
+  além das três variáveis `GOOGLE_CALENDAR_*`.
+- **Anexos de imagem** (Trabalho) exigem o Firebase Storage ativado no Console (botão "Começar").
+- O symlink `claude/` e a pasta `.claude/` são do Claude Code e ficam fora do git e do deploy
+  (`.gitignore` e `.vercelignore`).
