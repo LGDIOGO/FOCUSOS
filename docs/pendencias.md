@@ -11,7 +11,7 @@
 
 ## Infra de qualidade (nova fase)
 
-5. **Finalizar o Firebase de dev** (`focusos-dev-lg`, já criado com Firestore + regras): ativar Authentication e provedores, Storage, gerar chave de serviço e cadastrar `NEXT_PUBLIC_FIREBASE_*`/`FIREBASE_*` no escopo **Preview** da Vercel ([ambientes.md](ambientes.md)). Bloqueio: CLI da Vercel sem login (`vercel login`). Até lá, **não grave dados num preview**.
+5. **Firebase de dev** (`focusos-dev-lg`): Firestore, regras, Authentication e variáveis Preview estão prontos ([ambientes.md](ambientes.md)). Falta a chave de serviço (`FIREBASE_CLIENT_EMAIL`/`FIREBASE_PRIVATE_KEY`, Preview da `develop`) e, opcionalmente, o Storage (exige Blaze). Confirmar no console do preview que aparece `Project: focusos-dev-lg` antes de gravar dados.
 6. ~~Proteger a `main`~~ feito (PR + check `verify`).
 7. Ampliar a suíte: ver "Próximos testes" em [bugs-corrigidos.md](bugs-corrigidos.md).
 
