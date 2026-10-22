@@ -63,10 +63,15 @@ Atenção: preview de branch muda de URL por deploy, a menos que se use o domín
 
 `.env.local` apontando para o Firebase de **dev** (não o de prod). Nunca commitado.
 
-## Proteção da `main` (feito pelo Diogo no GitHub)
+## Proteção da `main` (ativa)
 
-Settings → Branches → regra para `main`: exigir PR e o check `verify` do CI. Sem isso, nada impede um push direto que publique.
+Regra em Settings → Branches: exige PR e o check `verify` do CI, inclusive para admin. Para uma emergência, desative a regra ali e reative depois.
 
 ## Estado atual
 
-Ver [pendencias.md](pendencias.md): o Firebase de dev ainda **não existe**; até ser criado, o preview da Vercel usaria os dados de produção (**não valide nada que grave dados num preview antes disso**).
+(atualizado em 2026-10-21)
+
+- **Firebase de dev criado:** `focusos-dev-lg` (alias `dev` em `.firebaserc`). App web registrado, Firestore `(default)` em `southamerica-east1`, regras publicadas.
+- **CI ativo** e **`main` protegida** (PR + check `verify`, inclusive para admin).
+- **Falta:** Authentication (Começar + provedores), Storage, chave de serviço do dev, variáveis Preview na Vercel (CLI da Vercel sem login). Ver [pendencias.md](pendencias.md).
+- Enquanto as variáveis Preview não apontarem para `focusos-dev-lg`, o preview da Vercel usa os dados de produção: **não grave dados nele.**

@@ -11,8 +11,8 @@
 
 ## Infra de qualidade (nova fase)
 
-5. **Criar o Firebase de dev** e configurar variáveis Preview na Vercel ([ambientes.md](ambientes.md)). Enquanto não existir, **não valide escrita de dados num preview**.
-6. **Proteger a `main` no GitHub** exigindo PR + check `verify`.
+5. **Finalizar o Firebase de dev** (`focusos-dev-lg`, já criado com Firestore + regras): ativar Authentication e provedores, Storage, gerar chave de serviço e cadastrar `NEXT_PUBLIC_FIREBASE_*`/`FIREBASE_*` no escopo **Preview** da Vercel ([ambientes.md](ambientes.md)). Bloqueio: CLI da Vercel sem login (`vercel login`). Até lá, **não grave dados num preview**.
+6. ~~Proteger a `main`~~ feito (PR + check `verify`).
 7. Ampliar a suíte: ver "Próximos testes" em [bugs-corrigidos.md](bugs-corrigidos.md).
 
 ## Nunca verificado de ponta a ponta (só dados sintéticos/leitura de código)
