@@ -76,5 +76,6 @@ Regra em Settings → Branches: exige PR e o check `verify` do CI, inclusive par
 - **Authentication do dev:** E-mail/senha e Google ativos; domínio `focusos-rlvs-git-develop-wronskilg300-5524s-projects.vercel.app` autorizado.
 - **Vercel:** as 6 `NEXT_PUBLIC_FIREBASE_*` estão no escopo Preview apenas da branch `develop`, apontando para `focusos-dev-lg`. Preview protegido por Vercel Authentication.
 - **Como confirmar que um preview usa o dev:** abra o preview logado na Vercel e veja no console do navegador `Firebase Connected! Project: focusos-dev-lg`. Se aparecer `foco-os---produtividade-bfb58`, **pare**: está nos dados reais.
+- **Conta de teste do dev:** `teste.dev@focusos.test` (e-mail/senha, só existe em `focusos-dev-lg`). A senha **não** fica no repositório; se perdida, redefina no Console (Authentication → Usuários).
 - **Storage do dev:** exige plano Blaze (pago); não ativado. Anexos de imagem do Trabalho não funcionam no dev.
 - **Falta:** chave de serviço do dev (`FIREBASE_CLIENT_EMAIL`/`FIREBASE_PRIVATE_KEY` no Preview da `develop`) para Google Calendar e rotas de servidor no preview. Ver [pendencias.md](pendencias.md).
