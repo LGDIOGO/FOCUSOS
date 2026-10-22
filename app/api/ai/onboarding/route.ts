@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { guardAiRequest } from '@/lib/server/guard'
 import { generateText } from '@/lib/ai/models'
 
 const SYSTEM_PROMPT = `Você é o "FocusOS IA", um assistente de produtividade pessoal de elite para o app FocusOS.
@@ -84,8 +85,10 @@ ESTRUTURA DA RESPOSTA:
 3. JSON [SUGGESTIONS] e/ou [ACTIONS] no final (NUNCA no meio do texto)`
 
 export async function POST(req: NextRequest) {
+  const guard = await guardAiRequest(req, 'onboarding')
+  if (!guard.ok) return guard.response
   try {
-    const { messages, userData } = await req.json()
+    const { messages, userData } = guard.body
 
     // Data de referência: sem isto a IA não consegue resolver "amanhã",
     // "sexta que vem" etc. em datas ISO reais.
@@ -202,7 +205,6 @@ LOGS RECENTES: ${userData.recentLogs?.slice(0, 5).map((l: any) => `${l.habit_id}
       console.error('Onboarding AI failure:', aiErr.message)
       return NextResponse.json({
         error: 'Falha em todos os provedores de IA',
-        details: aiErr.message,
       }, { status: 503 })
     }
 
@@ -211,7 +213,6 @@ LOGS RECENTES: ${userData.recentLogs?.slice(0, 5).map((l: any) => `${l.habit_id}
     console.error('Onboarding API Error:', error.message)
     return NextResponse.json({ 
       error: 'Falha interna na API', 
-      details: error.message
     }, { status: 500 })
   }
 }

@@ -53,7 +53,8 @@ async function concluir(req: NextRequest, origin: string, code: string, state: s
     tokens = await exchangeCode(code, redirect_uri)
   } catch (err: any) {
     await stateDoc.ref.delete()
-    return NextResponse.redirect(new URL(`/dashboard/agenda?gcal=error&msg=${encodeURIComponent(err.message)}`, origin))
+    console.error('GCal exchangeCode failed:', err.message)
+    return NextResponse.redirect(new URL('/dashboard/agenda?gcal=error&msg=' + encodeURIComponent('Falha ao conectar com o Google'), origin))
   }
 
   // Get user email

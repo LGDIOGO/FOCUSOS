@@ -1,5 +1,6 @@
 'use client'
 
+import { authFetch } from '@/lib/utils/authFetch'
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, ArrowRight, BrainCircuit, RefreshCw } from 'lucide-react'
@@ -40,7 +41,7 @@ export default function AIInsightBanner({ habits, tasks, goals = [], events = []
 
     setLoading(true)
     try {
-      const resp = await fetch('/api/ai/insights', {
+      const resp = await authFetch('/api/ai/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

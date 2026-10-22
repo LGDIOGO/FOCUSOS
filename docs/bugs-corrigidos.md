@@ -54,3 +54,14 @@ Legenda: ✅ coberto por teste · ⚠️ corrigido mas **sem teste** (dívida: a
 2. Extrair a **regra "só hoje altera a ofensiva"** do `useHabits` para função pura e testar.
 3. Cascata de modelos de IA (`lib/ai/models.ts`) com cliente simulado.
 4. Conversão de ciclos de Finanças para mensal.
+
+## Segurança (auditoria de 2026-10-21)
+
+| Bug | Causa | Blindagem |
+|---|---|---|
+| Qualquer pessoa forjava o uid de outra (`/v1/keys`, Google Calendar) | `authWithFirebaseToken` decodificava o JWT **sem verificar assinatura** quando o Admin SDK falhava | ✅ `app/api/v1/__tests__/auth.test.ts` (token forjado = `null`; falha fechada) |
+| Plano Pro por centavos ou para outro uid | Checkout aceitava `userId` e `price` do corpo; webhook sem `x-signature` | ✅ `lib/server/__tests__/payments.test.ts` (valor, moeda, assinatura, replay, referência) |
+| `/mcp` mandava a API key para o host do header `Host` | URL interna montada com `req.headers.host` | ✅ `lib/server/__tests__/origin.test.ts` |
+| Rotas de IA abertas (custo + dados) | Sem auth nem limite | ✅ `lib/server/__tests__/guard.test.ts` (401/413/429/400) |
+| Usuário se dava `is_paid` / reiniciava o teste grátis; reatribuía doc a outro uid | `firestore.rules`: `write` livre em `profiles`; `update` sem travar `user_id` | ⚠️ regras compilam (`--dry-run`), **sem teste automatizado** (não há emulador); verificar à mão com a conta de teste |
+| Rota `admin/fix-rules` pública sobrescrevia as regras | Rota de manutenção sem auth | removida (e o `FirestoreDiagnostic` parou de chamá-la) |

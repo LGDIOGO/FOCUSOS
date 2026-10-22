@@ -31,10 +31,8 @@ export function FirestoreDiagnostic() {
         const code = err?.code || err?.message || String(err)
         if (diagnoseProbe({ error: err }) === 'permission_denied') {
           setState('permission_denied')
-          setDetail(code)
+          setDetail(`${code}. Publique as regras: npx firebase-tools deploy --only firestore:rules`)
           setVisible(true)
-          // Auto-attempt to fix the rules via server-side Admin SDK
-          autoFixRules()
         } else {
           setState('error')
           setDetail(code)
@@ -44,25 +42,6 @@ export function FirestoreDiagnostic() {
     })
     return () => unsub()
   }, [])
-
-  async function autoFixRules() {
-    setState('fixing')
-    try {
-      const res = await fetch('/api/admin/fix-rules', { method: 'POST' })
-      const data = await res.json()
-      if (data.success) {
-        setState('fixed')
-        setDetail('Regras atualizadas. Recarregando em 3s...')
-        setTimeout(() => window.location.reload(), 3000)
-      } else {
-        setState('permission_denied')
-        setDetail(`Fix falhou: ${data.error}. Atualize as regras no Firebase Console.`)
-      }
-    } catch (e: any) {
-      setState('permission_denied')
-      setDetail(`Fix falhou: ${e.message}`)
-    }
-  }
 
   if (!visible) return null
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { guardAiRequest } from '@/lib/server/guard'
 import { generateText } from '@/lib/ai/models'
 
 const SYSTEM_PROMPT = `Você é o FocusOS AI Concierge, um Coach de Alta Performance de Elite (estilo Neurocientistas e CEOs do Vale do Silício).
@@ -22,8 +23,10 @@ Retorne estritamente um JSON com a chave "insights" contendo um array (máximo 4
 Responda APENAS UM JSON VÁLIDO no formato especificado. Nunca inclua texto em markdown fora do JSON.`
 
 export async function POST(req: NextRequest) {
+  const guard = await guardAiRequest(req, 'insights')
+  if (!guard.ok) return guard.response
   try {
-    const { userData } = await req.json()
+    const { userData } = guard.body
     const { habits = [], tasks = [], goals = [], events = [], score = null } = userData || {}
 
     const now = new Date()
@@ -57,14 +60,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(parsed.insights || parsed)
     } catch (aiErr: any) {
       console.error('Insights AI failure:', aiErr.message)
-      return NextResponse.json({ error: 'Falha na geração de insight', details: aiErr.message }, { status: 503 })
+      return NextResponse.json({ error: 'Falha na geração de insight' }, { status: 503 })
     }
   } catch (err: unknown) {
     const error = err as Error
     console.error('Insights API Error:', error.message)
     return NextResponse.json({ 
       error: 'Falha na geração de insight',
-      details: error.message
     }, { status: 500 })
   }
 }

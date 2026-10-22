@@ -1,5 +1,6 @@
 'use client'
 
+import { authFetch } from '@/lib/utils/authFetch'
 import React, { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -547,7 +548,7 @@ function LancamentosTab({ transactions }: { transactions: FinanceTransaction[] }
     if (!title.trim()) return
     setAiLoading(true)
     try {
-      const res = await fetch('/api/ai/parse-entry', {
+      const res = await authFetch('/api/ai/parse-entry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: title }),

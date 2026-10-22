@@ -1,3 +1,4 @@
+import { authFetch } from '@/lib/utils/authFetch'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Sparkles, ShieldAlert, RefreshCcw, ChevronDown } from 'lucide-react'
@@ -95,7 +96,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
     setIsParsing(true)
     setParseError(null)
     try {
-      const response = await fetch('/api/ai/parse-entry', {
+      const response = await authFetch('/api/ai/parse-entry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

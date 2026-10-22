@@ -8,6 +8,11 @@
 2. **Rotacionar a chave de serviço antiga do Firebase** (apareceu em terminal/histórico do PowerShell).
 3. **Ativar o Firebase Storage** (Storage → Começar, `southamerica-east1`) e então `npx firebase-tools deploy --only storage`. Sem isso, upload de imagem mostra mensagem explicativa.
 4. Diogo organizar rótulos do Trabalho (engrenagem → "Cadastrar os N em uso").
+8. **Segurança (2026-10-21), ações do Diogo antes/depois do deploy:**
+   - Publicar `firestore.rules` (dev primeiro, depois prod): `npx firebase-tools deploy --only firestore:rules --project dev`. Testar à mão com a conta de teste: login, criar hábito, editar perfil. Tentar gravar `is_paid: true` pelo console do navegador tem de falhar.
+   - Vercel (Production e Preview): `MP_WEBHOOK_SECRET` (assinatura do webhook, no painel do Mercado Pago), `PLAN_PRICE_MENSAL`, `PLAN_PRICE_TRIMESTRAL`, `PLAN_PRICE_SEMESTRAL`, `PLAN_PRICE_ANUAL` (em reais, ex.: `19.90`). Sem eles checkout e webhook recusam (de propósito).
+   - Rotacionar o **refresh token OAuth** em `.env.local` (`FIREBASE_OAUTH_REFRESH_TOKEN`) e a chave de serviço antiga; a rota `fix-rules` que o usava foi removida. O `client_secret` que estava no código é o público do Firebase CLI (não é seu), mas continua no histórico git.
+   - Conferir o console do preview: violações da CSP (modo Report-Only) antes de promovê-la.
 
 ## Infra de qualidade (nova fase)
 

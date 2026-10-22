@@ -6,8 +6,11 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Dono do documento. Em update, user_id não pode mudar (senão o dono
+    // reatribuiria o doc a outro uid). Em read/delete request.resource é null.
     function isOwnerByField() {
-      return isAuth() && request.auth.uid == resource.data.user_id;
+      return isAuth() && request.auth.uid == resource.data.user_id
+        && (request.resource == null || request.resource.data.user_id == resource.data.user_id);
     }
 
     function isOwnerByFieldOnCreate() {
@@ -21,8 +24,30 @@ service cloud.firestore {
       return isAuth() && (resource == null || request.auth.uid == resource.data.user_id);
     }
 
+    // Campos de assinatura só o servidor (Admin SDK, webhook) altera. O usuário
+    // não pode se dar is_paid, estender o plano nem reiniciar o teste grátis.
+    function profileSubscriptionLocked() {
+      let n = request.resource.data;
+      let o = resource.data;
+      return n.get('is_paid', false) == o.get('is_paid', false)
+        && n.get('subscription_plan', null) == o.get('subscription_plan', null)
+        && n.get('subscription_expires_at', null) == o.get('subscription_expires_at', null)
+        && (!('trial_started_at' in o) || n.get('trial_started_at', null) == o.get('trial_started_at', null));
+    }
+
+    function profileCreateIsFree() {
+      let n = request.resource.data;
+      return n.get('is_paid', false) == false
+        && n.get('subscription_plan', null) == null
+        && n.get('subscription_expires_at', null) == null;
+    }
+
     match /profiles/{uid} {
-      allow read, write: if isAuth() && request.auth.uid == uid;
+      allow read: if isAuth() && request.auth.uid == uid;
+      allow create: if isAuth() && request.auth.uid == uid && profileCreateIsFree();
+      allow update: if isAuth() && request.auth.uid == uid && profileSubscriptionLocked();
+      // Sem delete pelo cliente: apagar e recriar o perfil reiniciaria o teste grátis.
+      allow delete: if false;
     }
 
     match /settings/{uid} {

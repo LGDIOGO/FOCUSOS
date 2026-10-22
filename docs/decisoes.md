@@ -31,3 +31,6 @@ Ver [testes.md](testes.md). Objetivo: eliminar o "um passo à frente, dois para 
 
 ## Testes só de lógica pura por ora
 Barato, rápido e estável. UI e Firestore real ficam de fora até valer o custo (emulador, Playwright). Preferir extrair regra de negócio para `lib/utils/`.
+
+## Segurança: falhar fechado, servidor decide
+Auditoria de 2026-10-21. Auth por token sem fallback; preço/plano/uid de pagamento vêm do servidor; regras travam assinatura e `user_id`. **CSP em modo `Report-Only`** (não bloqueia): não dá para testar as telas logadas aqui, e uma CSP errada quebraria o login. Promover a `Content-Security-Policy` depois de ver o console do preview sem violações. Rate limit em memória (simples) em vez de Redis/Upstash: suficiente para o volume atual; trocar se houver abuso real. Descartado: remover agora os fallbacks de `apiKey`/`projectId` de produção em `lib/firebase/config.ts` (não dá para confirmar que as `NEXT_PUBLIC_*` estão no escopo Production da Vercel; remover às cegas poderia derrubar produção).

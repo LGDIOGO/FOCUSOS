@@ -65,7 +65,8 @@ export async function POST(req: NextRequest) {
   try {
     accessToken = await refreshAccessToken(gcal.refresh_token)
   } catch (err: any) {
-    return NextResponse.json({ error: `Falha ao renovar token: ${err.message}` }, { status: 401 })
+    console.error('GCal refresh failed:', err.message)
+    return NextResponse.json({ error: 'Falha ao renovar o acesso ao Google. Reconecte a agenda.' }, { status: 401 })
   }
 
   const body = await req.json().catch(() => ({}))

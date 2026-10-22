@@ -22,3 +22,10 @@ Pegadinhas que já custaram tempo. Antes de investigar algo estranho, procure aq
 15. **Modelos de IA são aposentados.** Edite `lib/ai/models.ts`.
 16. **Reconectar o Google sem revogar antes** faz o Google não devolver refresh token (o callback avisa).
 17. **Código que importa Firebase no topo** quebra no vitest: use `vi.mock` ou extraia a lógica para função pura.
+18. **Nunca decodifique JWT sem verificar a assinatura.** `authWithFirebaseToken` só aceita o que o Admin SDK verifica; sem credencial, nega (401). `verifyIdToken` funciona sem service account (só baixa as chaves públicas).
+19. **Rotas `/api/ai/*` e checkout exigem ID token.** No cliente use `authFetch` (`lib/utils/authFetch.ts`), não `fetch` cru. No servidor use `guardAiRequest` (`lib/server/guard.ts`).
+20. **Nunca monte URL a partir do header `Host`.** Use `internalOrigin()` (`lib/server/origin.ts`).
+21. **Preço e plano vivem no servidor** (`PLAN_PRICE_*` no ambiente + `lib/server/payments.ts`). O webhook confere valor/moeda, valida `x-signature` (`MP_WEBHOOK_SECRET`) e é idempotente (`mp_payments/{id}`). Sem preço ou segredo configurado, tudo recusa.
+22. **`profiles`: campos de assinatura e `trial_started_at` só o Admin SDK altera** (regras travam). Não grave `is_paid`/`subscription_*` pelo cliente. Perfil não pode ser apagado pelo cliente (senão reinicia o teste).
+23. **vitest 4: `vi.fn` que devolve Promise rejeitada reprova o teste** mesmo com o erro tratado. Em mocks de falha use função comum.
+24. **Rate limit é em memória por instância** (serverless): freio contra abuso, não limite global exato.
