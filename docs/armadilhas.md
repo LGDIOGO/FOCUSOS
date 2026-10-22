@@ -29,3 +29,4 @@ Pegadinhas que já custaram tempo. Antes de investigar algo estranho, procure aq
 22. **`profiles`: campos de assinatura e `trial_started_at` só o Admin SDK altera** (regras travam). Não grave `is_paid`/`subscription_*` pelo cliente. Perfil não pode ser apagado pelo cliente (senão reinicia o teste).
 23. **vitest 4: `vi.fn` que devolve Promise rejeitada reprova o teste** mesmo com o erro tratado. Em mocks de falha use função comum.
 24. **Rate limit é em memória por instância** (serverless): freio contra abuso, não limite global exato.
+25. **Coleção nova com `user_id` entra em `USER_COLLECTIONS`** (`lib/server/userData.ts`), senão exportação/exclusão de conta (LGPD) deixa dado órfão. Um teste varre `lib/hooks` e `firestore.rules` e falha se faltar.
