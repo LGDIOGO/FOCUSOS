@@ -30,10 +30,10 @@ export function LegalShell({ title, children }: { title: string; children: React
 
 export function LegalFooterLinks() {
   return (
-    <p className="text-center text-xs text-white/30 font-medium">
-      <Link href="/termos" className="hover:text-white/70 underline">Termos de Uso</Link>
+    <p className="text-center text-sm text-white/60 font-medium">
+      <Link href="/termos" className="inline-block py-2 hover:text-white underline">Termos de Uso</Link>
       {' · '}
-      <Link href="/privacidade" className="hover:text-white/70 underline">Política de Privacidade</Link>
+      <Link href="/privacidade" className="inline-block py-2 hover:text-white underline">Política de Privacidade</Link>
     </p>
   )
 }

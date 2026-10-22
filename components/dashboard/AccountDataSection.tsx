@@ -14,7 +14,7 @@ export function AccountDataSection() {
   const [confirming, setConfirming] = useState(false)
   const [typed, setTyped] = useState('')
   const [deleting, setDeleting] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ kind: 'error' | 'success'; text: string } | null>(null)
 
   const exportData = async () => {
     setExporting(true)
@@ -32,16 +32,16 @@ export function AccountDataSection() {
       a.click()
       a.remove()
       URL.revokeObjectURL(url)
-      setMessage('Exportação concluída. O arquivo foi baixado.')
+      setMessage({ kind: 'success', text: 'Exportação concluída. O arquivo foi baixado.' })
     } catch (e: any) {
-      setMessage(e?.message || 'Não foi possível exportar seus dados agora.')
+      setMessage({ kind: 'error', text: e?.message || 'Não foi possível exportar seus dados agora.' })
     } finally {
       setExporting(false)
     }
   }
 
   const deleteAccount = async () => {
-    if (typed !== CONFIRM_WORD) return
+    if (typed.trim().toUpperCase() !== CONFIRM_WORD) return
     setDeleting(true)
     setMessage(null)
     try {
@@ -52,10 +52,12 @@ export function AccountDataSection() {
       })
       if (res.status === 429) throw new Error('Muitas tentativas. Aguarde alguns minutos.')
       if (!res.ok) throw new Error('A exclusão não foi concluída e sua conta continua ativa. Tente novamente.')
+      setMessage({ kind: 'success', text: 'Conta apagada. Redirecionando...' })
+      await new Promise((resolve) => setTimeout(resolve, 1500))
       try { await signOut(auth) } catch {}
       window.location.href = '/login'
     } catch (e: any) {
-      setMessage(e?.message || 'Não foi possível apagar a conta agora.')
+      setMessage({ kind: 'error', text: e?.message || 'Não foi possível apagar a conta agora.' })
       setDeleting(false)
     }
   }
@@ -75,7 +77,7 @@ export function AccountDataSection() {
       <button
         onClick={exportData}
         disabled={exporting}
-        className="px-6 py-3 bg-white text-black font-black rounded-2xl hover:bg-neutral-200 transition-all text-xs disabled:opacity-50"
+        className="min-h-[44px] w-full sm:w-auto px-6 py-3 bg-white text-black font-black rounded-2xl hover:bg-neutral-200 transition-all text-sm disabled:opacity-50"
       >
         {exporting ? 'Exportando...' : 'Exportar meus dados'}
       </button>
@@ -85,7 +87,7 @@ export function AccountDataSection() {
       {!confirming ? (
         <button
           onClick={() => { setConfirming(true); setTyped(''); setMessage(null) }}
-          className="px-6 py-3 bg-red-400 text-white font-black rounded-2xl hover:bg-red-500 transition-all text-xs"
+          className="min-h-[44px] w-full sm:w-auto px-6 py-3 bg-red-400 text-white font-black rounded-2xl hover:bg-red-500 transition-all text-sm"
         >
           Apagar minha conta
         </button>
@@ -101,30 +103,40 @@ export function AccountDataSection() {
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
               autoComplete="off"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
               className="mt-2 w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-400/50"
               placeholder={CONFIRM_WORD}
             />
           </label>
-          <div className="flex gap-3">
-            <button
-              onClick={deleteAccount}
-              disabled={typed !== CONFIRM_WORD || deleting}
-              className="px-6 py-3 bg-red-500 text-white font-black rounded-2xl hover:bg-red-600 transition-all text-xs disabled:opacity-40"
-            >
-              {deleting ? 'Apagando...' : 'Apagar minha conta definitivamente'}
-            </button>
+          <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={() => { setConfirming(false); setTyped('') }}
               disabled={deleting}
-              className="px-6 py-3 bg-white/10 text-white font-black rounded-2xl hover:bg-white/20 transition-all text-xs"
+              className="min-h-[44px] w-full sm:w-auto px-6 py-3 bg-white/10 text-white font-black rounded-2xl hover:bg-white/20 transition-all text-sm"
             >
               Cancelar
+            </button>
+            <button
+              onClick={deleteAccount}
+              disabled={typed.trim().toUpperCase() !== CONFIRM_WORD || deleting}
+              className="min-h-[44px] w-full sm:w-auto px-6 py-3 bg-red-500 text-white font-black rounded-2xl hover:bg-red-600 transition-all text-sm disabled:opacity-40"
+            >
+              {deleting ? 'Apagando...' : 'Apagar minha conta definitivamente'}
             </button>
           </div>
         </div>
       )}
 
-      {message && <p className="text-sm font-bold text-white/70">{message}</p>}
+      {message && (
+        <p
+          role={message.kind === 'error' ? 'alert' : 'status'}
+          className={`text-sm font-bold ${message.kind === 'error' ? 'text-red-400' : 'text-green-400'}`}
+        >
+          {message.text}
+        </p>
+      )}
     </div>
   )
 }
