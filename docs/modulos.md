@@ -34,3 +34,13 @@ Sincronização automática de **uma via** (app → Google): Compromissos, Traba
 
 ## Recorrência
 Motor único `lib/utils/recurrence.ts` (`occursOn(rule, startISO, targetISO, endISO)`). Ver [decisoes.md](decisoes.md).
+
+## Conta e LGPD
+Exportar e apagar os próprios dados (LGPD art. 18). Na develop, falta PR; não testado no navegador com conta real.
+- Rotas: `GET /api/account/export` (JSON para download) e `POST /api/account/delete` com corpo `{"confirm":"APAGAR"}`. Token Firebase verificado (`authWithFirebaseToken`, falha fechada). Rate limit por uid: 5 exportações e 3 exclusões a cada 10 min (`lib/server/rateLimit.ts`, em memória).
+- Código: `app/api/account/*` só encaminha; regra HTTP em `lib/server/accountHandlers.ts`; lógica em `lib/server/userData.ts` (Admin injetado, testável); Admin real e Storage em `lib/server/accountAdmin.ts`; UI em `components/dashboard/AccountDataSection.tsx`, dentro de Configurações (`SettingsModal.tsx`).
+- Coleções: `USER_COLLECTIONS` (filtro `user_id`), `USER_DOC_COLLECTIONS` (id = uid: profiles, settings, user_integrations), `USER_UID_FIELD_COLLECTIONS` (oauth_states, campo `uid`). Coleção nova com `user_id` entra aqui (armadilha 25).
+- Exportação remove segredos (`refresh_token`, `access_token`, `key_hash`) em qualquer nível.
+- Exclusão: apaga os dados, os arquivos do Storage por prefixo `work_notes/{uid}/` e, por último, o usuário no Auth. Se uma etapa de dados falha, o Auth não é apagado e a resposta é 500 genérico. `mp_payments` é exportada mas não apagada ([decisoes.md](decisoes.md)).
+- Páginas `/privacidade` e `/termos` (`app/privacidade`, `app/termos`, casca em `components/legal/LegalShell.tsx`): públicas, com faixa "Rascunho — revisão jurídica pendente". Linkadas no login, no cadastro e nas Configurações.
+- Pendente: reautenticação recente e Storage sem bucket (backlog item 15); e-mail de contato e revisão jurídica (pendências, item 9).

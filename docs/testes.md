@@ -29,6 +29,13 @@ npx tsc --noEmit    # tipos (o build da Vercel NÃO checa)
 | `lib/utils/__tests__/scoring.test.ts` | Pontuação diária, graça da ofensiva |
 | `lib/utils/__tests__/habitSchedule.test.ts` | Ofensiva dos hábitos (cálculo por datas agendadas) |
 | `lib/hooks/__tests__/work.test.ts` | Expansão de ocorrências do Trabalho (status por data), relatório |
+| `lib/server/__tests__/account.test.ts` | LGPD: export e exclusão de conta; `USER_COLLECTIONS` cobre `lib/hooks`, servidor e `firestore.rules`; export sem segredos; sem `confirm` = 400; falha parcial não apaga o Auth; 401 e 429 |
+| `lib/server/__tests__/guard.test.ts` | Guarda de `/api/ai/*`: 401 sem token, 413 corpo grande, 400 JSON inválido, 429 por uid |
+| `lib/server/__tests__/payments.test.ts` | Mercado Pago: referência, preço vindo do servidor, valor/moeda do pagamento, assinatura do webhook (`x-signature`) |
+| `lib/server/__tests__/origin.test.ts` | URL interna não depende do header `Host` |
+| `lib/server/__tests__/rateLimit.test.ts` | Rate limit em memória: limite, janela, chaves independentes |
+| `app/api/v1/__tests__/auth.test.ts` | `authWithFirebaseToken`: JWT forjado = 401 (REGRESSÃO); uid só vem do Admin SDK |
+| `lib/utils/__tests__/firestoreDiagnostic.test.ts` | Diagnóstico do Firestore: conta nova sem dados não é erro (REGRESSÃO) |
 
 ## Onde a suíte NÃO chega (honestidade)
 
@@ -36,6 +43,7 @@ npx tsc --noEmit    # tipos (o build da Vercel NÃO checa)
 - **Firestore real**: sem teste (precisaria do emulador). Lógica que mistura leitura/gravação com regra de negócio deve ser **extraída para função pura** antes de ser testada.
 - **Google Calendar real**: RRULE e alocação são testados como lógica; o envio à API não.
 - **Carry-over (arraste) de pendências do Trabalho**: a lógica ainda mora dentro de componente; extrair para função pura é o próximo passo para testá-la.
+- **Exclusão de conta e Firestore real**: `account.test.ts` usa Admin falso injetado. Prova a lógica e a ordem das etapas, não as regras do Firestore nem a credencial real.
 
 ## Como escrever bem
 
