@@ -12,6 +12,9 @@ O [`CLAUDE.md`](../CLAUDE.md) na raiz é a porta de entrada: regras curtas + lin
 | [decisoes.md](decisoes.md) | Decisões de arquitetura e o porquê (e o que foi descartado) | Decisão com trade-off |
 | [modulos.md](modulos.md) | Como cada módulo funciona hoje | Mudou o comportamento de um módulo |
 | [pendencias.md](pendencias.md) | Bloqueios e ideias não feitas | Algo foi resolvido ou surgiu |
+| [backlog.md](backlog.md) | Fila priorizada de trabalho (mantida pelo gerente-produto) | Todo ciclo |
+| [time-agentes.md](time-agentes.md) | Elenco de agentes, fluxo de ciclo, limites e controle de custo | Mudou o time |
+| comercial.md | Estratégia comercial (criado pelo `estrategista-comercial`) | Auditoria comercial |
 
 ## Princípios
 

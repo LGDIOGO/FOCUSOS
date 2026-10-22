@@ -47,6 +47,8 @@ Este arquivo é curto de propósito. O detalhe está em [`docs/`](docs/README.md
 | Testes | [`docs/testes.md`](docs/testes.md) |
 | Por que foi feito assim | [`docs/decisoes.md`](docs/decisoes.md) |
 | O que está bloqueado | [`docs/pendencias.md`](docs/pendencias.md) |
+| O que fazer a seguir | [`docs/backlog.md`](docs/backlog.md) |
+| Time de agentes (`/ciclo`, `/auditoria`) | [`docs/time-agentes.md`](docs/time-agentes.md) |
 
 ## Manutenção do conhecimento
 

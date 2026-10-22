@@ -47,7 +47,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .DS_Store
-.claude/
+.claude/*
+!.claude/agents/
+!.claude/commands/
 
 # arquivos temporários de debug/teste local
 .tmp-chrome-profile/
