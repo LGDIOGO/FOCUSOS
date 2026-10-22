@@ -7,7 +7,7 @@ import {
   updateCalendarEvent,
   type GCalEvent,
 } from '@/lib/utils/googleCalendar'
-import { isValidTimezone, isStringArray } from '@/lib/server/validate'
+import { parseSyncBody } from '@/lib/server/validate'
 import { toRRule, allocateSlots, busyFrom, type Busy } from '@/lib/utils/calendarScheduling'
 
 type Source = 'events' | 'work' | 'habits'
@@ -71,18 +71,13 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}))
-  if (body.timezone != null && !isValidTimezone(body.timezone)) {
-    return NextResponse.json({ error: 'timezone inválido.' }, { status: 400 })
-  }
-  const timezone: string = body.timezone || 'America/Sao_Paulo'
+  const parsed = parseSyncBody(body)
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 })
+  const { timezone } = parsed
   const sources: Source[] = Array.isArray(body.sources) && body.sources.length
     ? body.sources.filter((s: string): s is Source => (ALL_SOURCES as string[]).includes(s))
     : ALL_SOURCES
-  const idsRaw = body.event_ids ?? body.ids
-  if (idsRaw != null && !isStringArray(idsRaw)) {
-    return NextResponse.json({ error: 'event_ids deve ser uma lista de ids.' }, { status: 400 })
-  }
-  const onlyIds: string[] | undefined = idsRaw ?? undefined
+  const onlyIds = parsed.onlyIds
 
   // Carrega tudo antes de decidir horários: o que não tem hora precisa saber o
   // que já está ocupado, inclusive pelas outras origens.

@@ -16,12 +16,11 @@ export async function GET(req: NextRequest) {
   try {
     let q = adminDb.collection('events').where('user_id', '==', auth.userId) as any
 
-    if (from) q = q.where('date', '>=', from)
-    if (to) q = q.where('date', '<=', to)
 
-    // Sem orderBy no servidor (exigiria índice composto); ordena aqui.
+    // Só where de user_id (sem índice composto); filtra from/to e ordena aqui.
     const snap = await q.get()
     const events = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }))
+      .filter((e: any) => (!from || String(e.date) >= from) && (!to || String(e.date) <= to))
       .sort((a: any, b: any) => String(a.date).localeCompare(String(b.date)) || String(a.time ?? '').localeCompare(String(b.time ?? '')))
     return Response.json({ events, count: events.length })
   } catch (e) {

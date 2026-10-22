@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { adminDb } from '@/lib/firebase/admin'
-import { toFiniteNumber } from '@/lib/server/validate'
+import { parseGoalNumbers } from '@/lib/server/validate'
 import { authWithApiKey, unauthorizedResponse, errorResponse } from '../_auth'
 
 export async function GET(req: NextRequest) {
@@ -34,18 +34,16 @@ export async function POST(req: NextRequest) {
     const { title, target_value, current_value = 0, unit, start_date, end_date, emoji, color } = body
 
     if (!title) return errorResponse('title is required', 400)
-    const target = toFiniteNumber(target_value)
-    if (target === null) return errorResponse('target_value must be a finite number', 400)
-    const current = toFiniteNumber(current_value)
-    if (current === null) return errorResponse('current_value must be a finite number', 400)
+    const nums = parseGoalNumbers(target_value, current_value)
+    if (!nums.ok) return errorResponse(nums.error, 400)
 
     const today = new Date().toISOString().slice(0, 10)
     const docRef = await adminDb.collection('goals').add({
       user_id: auth.userId,
       title: String(title).slice(0, 120),
-      target_value: target,
-      current_value: current,
-      progress_pct: target > 0 ? Math.round((current / target) * 100) : 0,
+      target_value: nums.target,
+      current_value: nums.current,
+      progress_pct: nums.progress_pct,
       unit: unit ?? null,
       start_date: start_date ?? today,
       end_date: end_date ?? null,

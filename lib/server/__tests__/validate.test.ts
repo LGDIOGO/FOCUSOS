@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isIsoDate, isValidTimezone, isStringArray, toFiniteNumber, resolveRange } from '../validate'
+import { isIsoDate, isValidTimezone, isStringArray, toFiniteNumber, resolveRange, parseSyncBody, parseGoalNumbers } from '../validate'
 
 describe('validate', () => {
   it('REGRESSÃO: data inexistente ou fora do formato é rejeitada', () => {
@@ -39,7 +39,31 @@ describe('validate', () => {
     expect(resolveRange('2026-01-01', '2026-12-31', null, 'x').ok).toBe(true)
     expect(resolveRange('2025-01-01', '2026-12-31', null, 'x').ok).toBe(false)
     expect(resolveRange('lixo', null, null, '2026-10-22').ok).toBe(false)
-    expect(resolveRange(null, null, 'abc', '2026-10-22').ok).toBe(false)
+    expect(resolveRange(null, null, 'abc', '2026-10-22').ok).toBe(true)
     expect(resolveRange('2026-10-22', '2026-10-01', null, 'x').ok).toBe(false)
+  })
+
+  it('REGRESSÃO: days <= 0 ou não numérico volta ao padrão 7', () => {
+    const padrao = resolveRange(null, '2026-10-22', null, 'x')
+    expect(resolveRange(null, '2026-10-22', '0', 'x')).toEqual(padrao)
+    expect(resolveRange(null, '2026-10-22', '-5', 'x')).toEqual(padrao)
+    expect(resolveRange(null, '2026-10-22', 'abc', 'x')).toEqual(padrao)
+  })
+
+  it('REGRESSÃO: sync responde erro com timezone inválido ou ids que não são lista de strings', () => {
+    expect(parseSyncBody({ timezone: 'Lixo/Zona' }).ok).toBe(false)
+    expect(parseSyncBody({ event_ids: 'abc' }).ok).toBe(false)
+    expect(parseSyncBody({ ids: [1, 2] }).ok).toBe(false)
+    expect(parseSyncBody({ event_ids: { length: 1 } }).ok).toBe(false)
+    expect(parseSyncBody({})).toEqual({ ok: true, timezone: 'America/Sao_Paulo', onlyIds: undefined })
+    expect(parseSyncBody({ timezone: 'UTC', ids: ['a'] })).toEqual({ ok: true, timezone: 'UTC', onlyIds: ['a'] })
+  })
+
+  it('REGRESSÃO: goals rejeita target_value/current_value não finitos', () => {
+    expect(parseGoalNumbers('abc').ok).toBe(false)
+    expect(parseGoalNumbers(Infinity).ok).toBe(false)
+    expect(parseGoalNumbers(10, 'x').ok).toBe(false)
+    expect(parseGoalNumbers(10, 5)).toEqual({ ok: true, target: 10, current: 5, progress_pct: 50 })
+    expect(parseGoalNumbers(0)).toEqual({ ok: true, target: 0, current: 0, progress_pct: 0 })
   })
 })

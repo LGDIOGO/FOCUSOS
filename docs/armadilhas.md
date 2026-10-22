@@ -30,3 +30,5 @@ Pegadinhas que já custaram tempo. Antes de investigar algo estranho, procure aq
 23. **vitest 4: `vi.fn` que devolve Promise rejeitada reprova o teste** mesmo com o erro tratado. Em mocks de falha use função comum.
 24. **Rate limit é em memória por instância** (serverless): freio contra abuso, não limite global exato.
 25. **Coleção nova com `user_id` entra em `USER_COLLECTIONS`** (`lib/server/userData.ts`), senão exportação/exclusão de conta (LGPD) deixa dado órfão. Um teste varre `lib/hooks` e `firestore.rules` e falha se faltar.
+
+26. **`/v1/performance`: `days` inválido ou <= 0 vira o padrão (7); `from`>`to` e intervalo > 366 dias dão 400** (`resolveRange` em `lib/server/validate.ts`). Compatível com o MCP.
