@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase/admin'
 import { exchangeCode, getGoogleUserEmail } from '@/lib/utils/googleCalendar'
 
+const MSG_FALHA = 'Não foi possível concluir a conexão com o Google. Tente novamente.'
+
 /** Volta para a agenda com a causa legível em vez de um 500 em branco. */
-function falha(origin: string, msg: string) {
+function falha(origin: string, detalhe?: string) {
+  if (detalhe) console.error('GCal callback falhou:', detalhe.slice(0, 300))
   return NextResponse.redirect(
-    new URL(`/dashboard/agenda?gcal=error&msg=${encodeURIComponent(msg.slice(0, 180))}`, origin)
+    new URL(`/dashboard/agenda?gcal=error&msg=${encodeURIComponent(MSG_FALHA)}`, origin)
   )
 }
 
@@ -26,10 +29,7 @@ export async function GET(req: NextRequest) {
     return await concluir(req, origin, code, state)
   } catch (err: any) {
     const msg = String(err?.message || err)
-    const semCredencial = /credential|default credentials|UNAUTHENTICATED|could not load|metadata/i.test(msg)
-    return falha(origin, semCredencial
-      ? 'Servidor sem as credenciais do Firebase (FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY).'
-      : msg)
+    return falha(origin, msg)
   }
 }
 
@@ -68,7 +68,8 @@ async function concluir(req: NextRequest, origin: string, code: string, state: s
   // reconectar sem revogar antes costuma cair aqui.
   if (!tokens.refresh_token) {
     await stateDoc.ref.delete()
-    return falha(origin, 'O Google não devolveu o token de renovação. Remova o acesso do FocusOS em myaccount.google.com/permissions e conecte de novo.')
+    // Mensagem fixa e segura: orienta o usuário sem expor detalhe do servidor.
+    return NextResponse.redirect(new URL('/dashboard/agenda?gcal=error&msg=' + encodeURIComponent('O Google não devolveu o token de renovação. Remova o acesso do FocusOS em myaccount.google.com/permissions e conecte de novo.'), origin))
   }
 
   await adminDb.collection('user_integrations').doc(uid).set({

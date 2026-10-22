@@ -20,7 +20,7 @@ if (!admin.apps.length) {
     }
     console.log('Firebase Admin Initialized');
   } catch (error) {
-    console.error('Firebase Admin initialization error:', error);
+    console.error('Firebase Admin initialization error:', (error as Error)?.message);
   }
 }
 

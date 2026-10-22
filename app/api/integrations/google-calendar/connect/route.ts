@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
       })
     } catch (err: any) {
       const msg = String(err?.message || err)
+      console.error('GCal connect: gravação do state falhou:', msg)
       // Sem service account o Admin SDK procura credencial padrão, que não
       // existe na Vercel. A autenticação sobrevive (decodifica o token
       // localmente), mas qualquer escrita como esta falha.
@@ -53,15 +54,12 @@ export async function GET(req: NextRequest) {
         error: semCredencial
           ? 'Faltam as credenciais de serviço do Firebase no servidor (FIREBASE_CLIENT_EMAIL e FIREBASE_PRIVATE_KEY).'
           : 'Não foi possível preparar a conexão (gravação no servidor falhou).',
-        details: msg.slice(0, 300),
       }, { status: 500 })
     }
 
     return NextResponse.json({ url: buildAuthUrl(clientId!, redirectUri, state), state })
   } catch (err: any) {
-    return NextResponse.json({
-      error: 'Falha inesperada ao iniciar a conexão.',
-      details: err?.message || String(err),
-    }, { status: 500 })
+    console.error('GCal connect failed:', err?.message || String(err))
+    return NextResponse.json({ error: 'Falha inesperada ao iniciar a conexão.' }, { status: 500 })
   }
 }

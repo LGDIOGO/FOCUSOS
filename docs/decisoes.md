@@ -37,3 +37,12 @@ Auditoria de 2026-10-21. Auth por token sem fallback; preço/plano/uid de pagame
 
 ## Exclusão de conta mantém `mp_payments`
 Ao apagar a conta, `mp_payments` (id do pagamento, plano, data, `user_id`) é exportada mas **não** apagada: é o marcador de idempotência do webhook e base de retenção fiscal. Sem dado sensível. Lista explícita em `RETAINED_COLLECTIONS` (`lib/server/userData.ts`); a política de privacidade já cita a retenção. Texto final: revisão jurídica.
+
+## `refresh_token` do Google Calendar em texto puro (por ora)
+Fica em `user_integrations/{uid}.google_calendar.refresh_token` sem criptografia. Motivos: a coleção não tem acesso de cliente (regras negam; só o Admin SDK lê/escreve) e a exportação da conta (`/api/account/export`) remove o campo. Criptografar com chave em variável de ambiente (AES-GCM) exige migração dos tokens existentes e uma nova variável na Vercel: vira item de backlog, não foi implementado. Trade-off: vazamento do banco ou de um backup expõe o acesso à agenda do usuário até ele revogar. Também fica no backlog o `revoke` do token no Google ao desconectar/excluir a conta.
+
+## Fallbacks de `lib/firebase/config.ts` e `lib/firebase/admin.ts` mantidos
+O fallback de `projectId` em `admin.ts` e os fallbacks de `config.ts` continuam: não foi confirmado que as `NEXT_PUBLIC_*` estão no escopo Production da Vercel, e remover às cegas poderia derrubar produção. Remover só depois de confirmar as variáveis (ver `pendencias.md`). A `apiKey` web do Firebase é pública por desenho (não é segredo); o risco é de configuração, não de vazamento.
+
+## Erros de rotas: genérico para o cliente, detalhe no log do servidor
+Rotas de `app/api/**` não devolvem `err.message` nem títulos de itens do usuário. Detalhe vai para `console.error` (só `error.message`, nunca o objeto inteiro). Validação de entrada em funções puras (`lib/server/validate.ts`).

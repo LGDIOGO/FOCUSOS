@@ -113,7 +113,7 @@ Apenas a primeira fase tem "active": true. As demais têm "active": false.`;
     return NextResponse.json({ plan: parsedPlan });
 
   } catch (error: any) {
-    console.error('Error generating AI finance plan:', error);
+    console.error('Error generating AI finance plan:', error?.message);
 
     // On parse error or API error, return a static analytical plan instead of crashing
     return NextResponse.json({
