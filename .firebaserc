@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "foco-os---produtividade-bfb58"
+    "default": "foco-os---produtividade-bfb58",
+    "prod": "foco-os---produtividade-bfb58",
+    "dev": "focusos-dev-lg"
   }
 }
