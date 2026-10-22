@@ -42,6 +42,12 @@ Legenda: ✅ coberto por teste · ⚠️ corrigido mas **sem teste** (dívida: a
 |---|---|---|
 | Modais de hábito/agenda/metas mostravam categorias de trabalho | Coleção compartilhada sem filtro por escopo | ⚠️ `useCategories('escopo')` |
 
+## Interface
+
+| Bug | Causa | Blindagem |
+|---|---|---|
+| Banner "Nenhum dado encontrado para seu usuário" para toda conta nova, sobreposto ao relógio e sem como fechar | `FirestoreDiagnostic` tratava coleção de hábitos vazia como erro | ✅ `firestoreDiagnostic.test.ts` (`diagnoseProbe`) |
+
 ## Próximos testes a escrever (dívida priorizada)
 
 1. Extrair o **carry-over do Trabalho** para função pura e testar (janela de 60 dias, só a ocorrência mais recente em séries).

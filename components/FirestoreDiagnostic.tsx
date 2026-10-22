@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { auth, db } from '@/lib/firebase/config'
 import { collection, getDocs, query, where, limit } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
+import { diagnoseProbe } from '@/lib/utils/firestoreDiagnostic'
 
 type DiagState = 'checking' | 'ok' | 'permission_denied' | 'no_data' | 'no_auth' | 'fixing' | 'fixed' | 'error'
 
@@ -23,17 +24,12 @@ export function FirestoreDiagnostic() {
         const snap = await getDocs(
           query(collection(db, 'habits'), where('user_id', '==', user.uid), limit(1))
         )
-        if (snap.empty) {
-          setState('no_data')
-          setDetail(`uid=${user.uid}`)
-          setVisible(true)
-        } else {
-          setState('ok')
-          setVisible(false)
-        }
+        // Coleção vazia é normal em conta nova: não avisa (ver diagnoseProbe).
+        setState(diagnoseProbe({ empty: snap.empty }))
+        setVisible(false)
       } catch (err: any) {
         const code = err?.code || err?.message || String(err)
-        if (code.includes('permission') || code.includes('PERMISSION') || code.includes('permission-denied')) {
+        if (diagnoseProbe({ error: err }) === 'permission_denied') {
           setState('permission_denied')
           setDetail(code)
           setVisible(true)
