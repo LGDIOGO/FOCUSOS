@@ -1,0 +1,29 @@
+name: CI
+
+# Roda em todo push de develop/main e em todo PR para main.
+# O build da Vercel pula a checagem de tipos, então este é o único portão
+# que impede um erro de tipo ou uma regressão de chegar à produção.
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Tipos
+        run: npx tsc --noEmit
+
+      - name: Testes de regressão
+        run: npm test
