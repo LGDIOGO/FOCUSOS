@@ -9,6 +9,7 @@ import { handleExport, handleDelete, DELETE_RATE_LIMIT, EXPORT_RATE_LIMIT } from
 import { resetRateLimits } from '../rateLimit'
 import {
   USER_COLLECTIONS,
+  RETAINED_COLLECTIONS,
   USER_DOC_COLLECTIONS,
   USER_UID_FIELD_COLLECTIONS,
   DELETE_BATCH_SIZE,
@@ -111,6 +112,40 @@ describe('USER_COLLECTIONS', () => {
     expect(used.size).toBeGreaterThan(10)
     const missing = Array.from(used).filter((c) => !known.has(c))
     expect(missing).toEqual([])
+  })
+
+  it('toda colecao usada no servidor esta classificada', () => {
+    const known = new Set<string>([
+      ...USER_COLLECTIONS, ...USER_DOC_COLLECTIONS, ...USER_UID_FIELD_COLLECTIONS, ...RETAINED_COLLECTIONS,
+    ] as string[])
+    const used = new Set<string>()
+    const walk = (dir: string) => {
+      readdirSync(dir, { withFileTypes: true }).forEach((e) => {
+        const full = path.join(dir, e.name)
+        if (e.isDirectory()) {
+          if (e.name !== '__tests__') walk(full)
+          return
+        }
+        if (!/\.tsx?$/.test(e.name)) return
+        const re = /\.collection\(\s*'([a-z_]+)'/g
+        const src = readFileSync(full, 'utf8')
+        let m: RegExpExecArray | null
+        while ((m = re.exec(src))) used.add(m[1])
+      })
+    }
+    walk(path.resolve(__dirname, '../../../app/api'))
+    walk(path.resolve(__dirname, '..'))
+    expect(used.size).toBeGreaterThan(5)
+    expect(Array.from(used).filter((c) => !known.has(c))).toEqual([])
+  })
+
+  it('mp_payments e exportada mas nao apagada', async () => {
+    const store: Record<string, Row[]> = { mp_payments: [{ id: 'p1', user_id: 'u1', plan: 'x' }] }
+    const { admin } = makeAdmin(store)
+    const ex = await handleExport(req('GET'), admin)
+    expect(JSON.parse(await ex.text()).data.mp_payments.map((r: any) => r.id)).toEqual(['p1'])
+    await handleDelete(req('POST', { confirm: 'APAGAR' }), admin)
+    expect(store.mp_payments).toHaveLength(1)
   })
 
   it('cobre toda colecao com regra em firestore.rules', () => {

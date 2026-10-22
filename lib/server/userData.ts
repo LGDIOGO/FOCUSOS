@@ -38,6 +38,13 @@ export const USER_DOC_COLLECTIONS = ['profiles', 'settings', 'user_integrations'
 /** Colecoes filtradas por um campo `uid` (nao `user_id`). */
 export const USER_UID_FIELD_COLLECTIONS = ['oauth_states'] as const
 
+/**
+ * Coleções com `user_id` que são EXPORTADAS mas NÃO apagadas na exclusão da
+ * conta: registro de pagamentos (idempotência do webhook e retenção fiscal).
+ * Contém só id do pagamento, plano e data; nenhum dado sensível.
+ */
+export const RETAINED_COLLECTIONS = ['mp_payments'] as const
+
 /** Pasta do Storage do usuario (ver storage.rules). */
 export const userStoragePrefix = (uid: string) => `work_notes/${uid}/`
 
@@ -93,6 +100,10 @@ export async function exportUserData(admin: AdminLike, uid: string, now: Date = 
   const data: ExportResult['data'] = {}
 
   for (const name of USER_COLLECTIONS) {
+    const snap = await admin.db.collection(name).where('user_id', '==', uid).get()
+    data[name] = snap.docs.map((d) => ({ ...stripSecrets(d.data()), id: d.id }))
+  }
+  for (const name of RETAINED_COLLECTIONS) {
     const snap = await admin.db.collection(name).where('user_id', '==', uid).get()
     data[name] = snap.docs.map((d) => ({ ...stripSecrets(d.data()), id: d.id }))
   }

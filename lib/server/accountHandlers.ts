@@ -54,8 +54,9 @@ export async function handleDelete(req: Request, admin: AdminLike): Promise<Resp
   try {
     const result = await deleteUserData(admin, uid)
     if (!result.ok) {
+      console.error('[account/delete] falha parcial', uid, result.failures)
       return Response.json(
-        { error: 'A exclusão não foi concluída e sua conta continua ativa. Tente novamente.', failures: result.failures },
+        { error: 'A exclusão não foi concluída e sua conta continua ativa. Tente novamente.' },
         { status: 500 },
       )
     }
