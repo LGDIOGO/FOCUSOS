@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { categoriesForScope } from '../categories'
+import { categoriesForScope, findDuplicateCategory } from '../categories'
 
 const cats = [
   { id: '1', name: 'Faculdade', type: 'agenda' },
@@ -34,5 +34,27 @@ describe('categoriesForScope', () => {
 
   it('sem escopo devolve tudo', () => {
     expect(categoriesForScope(cats, null).length).toBe(7)
+  })
+})
+
+describe('findDuplicateCategory', () => {
+  const all = [
+    { id: '1', name: 'Faculdade', type: 'agenda' },
+    { id: '2', name: 'Mercado Livre', type: 'work_type' },
+    { id: '3', name: 'Antiga' },
+  ]
+  it('REGRESSÃO: ignora maiúsculas, acentos e espaços', () => {
+    expect(findDuplicateCategory(all, '  facúldade ', 'habits')?.id).toBe('1')
+    expect(findDuplicateCategory(all, 'ANTIGA', 'agenda')?.id).toBe('3')
+  })
+  it('renomear não colide consigo mesma', () => {
+    expect(findDuplicateCategory(all, 'Faculdade', 'agenda', '1')).toBeUndefined()
+  })
+  it('Trabalho é isolado dos escopos pessoais', () => {
+    expect(findDuplicateCategory(all, 'Mercado Livre', 'habits')).toBeUndefined()
+    expect(findDuplicateCategory(all, 'mercado livre', 'work_type')?.id).toBe('2')
+  })
+  it('nome vazio não é duplicado', () => {
+    expect(findDuplicateCategory(all, '   ', 'habits')).toBeUndefined()
   })
 })

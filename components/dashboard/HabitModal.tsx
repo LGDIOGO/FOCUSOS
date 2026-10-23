@@ -11,6 +11,7 @@ import { useGoals } from '@/lib/hooks/useGoals'
 import { useAddHabit, useUpdateHabit } from '@/lib/hooks/useHabits'
 import { Habit, RecurrenceFreq } from '@/types'
 import { CategoryManagerSheet } from './CategoryManagerSheet'
+import { findDuplicateCategory, DUPLICATE_CATEGORY_MESSAGE } from '@/lib/utils/categories'
 import { cn } from '@/lib/utils/cn'
 
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
@@ -25,6 +26,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
   const [isGoalSelectOpen, setIsGoalSelectOpen] = useState(false)
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false)
   const [showManageCategories, setShowManageCategories] = useState(false)
+  const [categoryError, setCategoryError] = useState<string | null>(null)
   const [newCategory, setNewCategory] = useState({ name: '', icon: '📁', color: '#e02020' })
   const [isParsing, setIsParsing] = useState(false)
   const [parseError, setParseError] = useState<string | null>(null)
@@ -475,7 +477,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-2xl relative">
                  <div className="flex justify-between items-center mb-6">
                    <h3 className="text-xl font-bold text-[var(--text-primary)]">Nova Categoria</h3>
-                   <button type="button" onClick={() => setShowAddCategoryModal(false)}><X size={20} className="text-[var(--text-muted)]"/></button>
+                   <button type="button" onClick={() => { setShowAddCategoryModal(false); setCategoryError(null) }}><X size={20} className="text-[var(--text-muted)]"/></button>
                  </div>
                  <div className="space-y-4">
                    <input value={newCategory.name} onChange={e => setNewCategory({ ...newCategory, name: e.target.value })} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-red-500/50" placeholder="Nome da categoria" />
@@ -487,7 +489,8 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
                        ))}
                      </div>
                    </div>
-                   <button type="button" onClick={() => { if(!newCategory.name) return; addCategory.mutate({...newCategory, type: 'habits'}, { onSuccess: () => setShowAddCategoryModal(false) })}} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl mt-4 hover:bg-red-700 transition-colors">Salvar Categoria</button>
+                   {categoryError && <p className="text-xs font-bold text-red-500">{categoryError}</p>}
+                   <button type="button" onClick={() => { if(!newCategory.name.trim()) return; if (findDuplicateCategory(categories || [], newCategory.name, 'habits')) { setCategoryError(DUPLICATE_CATEGORY_MESSAGE); return } setCategoryError(null); addCategory.mutate({...newCategory, type: 'habits'}, { onSuccess: () => setShowAddCategoryModal(false) })}} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl mt-4 hover:bg-red-700 transition-colors">Salvar Categoria</button>
                  </div>
                </motion.div>
             </div>

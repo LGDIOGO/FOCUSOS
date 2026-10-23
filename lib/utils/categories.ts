@@ -39,3 +39,27 @@ export function categoriesForScope<T extends CategoryLike>(
     return PERSONAL.indexOf(c.type as string) !== -1 || isLegacyScope(c.type)
   })
 }
+
+/** Minúsculas, sem acento, sem espaços nas pontas e com espaços internos unificados. */
+export const normalizeCategoryName = (name: string) =>
+  name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
+
+/**
+ * Já existe categoria com esse nome entre as que o seletor do escopo `type`
+ * enxerga? Escopos de Trabalho são isolados: só colidem dentro do próprio escopo.
+ * `ignoreId` permite renomear sem colidir consigo mesma.
+ */
+export function findDuplicateCategory<T extends CategoryLike>(
+  all: T[],
+  name: string,
+  type: string,
+  ignoreId?: string,
+): T | undefined {
+  const key = normalizeCategoryName(name)
+  if (!key) return undefined
+  return categoriesForScope(all, [type]).find(
+    c => c.id !== ignoreId && normalizeCategoryName(c.name) === key,
+  )
+}
+
+export const DUPLICATE_CATEGORY_MESSAGE = 'Já existe uma categoria com esse nome.'
