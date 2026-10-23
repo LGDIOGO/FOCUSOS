@@ -5,10 +5,9 @@ import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { fitToVisualViewport } from '@/lib/utils/visualViewport'
 import { cn } from '@/lib/utils/cn'
-import { FOCUSABLE_SELECTOR, nextFocusIndex, shouldCloseOnBackdrop } from '@/lib/utils/modalLogic'
+import { FOCUSABLE_SELECTOR, nextFocusIndex, shouldCloseOnBackdrop, layerStack } from '@/lib/utils/modalLogic'
 
 // Pilha de modais abertos: ESC e Tab só valem para o do topo (ex.: EmojiPicker sobre um modal).
-const modalStack: string[] = []
 let scrollLocks = 0
 let savedOverflow = ''
 
@@ -68,12 +67,12 @@ export function Modal({
   useEffect(() => {
     if (!isOpen) return
     const id = uid
-    modalStack.push(id)
+    layerStack.push(id)
     lockBodyScroll()
     const previouslyFocused = document.activeElement as HTMLElement | null
 
     const onKey = (e: KeyboardEvent) => {
-      if (modalStack[modalStack.length - 1] !== id) return
+      if (!layerStack.isTop(id)) return
       if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); return }
       if (e.key !== 'Tab' || !sheetRef.current) return
       // Foco num portal externo (ex.: seletor de data): não interfere
@@ -95,8 +94,7 @@ export function Modal({
 
     return () => {
       document.removeEventListener('keydown', onKey)
-      const i = modalStack.lastIndexOf(id)
-      if (i >= 0) modalStack.splice(i, 1)
+      layerStack.remove(id)
       unlockBodyScroll()
       if (previouslyFocused && document.contains(previouslyFocused)) previouslyFocused.focus({ preventScroll: true })
     }
@@ -213,7 +211,7 @@ export function Modal({
         </Shell>
       </motion.div>
 
-      {overlays}
+      {overlays && (forceDark ? <div className={cn(DARK_TOKENS)}>{overlays}</div> : overlays)}
     </div>
   )
 }

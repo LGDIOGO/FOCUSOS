@@ -1,3 +1,4 @@
+import { useModalLayer } from '@/components/ui/useModalLayer'
 'use client'
 
 import { useState, useRef, useLayoutEffect } from 'react'
@@ -111,6 +112,7 @@ function PickerPortal({
   direction: 'up' | 'down'
 }) {
   const [style, setStyle] = useState<React.CSSProperties>({ opacity: 0, position: 'fixed', zIndex: 99999 })
+  useModalLayer(true, onClose)
 
   useLayoutEffect(() => {
     if (anchorRef.current) {

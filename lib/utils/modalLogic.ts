@@ -23,3 +23,24 @@ export function nextFocusIndex(count: number, activeIndex: number, shift: boolea
 
 export const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+/** Pilha de camadas abertas (modais, sheets, seletores). Só a do topo reage ao ESC. */
+export interface LayerStack {
+  push(id: string): void
+  remove(id: string): void
+  isTop(id: string): boolean
+  size(): number
+}
+
+export function createLayerStack(): LayerStack {
+  const ids: string[] = []
+  return {
+    push(id) { ids.push(id) },
+    remove(id) { const i = ids.lastIndexOf(id); if (i >= 0) ids.splice(i, 1) },
+    isTop(id) { return ids.length > 0 && ids[ids.length - 1] === id },
+    size() { return ids.length },
+  }
+}
+
+/** Pilha única compartilhada por Modal e useModalLayer. */
+export const layerStack = createLayerStack()

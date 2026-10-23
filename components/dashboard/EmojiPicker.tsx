@@ -1,3 +1,4 @@
+import { useModalLayer } from '@/components/ui/useModalLayer'
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
@@ -276,17 +277,14 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
 
   useEffect(() => { setIsMounted(true) }, [])
   useEffect(() => { if (!isOpen) setSearch('') }, [isOpen])
+  useModalLayer(isOpen, () => setIsOpen(false))
   const pickerLayerRef = useRef<HTMLDivElement>(null)
 
   // ESC fecha só o seletor (capture, antes do modal por baixo); teclado virtual não cobre a busca
   useEffect(() => {
     if (!isOpen) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopPropagation(); setIsOpen(false) }
-    }
-    window.addEventListener('keydown', onKey, true)
     const stopFit = fitToVisualViewport(pickerLayerRef.current)
-    return () => { window.removeEventListener('keydown', onKey, true); stopFit() }
+    return () => { stopFit() }
   }, [isOpen])
 
   const filteredEmojis = search

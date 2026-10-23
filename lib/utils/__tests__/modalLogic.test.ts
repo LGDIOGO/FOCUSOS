@@ -25,3 +25,25 @@ describe('nextFocusIndex', () => {
   it('Shift+Tab com foco fora dos itens vai ao último', () => expect(nextFocusIndex(3, -1, true)).toBe(2))
   it('Tab com foco fora dos itens vai ao primeiro', () => expect(nextFocusIndex(3, -1, false)).toBe(0))
 })
+
+import { createLayerStack } from '../modalLogic'
+
+describe('createLayerStack', () => {
+  it('REGRESSÃO: ESC com camada aberta só vale para o topo; ao fechá-la, a de baixo volta a receber', () => {
+    const s = createLayerStack()
+    s.push('modal'); s.push('sheet')
+    expect(s.isTop('sheet')).toBe(true)
+    expect(s.isTop('modal')).toBe(false)
+    s.remove('sheet')
+    expect(s.isTop('modal')).toBe(true)
+    s.remove('modal')
+    expect(s.size()).toBe(0)
+    expect(s.isTop('modal')).toBe(false)
+  })
+  it('remover camada do meio não muda o topo', () => {
+    const s = createLayerStack()
+    s.push('a'); s.push('b'); s.push('c')
+    s.remove('b')
+    expect(s.isTop('c')).toBe(true)
+  })
+})

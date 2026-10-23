@@ -1,4 +1,5 @@
 import { Modal } from '@/components/ui/Modal'
+import { useModalLayer } from '@/components/ui/useModalLayer'
 import { authFetch } from '@/lib/utils/authFetch'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -199,6 +200,8 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
       recurrence: { ...newEvent.recurrence, frequency: 'specific_days', days_of_week: next }
     })
   }
+
+  useModalLayer(showAddCategoryModal, () => { setShowAddCategoryModal(false); setCategoryError(null) })
 
   if (!isOpen) return null
 

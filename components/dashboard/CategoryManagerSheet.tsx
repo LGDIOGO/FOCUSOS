@@ -1,3 +1,4 @@
+import { useModalLayer } from '@/components/ui/useModalLayer'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { X, Pencil, Trash2, Check } from 'lucide-react'
@@ -32,12 +33,7 @@ export function CategoryManagerSheet({ scope, onClose, onDeleted }: {
 
   const close = () => { setError(null); onClose() }
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  useModalLayer(true, close)
 
   const startEdit =(c: Category) => {
     setConfirmId(null)
