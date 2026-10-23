@@ -15,6 +15,7 @@ import {
 } from '@/lib/hooks/useGoogleCalendar'
 import { TutorialModal } from '@/components/dashboard/TutorialModal'
 import { AccountDataSection } from '@/components/dashboard/AccountDataSection'
+import { findDuplicateCategory, DUPLICATE_CATEGORY_MESSAGE } from '@/lib/utils/categories'
 import { useCategories, useAddCategory, useDeleteCategory, CATEGORY_SCOPES, categoryScopeLabel } from '@/lib/hooks/useCategories'
 import { useSettings, useUpdateSettings } from '@/lib/hooks/useSettings'
 import { useProfile, useUpdateProfile } from '@/lib/hooks/useProfile'
@@ -52,6 +53,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const [newCat, setNewCat] = useState({ name: '', icon: '🏷️', color: '#0A84FF', type: 'habits' as any })
   const [showAddForm, setShowAddForm] = useState(false)
+  const [confirmDeleteCat, setConfirmDeleteCat] = useState<string | null>(null)
+  const [catError, setCatError] = useState<string | null>(null)
   const [isUpgrading, setIsUpgrading] = useState(false)
 
   // API tab state
@@ -154,7 +157,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   }, [activeTab, loadApiKeys])
 
   const handleAddCategory = () => {
-    if (!newCat.name) return
+    if (!newCat.name.trim()) return
+    if (findDuplicateCategory(categories || [], newCat.name, newCat.type)) { setCatError(DUPLICATE_CATEGORY_MESSAGE); return }
+    setCatError(null)
     addCategory.mutate(newCat, {
       onSuccess: () => {
         setNewCat({ name: '', icon: '🏷️', color: '#0A84FF', type: newCat.type })
@@ -326,7 +331,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </div>
                         </div>
 
-                         <button 
+                        {catError && <p className="text-xs font-bold text-red-400">{catError}</p>}
+                         <button
                           onClick={handleAddCategory}
                           className="w-full bg-red-600 text-white font-black py-4 rounded-2xl hover:bg-red-500 transition-all active:scale-95 shadow-xl shadow-red-500/10"
                         >
@@ -361,14 +367,31 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           {categoryScopeLabel(cat.type)}
                         </p>
                       </div>
-                      <button 
-                        onClick={() => {
-                          if (confirm('Excluir esta categoria?')) deleteCategory.mutate(cat.id)
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-3 text-white/20 hover:text-red-400 transition-all"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {confirmDeleteCat === cat.id ? (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setConfirmDeleteCat(null)}
+                            className="min-h-[44px] px-3 rounded-xl border border-white/10 text-white/50 text-[10px] font-black uppercase tracking-widest"
+                          >
+                            Manter
+                          </button>
+                          <button
+                            onClick={() => deleteCategory.mutate(cat.id, { onSettled: () => setConfirmDeleteCat(null) })}
+                            disabled={deleteCategory.isPending}
+                            className="min-h-[44px] px-3 rounded-xl bg-red-600 text-white text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteCat(cat.id)}
+                          aria-label={`Excluir ${cat.name}`}
+                          className="md:opacity-0 md:group-hover:opacity-100 w-11 h-11 flex items-center justify-center text-white/30 hover:text-red-400 transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
