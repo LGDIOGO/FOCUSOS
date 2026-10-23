@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import { Settings, Timer } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { usePomodoroStore } from '@/lib/stores/pomodoroStore'
-import { NAV_DESTINATIONS } from '@/lib/utils/navItems'
+import { NAV_DESTINATIONS, isRouteActive } from '@/lib/utils/navItems'
 import { NAV_ICONS } from '@/components/layout/navIcons'
 import { signOutAndRedirect } from '@/components/layout/session'
 
@@ -32,7 +32,7 @@ export default function Sidebar({ onOpenSettings }: SidebarProps) {
       {/* Nav */}
       <nav aria-label="Navegação principal" className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5">
         {NAV_DESTINATIONS.map((item) => {
-          const active = pathname === item.href
+          const active = isRouteActive(pathname, item.href)
           const Icon = NAV_ICONS[item.icon]
           return (
             <Link

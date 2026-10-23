@@ -45,5 +45,13 @@ export function splitNavDestinations(items: NavDestination[] = NAV_DESTINATIONS)
 /** "Mais" fica ativo quando a rota atual é um destino secundário. */
 export function isMoreActive(pathname: string | null | undefined): boolean {
   if (!pathname) return false
-  return splitNavDestinations().more.some((i) => i.href === pathname)
+  return splitNavDestinations().more.some((i) => isRouteActive(pathname, i.href))
+}
+
+/** Rota ativa: igual ao href ou subrota dele. `/dashboard` (Resumo) só casa exato. */
+export function isRouteActive(pathname: string | null | undefined, href: string): boolean {
+  if (!pathname) return false
+  if (pathname === href) return true
+  if (href === '/dashboard') return false
+  return pathname.startsWith(href + '/')
 }

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MoreHorizontal, Settings, Timer, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
-import { splitNavDestinations, isMoreActive } from '@/lib/utils/navItems'
+import { splitNavDestinations, isMoreActive, isRouteActive } from '@/lib/utils/navItems'
 import { NAV_ICONS } from '@/components/layout/navIcons'
 import { signOutAndRedirect } from '@/components/layout/session'
 import { usePomodoroStore } from '@/lib/stores/pomodoroStore'
@@ -27,21 +27,37 @@ export default function MobileNav({ onOpenSettings }: MobileNavProps) {
   const sheetRef = useRef<HTMLDivElement>(null)
   const { toggle: togglePomodoro, isRunning } = usePomodoroStore()
 
+  const restoreFocusRef = useRef(true)
   const closeSheet = () => { setMoreOpen(false); setConfirmingLogout(false) }
+  // Fecha por ação (link, Foco, Configurações): não devolve o foco ao "Mais"
+  const closeSheetAndAct = () => { restoreFocusRef.current = false; closeSheet() }
 
   // Fecha ao navegar
-  useEffect(() => { setMoreOpen(false); setConfirmingLogout(false) }, [pathname])
+  useEffect(() => { restoreFocusRef.current = false; setMoreOpen(false); setConfirmingLogout(false) }, [pathname])
 
   // ESC fecha; foco vai para o sheet ao abrir e volta ao botão ao fechar
   useEffect(() => {
     if (!moreOpen) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setMoreOpen(false); setConfirmingLogout(false) } }
+    restoreFocusRef.current = true
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setMoreOpen(false); setConfirmingLogout(false); return }
+      if (e.key !== 'Tab' || !sheetRef.current) return
+      // Trap de foco: Tab/Shift+Tab circulam dentro do sheet
+      const items = Array.from(sheetRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled])'))
+      if (items.length === 0) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      const active = document.activeElement
+      if (e.shiftKey && (active === first || active === sheetRef.current)) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus() }
+    }
     document.addEventListener('keydown', onKey)
     sheetRef.current?.focus()
     const btn = moreBtnRef.current
     return () => {
       document.removeEventListener('keydown', onKey)
-      btn?.focus()
+      // Só devolve o foco ao "Mais" se fechou sem navegar/agir
+      if (restoreFocusRef.current) btn?.focus()
     }
   }, [moreOpen])
 
@@ -56,7 +72,7 @@ export default function MobileNav({ onOpenSettings }: MobileNavProps) {
         className="lg:hidden fixed bottom-0 left-0 right-0 h-[calc(var(--nav-h)+env(safe-area-inset-bottom))] bg-[var(--bg-primary)]/95 backdrop-blur-xl border-t border-[var(--border-subtle)] px-1 pb-[env(safe-area-inset-bottom)] flex justify-around items-stretch z-[140] transition-colors duration-300"
       >
         {PRIMARY.map((item) => {
-          const active = pathname === item.href
+          const active = isRouteActive(pathname, item.href)
           const Icon = NAV_ICONS[item.icon]
           return (
             <Link
@@ -122,13 +138,13 @@ export default function MobileNav({ onOpenSettings }: MobileNavProps) {
 
               <div className="grid grid-cols-3 gap-3">
                 {MORE.map((item) => {
-                  const active = pathname === item.href
+                  const active = isRouteActive(pathname, item.href)
                   const Icon = NAV_ICONS[item.icon]
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      onClick={closeSheet}
+                      onClick={closeSheetAndAct}
                       aria-current={active ? 'page' : undefined}
                       className={cn(tileClass, active && 'text-[var(--text-primary)] border-red-500/40')}
                     >
@@ -140,7 +156,7 @@ export default function MobileNav({ onOpenSettings }: MobileNavProps) {
 
                 <button
                   type="button"
-                  onClick={() => { closeSheet(); togglePomodoro() }}
+                  onClick={() => { closeSheetAndAct(); togglePomodoro() }}
                   className={tileClass}
                 >
                   <span className="relative">
@@ -152,7 +168,7 @@ export default function MobileNav({ onOpenSettings }: MobileNavProps) {
 
                 <button
                   type="button"
-                  onClick={() => { closeSheet(); onOpenSettings() }}
+                  onClick={() => { closeSheetAndAct(); onOpenSettings() }}
                   className={tileClass}
                 >
                   <Settings size={22} />
