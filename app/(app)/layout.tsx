@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/layout/Sidebar'
 import MobileNav from '@/components/layout/MobileNav'
+import { SettingsModal } from '@/components/dashboard/SettingsModal'
 import { NotificationSystem } from '@/components/dashboard/NotificationSystem'
 import { PomodoroSidebar } from '@/components/dashboard/PomodoroSidebar'
 import { PomodoroFAB } from '@/components/dashboard/PomodoroFAB'
@@ -24,6 +25,7 @@ export default function AppLayout({
   const { data: settings } = useSettings()
   const { data: profile } = useProfile()
   const router = useRouter()
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   useEffect(() => {
     const theme = settings?.theme || 'dark'
@@ -64,12 +66,13 @@ export default function AppLayout({
       {showCpfOnboarding && <CpfOnboarding />}
       {showPaywall && !showCpfOnboarding && <SubscriptionWall />}
 
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto pb-[calc(env(safe-area-inset-bottom)+80px)] lg:pb-0 relative bg-[var(--bg-workspace)] rounded-none lg:rounded-tl-[40px] border-l border-white/[0.03] shadow-2xl">
+      <Sidebar onOpenSettings={() => setIsSettingsOpen(true)} />
+      <main className="flex-1 overflow-y-auto pb-[calc(var(--nav-h)+env(safe-area-inset-bottom))] lg:pb-0 lg:h-dvh lg:min-w-0 relative bg-[var(--bg-workspace)] rounded-none lg:rounded-tl-[40px] border-l border-white/[0.03] shadow-2xl">
         {children}
         <NotificationSystem />
       </main>
-      <MobileNav />
+      <MobileNav onOpenSettings={() => setIsSettingsOpen(true)} />
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       <PomodoroSidebar />
       <PomodoroFAB />
     </div>

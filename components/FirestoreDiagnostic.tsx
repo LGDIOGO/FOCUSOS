@@ -60,7 +60,15 @@ export function FirestoreDiagnostic() {
   if (!m.title) return null
 
   return (
-    <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[99999] max-w-xl w-[95%] px-5 py-3 rounded-2xl border text-sm font-semibold flex flex-col gap-1 shadow-2xl ${m.color}`}>
+    <div role="alert" className={`fixed bottom-[calc(var(--nav-h)+env(safe-area-inset-bottom)+12px)] lg:bottom-4 left-1/2 -translate-x-1/2 z-[9500] max-w-xl w-[95%] pl-5 pr-14 py-3 rounded-2xl border text-sm font-semibold flex flex-col gap-1 shadow-2xl backdrop-blur-xl bg-[var(--bg-primary)] ${m.color}`}>
+      <button
+        type="button"
+        onClick={() => setVisible(false)}
+        aria-label="Fechar aviso"
+        className="absolute top-1 right-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-lg opacity-70 hover:opacity-100 focus-visible:outline focus-visible:outline-2"
+      >
+        ✕
+      </button>
       <span>{m.title}</span>
       {m.body && <span className="text-xs font-mono opacity-70 break-all">{m.body}</span>}
       {state === 'no_data' && (

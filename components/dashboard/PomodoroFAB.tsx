@@ -15,7 +15,7 @@ export function PomodoroFAB() {
     <motion.button
       onClick={toggle}
       whileTap={{ scale: 0.92 }}
-      className="lg:hidden fixed bottom-24 right-4 z-[150] flex items-center gap-2 px-4 py-3 rounded-2xl border border-[var(--border-subtle)] shadow-2xl backdrop-blur-xl transition-all"
+      className="lg:hidden fixed bottom-[calc(var(--nav-h)+env(safe-area-inset-bottom)+12px)] right-4 z-[150] flex items-center gap-2 px-4 py-3 rounded-2xl border border-[var(--border-subtle)] shadow-2xl backdrop-blur-xl transition-all"
       style={{
         backgroundColor: isRunning ? `${PHASE_COLORS[phase]}18` : 'var(--bg-primary)',
         borderColor: isRunning ? `${PHASE_COLORS[phase]}40` : undefined,
