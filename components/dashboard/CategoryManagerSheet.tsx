@@ -16,6 +16,11 @@ import {
 import { FOCUSABLE_SELECTOR, nextFocusIndex } from '@/lib/utils/modalLogic'
 import { cn } from '@/lib/utils/cn'
 
+export const CATEGORY_COLOR_NAMES: Record<string, string> = {
+  '#FF453A': 'Vermelho', '#FF9F0A': 'Laranja', '#FFD60A': 'Amarelo', '#32D74B': 'Verde',
+  '#0A84FF': 'Azul', '#5E5CE6': 'Roxo', '#BF5AF2': 'Lilás', '#8E8E93': 'Cinza',
+}
+
 export const CATEGORY_COLORS = [
   '#FF453A', '#FF9F0A', '#FFD60A', '#32D74B', '#0A84FF', '#5E5CE6', '#BF5AF2', '#8E8E93',
 ]
@@ -30,14 +35,16 @@ function ColorChoices({ value, onChange }: { value: string; onChange: (c: string
     <div className="flex gap-0 flex-wrap" role="group" aria-label="Cor">
       {CATEGORY_COLORS.map(color => (
         <button
-          key={color} type="button" aria-label={`Cor ${color}`} aria-pressed={value === color}
+          key={color} type="button" aria-label={`Cor ${CATEGORY_COLOR_NAMES[color] || color}`} aria-pressed={value === color}
           onClick={() => onChange(color)}
           className={cn('w-11 h-11 flex items-center justify-center rounded-full', FOCUS_RING)}
         >
           <span
-            className={cn('w-7 h-7 rounded-full border-2 transition-all', value === color ? 'border-[var(--text-primary)] scale-110' : 'border-transparent opacity-50')}
+            className={cn('w-7 h-7 rounded-full border-2 transition-all flex items-center justify-center', value === color ? 'border-[var(--text-primary)] scale-110' : 'border-transparent opacity-70')}
             style={{ backgroundColor: color }}
-          />
+          >
+            {value === color && <Check size={14} className="text-white drop-shadow" aria-hidden="true" />}
+          </span>
         </button>
       ))}
     </div>
@@ -50,9 +57,11 @@ function ColorChoices({ value, onChange }: { value: string; onChange: (c: string
  * entra na pilha de camadas: ESC fecha só ele. A exclusão é confirmada na própria
  * UI (window.confirm não funciona no PWA). Criar é inline, sem modal dentro de modal.
  */
-export function CategoryManagerSheet({ scope, onClose, onDeleted, onCreated, startCreating, forceDark }: {
+export function CategoryManagerSheet({ scope, onClose, onDeleted, onCreated, onUpdated, startCreating, forceDark }: {
   scope: CategoryScope
   onClose: () => void
+  /** Chamado após salvar edição, com a categoria atualizada (o modal herda emoji/cor se estava selecionada). */
+  onUpdated?: (cat: Category) => void
   /** Avisa o modal para soltar a categoria excluída se ela estava selecionada. */
   onDeleted?: (id: string) => void
   /** Chamado com a categoria recém-criada (o modal a seleciona). */
@@ -67,12 +76,15 @@ export function CategoryManagerSheet({ scope, onClose, onDeleted, onCreated, sta
   const remove = useDeleteCategory()
   const reorder = useReorderCategories()
   const defaultIcon = scope === 'agenda' ? '📅' : '📁'
-  const [creating, setCreating] = useState(!!startCreating)
+  // Sem categorias, o formulário de criar já abre (o `creating` efetivo é derivado abaixo).
+  const [creatingState, setCreating] = useState(!!startCreating)
+  const creating = creatingState || (!isLoading && (categories?.length ?? 0) === 0)
   const [newCat, setNewCat] = useState({ name: '', icon: defaultIcon, color: CATEGORY_COLORS[0] })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState({ name: '', icon: '', color: CATEGORY_COLORS[0] })
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [nameError, setNameError] = useState<string | null>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
@@ -99,7 +111,7 @@ export function CategoryManagerSheet({ scope, onClose, onDeleted, onCreated, sta
   }
 
   const startEdit = (c: Category) => {
-    setConfirmId(null); setCreating(false); setError(null)
+    setConfirmId(null); setCreating(false); setError(null); setNameError(null)
     setEditingId(c.id)
     setDraft({ name: c.name, icon: c.icon || '📁', color: c.color || CATEGORY_COLORS[0] })
   }
@@ -107,7 +119,7 @@ export function CategoryManagerSheet({ scope, onClose, onDeleted, onCreated, sta
   const create = () => {
     const name = newCat.name.trim()
     if (!name || add.isPending) return
-    if (findDuplicateCategory(categories || [], name, scope)) { setError(DUPLICATE_CATEGORY_MESSAGE); return }
+    if (findDuplicateCategory(categories || [], name, scope)) { setNameError(DUPLICATE_CATEGORY_MESSAGE); return }
     setError(null)
     add.mutate({ name, icon: newCat.icon, color: newCat.color, type: scope }, {
       onSuccess: created => {
@@ -125,12 +137,15 @@ export function CategoryManagerSheet({ scope, onClose, onDeleted, onCreated, sta
     if (!editingId || !name) return
     const current = categories?.find(c => c.id === editingId)
     if (findDuplicateCategory(categories || [], name, current?.type || scope, editingId)) {
-      setError(DUPLICATE_CATEGORY_MESSAGE)
+      setNameError(DUPLICATE_CATEGORY_MESSAGE)
       return
     }
     setError(null)
     update.mutate({ id: editingId, name, icon: draft.icon, color: draft.color }, {
-      onSuccess: () => { setEditingId(null); setError(null) },
+      onSuccess: () => {
+        if (current) onUpdated?.({ ...current, name, icon: draft.icon, color: draft.color })
+        setEditingId(null); setError(null)
+      },
       onError: () => setError('Não foi possível salvar. Tente de novo.'),
     })
   }
@@ -177,10 +192,13 @@ export function CategoryManagerSheet({ scope, onClose, onDeleted, onCreated, sta
               <input
                 ref={nameRef}
                 value={newCat.name}
-                onChange={e => setNewCat({ ...newCat, name: e.target.value })}
+                onChange={e => { setNewCat({ ...newCat, name: e.target.value }); setNameError(null) }}
+                onFocus={e => e.currentTarget.scrollIntoView({ block: 'center' })}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); create() } }}
-                className={INPUT} placeholder="Nome da nova categoria" aria-label="Nome da nova categoria" maxLength={40}
+                aria-invalid={!!nameError} aria-describedby={nameError ? 'category-name-error' : undefined}
+                className={cn(INPUT, nameError && 'border-red-500')} placeholder="Nome da nova categoria" aria-label="Nome da nova categoria" maxLength={40}
               />
+              {nameError && <p id="category-name-error" role="alert" className="text-sm font-bold text-red-500">{nameError}</p>}
               <div className="flex gap-3 items-center">
                 <EmojiPicker value={newCat.icon} onChange={icon => setNewCat({ ...newCat, icon })} />
                 <ColorChoices value={newCat.color} onChange={color => setNewCat({ ...newCat, color })} />
@@ -206,7 +224,7 @@ export function CategoryManagerSheet({ scope, onClose, onDeleted, onCreated, sta
 
           {isLoading && <p className="text-sm text-[var(--text-muted)]">Carregando...</p>}
           {!isLoading && categories?.length === 0 && (
-            <p className="text-sm text-[var(--text-muted)] py-4 text-center">Nenhuma categoria criada ainda.</p>
+            <p className="text-sm text-[var(--text-secondary)] text-center">Crie sua primeira categoria para organizar hábitos e compromissos.</p>
           )}
 
           <ul className="space-y-2">
@@ -216,20 +234,30 @@ export function CategoryManagerSheet({ scope, onClose, onDeleted, onCreated, sta
                   <div className="space-y-3">
                     <input
                       value={draft.name}
-                      onChange={e => setDraft({ ...draft, name: e.target.value })}
+                      onChange={e => { setDraft({ ...draft, name: e.target.value }); setNameError(null) }}
+                      onFocus={e => e.currentTarget.scrollIntoView({ block: 'center' })}
                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); save() } }}
-                      className={INPUT} placeholder="Nome da categoria" aria-label="Nome da categoria" maxLength={40}
+                      aria-invalid={!!nameError} aria-describedby={nameError ? 'category-name-error' : undefined}
+                      className={cn(INPUT, nameError && 'border-red-500')} placeholder="Nome da categoria" aria-label="Nome da categoria" maxLength={40}
                     />
+                    {nameError && <p id="category-name-error" role="alert" className="text-sm font-bold text-red-500">{nameError}</p>}
                     <div className="flex gap-3 items-center">
                       <EmojiPicker value={draft.icon} onChange={icon => setDraft({ ...draft, icon })} />
                       <ColorChoices value={draft.color} onChange={color => setDraft({ ...draft, color })} />
                     </div>
                     <div className="flex gap-2">
-                      <button type="button" onClick={() => setEditingId(null)} className={cn(BTN_GHOST, FOCUS_RING)}>Cancelar</button>
+                      <button type="button" onClick={() => { setEditingId(null); setNameError(null) }} className={cn(BTN_GHOST, FOCUS_RING)}>Cancelar</button>
                       <button type="button" onClick={save} disabled={update.isPending || !draft.name.trim()} className={cn(BTN_PRIMARY, FOCUS_RING)}>
                         <Check size={14} /> {update.isPending ? 'Salvando...' : 'Salvar'}
                       </button>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => { setEditingId(null); setCreating(false); setError(null); setNameError(null); setConfirmId(c.id) }}
+                      className={cn('w-full min-h-[44px] rounded-xl text-red-500 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2', FOCUS_RING)}
+                    >
+                      <Trash2 size={14} /> Excluir categoria
+                    </button>
                   </div>
                 ) : confirmId === c.id ? (
                   <div className="space-y-2">
@@ -237,30 +265,29 @@ export function CategoryManagerSheet({ scope, onClose, onDeleted, onCreated, sta
                     <div className="flex gap-2">
                       <button type="button" onClick={() => setConfirmId(null)} className={cn(BTN_GHOST, FOCUS_RING)}>Manter</button>
                       <button type="button" onClick={() => doDelete(c.id)} disabled={remove.isPending} className={cn(BTN_PRIMARY, FOCUS_RING)}>
-                        {remove.isPending ? 'Excluindo...' : 'Excluir'}
+                        {remove.isPending ? 'Excluindo...' : 'Sim, excluir'}
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col shrink-0">
+                      <button type="button" onClick={() => move(c.id, -1)} disabled={i === 0 || reorder.isPending} aria-label={`Subir ${c.name}`} className={cn('w-11 h-11 flex items-center justify-center rounded-xl text-[var(--text-secondary)] disabled:opacity-30', FOCUS_RING)}>
+                        <ChevronUp size={20} />
+                      </button>
+                      <button type="button" onClick={() => move(c.id, 1)} disabled={i === (categories?.length || 0) - 1 || reorder.isPending} aria-label={`Descer ${c.name}`} className={cn('w-11 h-11 flex items-center justify-center rounded-xl text-[var(--text-secondary)] disabled:opacity-30', FOCUS_RING)}>
+                        <ChevronDown size={20} />
+                      </button>
+                    </div>
                     <span className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: `${c.color}22`, color: c.color }}>
                       {c.icon}
                     </span>
-                    <div className="flex-1 min-w-0 pl-1">
+                    <div className="flex-1 min-w-0">
                       <p className="font-bold text-[var(--text-primary)] truncate">{c.name}</p>
                       <p className="text-[12px] font-bold text-[var(--text-muted)] truncate">{categoryScopeLabel(c.type)}</p>
                     </div>
-                    <button type="button" onClick={() => move(c.id, -1)} disabled={i === 0 || reorder.isPending} aria-label={`Subir ${c.name}`} className={cn('w-11 h-11 flex items-center justify-center rounded-xl text-[var(--text-secondary)] disabled:opacity-30', FOCUS_RING)}>
-                      <ChevronUp size={20} />
-                    </button>
-                    <button type="button" onClick={() => move(c.id, 1)} disabled={i === (categories?.length || 0) - 1 || reorder.isPending} aria-label={`Descer ${c.name}`} className={cn('w-11 h-11 flex items-center justify-center rounded-xl text-[var(--text-secondary)] disabled:opacity-30', FOCUS_RING)}>
-                      <ChevronDown size={20} />
-                    </button>
                     <button type="button" onClick={() => startEdit(c)} aria-label={`Editar ${c.name}`} className={cn('w-11 h-11 flex items-center justify-center rounded-xl text-[var(--text-secondary)]', FOCUS_RING)}>
                       <Pencil size={18} />
-                    </button>
-                    <button type="button" onClick={() => { setEditingId(null); setCreating(false); setError(null); setConfirmId(c.id) }} aria-label={`Excluir ${c.name}`} className={cn('w-11 h-11 flex items-center justify-center rounded-xl text-[var(--text-secondary)] hover:text-red-500', FOCUS_RING)}>
-                      <Trash2 size={18} />
                     </button>
                   </div>
                 )}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Pencil, Plus } from 'lucide-react'
 import { useCategories, Category, CategoryScope } from '@/lib/hooks/useCategories'
 import { selectionAfterDelete } from '@/lib/utils/categories'
@@ -9,14 +9,15 @@ import { CategoryManagerSheet } from './CategoryManagerSheet'
 
 const FOCUS_RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--text-primary)]'
 const CHIP = 'snap-start shrink-0 min-h-[44px] px-4 rounded-xl border whitespace-nowrap text-[12px] font-black uppercase tracking-widest transition-all flex items-center gap-2'
+const ACTION = 'shrink-0 min-h-[44px] px-3 rounded-xl text-[12px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5'
 
 /**
  * Seletor único de categoria (Hábito, Compromisso, Meta). Chips roláveis +
- * "+ Nova" (cria inline no painel) + lápis (gerenciar: editar, excluir, ordenar).
+ * "Nova" (cria inline no painel) + "Gerenciar" (editar, excluir, ordenar).
  * Funciona nos temas claro/escuro; `forceDark` é para modais com tokens fixos.
  *
  * `onChange(null)` = sem categoria. A categoria vem junto no 2º argumento ao
- * escolher/criar, para o modal poder herdar emoji e cor dela.
+ * escolher/criar/editar a selecionada, para o modal herdar emoji e cor dela.
  */
 export function CategoryPicker({ scope, value, onChange, forceDark }: {
   scope: CategoryScope
@@ -26,6 +27,12 @@ export function CategoryPicker({ scope, value, onChange, forceDark }: {
 }) {
   const { data: categories } = useCategories(scope)
   const [sheet, setSheet] = useState<null | 'manage' | 'create'>(null)
+  const selectedRef = useRef<HTMLButtonElement>(null)
+
+  // Mantém o chip selecionado visível na fila rolável (no celular pode estar fora da tela).
+  useEffect(() => {
+    selectedRef.current?.scrollIntoView({ inline: 'center', block: 'nearest' })
+  }, [value, categories])
 
   return (
     <div className="space-y-1.5">
@@ -34,7 +41,7 @@ export function CategoryPicker({ scope, value, onChange, forceDark }: {
         <div className="relative flex-1 min-w-0">
           <div
             role="group" aria-labelledby={`catpicker-${scope}`}
-            className="flex gap-2 overflow-x-auto snap-x pb-1 pr-8 sm:pr-0 sm:flex-wrap sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex gap-2 overflow-x-auto snap-x scroll-px-4 pb-1 pr-8 sm:pr-0 sm:flex-wrap sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             <button
               type="button" aria-pressed={!value} onClick={() => onChange(null)}
@@ -48,7 +55,7 @@ export function CategoryPicker({ scope, value, onChange, forceDark }: {
               const selected = value === cat.id
               return (
                 <button
-                  key={cat.id} type="button" aria-pressed={selected} onClick={() => onChange(cat.id, cat)}
+                  key={cat.id} ref={selected ? selectedRef : undefined} type="button" aria-pressed={selected} onClick={() => onChange(cat.id, cat)}
                   className={cn(CHIP, FOCUS_RING, selected
                     ? 'text-[var(--text-primary)] border-2'
                     : 'bg-[var(--bg-overlay)] text-[var(--text-secondary)] border-[var(--border-subtle)]')}
@@ -59,20 +66,20 @@ export function CategoryPicker({ scope, value, onChange, forceDark }: {
                 </button>
               )
             })}
-            <button
-              type="button" onClick={() => setSheet('create')}
-              className={cn(CHIP, FOCUS_RING, 'border-dashed border-[var(--border-subtle)] text-red-500 bg-transparent')}
-            >
-              <Plus size={14} aria-hidden="true" /> Nova
-            </button>
           </div>
           <div aria-hidden="true" className="pointer-events-none absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-[var(--bg-primary)] to-transparent sm:hidden" />
         </div>
         <button
-          type="button" onClick={() => setSheet('manage')} aria-label="Gerenciar categorias"
-          className={cn('shrink-0 w-11 h-11 flex items-center justify-center rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]', FOCUS_RING)}
+          type="button" onClick={() => setSheet('create')}
+          className={cn(ACTION, FOCUS_RING, 'border border-[var(--text-secondary)] text-[var(--text-primary)]')}
         >
-          <Pencil size={18} />
+          <Plus size={14} aria-hidden="true" /> Nova
+        </button>
+        <button
+          type="button" onClick={() => setSheet('manage')} aria-label="Gerenciar categorias"
+          className={cn(ACTION, FOCUS_RING, 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]')}
+        >
+          <Pencil size={14} aria-hidden="true" /> <span className="max-[359px]:hidden">Gerenciar</span>
         </button>
       </div>
 
@@ -83,6 +90,7 @@ export function CategoryPicker({ scope, value, onChange, forceDark }: {
           startCreating={sheet === 'create'}
           onClose={() => setSheet(null)}
           onCreated={cat => onChange(cat.id, cat)}
+          onUpdated={cat => { if (value === cat.id) onChange(cat.id, cat) }}
           onDeleted={id => { if (value === id) onChange(selectionAfterDelete(value, id)) }}
         />
       )}
