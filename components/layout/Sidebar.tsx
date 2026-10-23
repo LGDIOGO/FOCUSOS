@@ -3,12 +3,15 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Settings, Timer } from 'lucide-react'
+import { useState } from 'react'
+import { Settings, Timer, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { usePomodoroStore } from '@/lib/stores/pomodoroStore'
 import { NAV_DESTINATIONS, isRouteActive } from '@/lib/utils/navItems'
 import { NAV_ICONS } from '@/components/layout/navIcons'
-import { signOutAndRedirect } from '@/components/layout/session'
+import { LogoutConfirm } from '@/components/layout/LogoutConfirm'
+
+const FOCUS_RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--text-primary)]'
 
 interface SidebarProps {
   onOpenSettings: () => void
@@ -17,6 +20,7 @@ interface SidebarProps {
 // Entre lg (1024) e xl (1280) a barra fica só com ícones (w-20); em xl+ completa (w-64).
 export default function Sidebar({ onOpenSettings }: SidebarProps) {
   const pathname = usePathname()
+  const [confirmingLogout, setConfirmingLogout] = useState(false)
   const { toggle: togglePomodoro, isRunning, isOpen: pomodoroOpen } = usePomodoroStore()
 
   return (
@@ -42,13 +46,13 @@ export default function Sidebar({ onOpenSettings }: SidebarProps) {
               aria-label={item.label}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'group flex items-center justify-center xl:justify-start gap-3 px-3 py-2.5 min-h-[44px] rounded-xl transition-all duration-200 relative',
+                'group flex items-center justify-center xl:justify-start gap-3 px-3 py-2.5 min-h-[44px] rounded-xl transition-all duration-200 relative ' + FOCUS_RING,
                 active
                   ? 'bg-[var(--bg-overlay)] text-[var(--text-primary)] shadow-sm'
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]'
               )}
             >
-              <Icon size={20} className={cn('transition-colors relative z-10 shrink-0', active ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-primary)]')} />
+              <Icon size={20} className={cn('transition-colors relative z-10 shrink-0', active ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]')} />
               <span className="hidden xl:block text-base font-medium relative z-10">{item.label}</span>
               {active && (
                 <motion.div
@@ -62,17 +66,17 @@ export default function Sidebar({ onOpenSettings }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="mt-auto flex flex-col gap-2">
+      <div className="mt-auto flex flex-col gap-2 relative">
         {/* Pomodoro Focus trigger */}
         <button
           onClick={togglePomodoro}
           title="Modo Foco"
           aria-label="Modo Foco"
           className={cn(
-            'flex items-center justify-center xl:justify-start gap-3 px-3 py-2.5 min-h-[44px] rounded-xl transition-all relative',
+            'flex items-center justify-center xl:justify-start gap-3 px-3 py-2.5 min-h-[44px] rounded-xl transition-all relative ' + FOCUS_RING,
             pomodoroOpen
               ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-              : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]'
           )}
         >
           <div className="relative">
@@ -88,22 +92,25 @@ export default function Sidebar({ onOpenSettings }: SidebarProps) {
           onClick={onOpenSettings}
           title="Configurações"
           aria-label="Configurações"
-          className="flex items-center justify-center xl:justify-start gap-3 px-3 py-2.5 min-h-[44px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)] rounded-xl transition-all"
+          className={"flex items-center justify-center xl:justify-start gap-3 px-3 py-2.5 min-h-[44px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)] rounded-xl transition-all " + FOCUS_RING}
         >
           <Settings size={20} />
           <span className="hidden xl:block text-base font-medium">Configurações</span>
         </button>
         <button
-          onClick={() => { signOutAndRedirect() }}
-          title="Encerrar Sessão"
-          aria-label="Encerrar Sessão"
-          className="flex items-center justify-center xl:justify-start gap-3 px-3 py-2.5 min-h-[44px] text-red-400/60 hover:text-red-400 hover:bg-red-400/5 rounded-xl transition-all"
+          onClick={() => setConfirmingLogout(true)}
+          title="Sair"
+          aria-label="Sair"
+          className={'flex items-center justify-center xl:justify-start gap-3 px-3 py-2.5 min-h-[44px] text-red-400 hover:bg-red-400/5 rounded-xl transition-all ' + FOCUS_RING}
         >
-          <div className="w-5 h-5 flex items-center justify-center">
-            <div className="w-2 h-2 rounded-full bg-red-400" />
-          </div>
-          <span className="hidden xl:block text-base font-bold">Encerrar Sessão</span>
+          <LogOut size={20} className="shrink-0" />
+          <span className="hidden xl:block text-base font-bold">Sair</span>
         </button>
+        {confirmingLogout && (
+          <div className="absolute bottom-0 left-full ml-2 w-64 rounded-2xl bg-[var(--bg-primary)] shadow-2xl z-[200]">
+            <LogoutConfirm onCancel={() => setConfirmingLogout(false)} />
+          </div>
+        )}
       </div>
     </aside>
   )

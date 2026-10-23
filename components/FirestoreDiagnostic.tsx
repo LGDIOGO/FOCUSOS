@@ -61,7 +61,7 @@ export function FirestoreDiagnostic() {
   // z-[9500]: acima da nav/sidebar, abaixo dos modais (10000) de proposito.
 
   return (
-    <div role="alert" className={`fixed bottom-[calc(var(--nav-h)+env(safe-area-inset-bottom)+12px)] lg:bottom-4 left-1/2 -translate-x-1/2 z-[9500] max-w-xl w-[95%] pl-5 pr-14 py-3 rounded-2xl border text-sm font-semibold flex flex-col gap-1 shadow-2xl backdrop-blur-xl bg-[var(--bg-primary)] ${m.color}`}>
+    <div role="alert" className={`fixed bottom-[calc(var(--nav-h)+env(safe-area-inset-bottom)+12px)] lg:bottom-4 left-1/2 -translate-x-1/2 z-[9500] max-w-xl w-[95%] max-h-[40dvh] overflow-y-auto pl-5 pr-14 py-3 rounded-2xl border text-sm font-semibold flex flex-col gap-1 shadow-2xl backdrop-blur-xl bg-[var(--bg-primary)] ${m.color}`}>
       <button
         type="button"
         onClick={() => setVisible(false)}

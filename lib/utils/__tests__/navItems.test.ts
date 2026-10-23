@@ -35,3 +35,12 @@ describe('navItems', () => {
     expect(isRouteActive('/dashboard/goalsx', '/dashboard/goals')).toBe(false)
   })
 })
+
+describe('ordem dos destinos', () => {
+  it('Sidebar começa por Resumo, Agenda, Hábitos, Trabalho (igual à barra inferior)', () => {
+    expect(NAV_DESTINATIONS.slice(0, 4).map((i) => i.label)).toEqual(['Resumo', 'Agenda', 'Hábitos', 'Trabalho'])
+  })
+  it('"Mais" segue Metas, Finanças, Estudos, Livros, Insights, Aposentadoria, IA', () => {
+    expect(splitNavDestinations().more.map((i) => i.label)).toEqual(['Metas', 'Finanças', 'Estudos', 'Livros', 'Insights', 'Aposentadoria', 'IA'])
+  })
+})

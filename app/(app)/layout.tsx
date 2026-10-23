@@ -26,6 +26,7 @@ export default function AppLayout({
   const { data: profile } = useProfile()
   const router = useRouter()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
 
   useEffect(() => {
     const theme = settings?.theme || 'dark'
@@ -43,7 +44,7 @@ export default function AppLayout({
 
   if (user === undefined) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div role="status" aria-label="Carregando" className="min-h-dvh bg-black flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
       </div>
     )
@@ -67,14 +68,14 @@ export default function AppLayout({
       {showPaywall && !showCpfOnboarding && <SubscriptionWall />}
 
       <Sidebar onOpenSettings={() => setIsSettingsOpen(true)} />
-      <main className="flex-1 overflow-y-auto pb-[calc(var(--nav-h)+env(safe-area-inset-bottom))] lg:pb-0 lg:h-dvh lg:min-w-0 relative bg-[var(--bg-workspace)] rounded-none lg:rounded-tl-[40px] border-l border-white/[0.03] shadow-2xl">
+      <main className="flex-1 overflow-y-auto pb-[calc(var(--nav-h)+env(safe-area-inset-bottom)+72px)] lg:pb-0 lg:h-dvh lg:min-w-0 relative bg-[var(--bg-workspace)] rounded-none lg:rounded-tl-[40px] border-l border-white/[0.03] shadow-2xl">
         {children}
         <NotificationSystem />
       </main>
-      <MobileNav onOpenSettings={() => setIsSettingsOpen(true)} />
+      <MobileNav onOpenSettings={() => setIsSettingsOpen(true)} onMoreOpenChange={setMoreOpen} />
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       <PomodoroSidebar />
-      <PomodoroFAB />
+      <PomodoroFAB hidden={moreOpen} />
     </div>
   )
 }
