@@ -1,5 +1,5 @@
-import { useModalLayer } from '@/components/ui/useModalLayer'
 'use client'
+import { useModalLayer } from '@/components/ui/useModalLayer'
 
 import { isFinePointer } from '@/lib/utils/pointer'
 import { useState, useEffect, useRef } from 'react'
