@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-export const CONTACT_PLACEHOLDER = '[e-mail de contato — Diogo definir]'
+export const CONTACT_PLACEHOLDER = 'digowronski@icloud.com'
 
 /** Casca das páginas públicas /privacidade e /termos (sem login). */
 export function LegalShell({ title, children }: { title: string; children: React.ReactNode }) {

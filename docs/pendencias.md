@@ -15,7 +15,7 @@
    - Rotacionar o **refresh token OAuth** em `.env.local` (`FIREBASE_OAUTH_REFRESH_TOKEN`) e a chave de serviço antiga; a rota `fix-rules` que o usava foi removida. O `client_secret` que estava no código é o público do Firebase CLI (não é seu), mas continua no histórico git.
    - Conferir o console do preview: violações da CSP (modo Report-Only) antes de promovê-la.
 9. **LGPD (fatia 8a), antes de ir para produção [BLOQUEADO: Diogo]:**
-   - E-mail de contato LGPD e prazo de resposta: `CONTACT_PLACEHOLDER` em `components/legal/LegalShell.tsx` ainda é placeholder.
+   - E-mail de contato LGPD: definido (`digowronski@icloud.com`, constante `CONTACT_PLACEHOLDER` em `components/legal/LegalShell.tsx`). Falta o **prazo de resposta** a titulares.
    - Revisão jurídica de `/privacidade` e `/termos` (rascunho). A faixa "Rascunho" só sai depois dela.
    - Prazo de retenção de `mp_payments` (exportado, não apagado; ver `decisoes.md`).
    - Reautenticação e Storage sem bucket são código, não bloqueio (backlog item 15).
