@@ -7,7 +7,7 @@
    - "Acesso bloqueado" ao autorizar: app OAuth em Testing; adicionar `wronskilg300@gmail.com` em "Usuários de teste".
 2. **Rotacionar a chave de serviço antiga do Firebase** (apareceu em terminal/histórico do PowerShell).
 3. **Ativar o Firebase Storage** (Storage → Começar, `southamerica-east1`) e então `npx firebase-tools deploy --only storage`. Sem isso, upload de imagem mostra mensagem explicativa.
-   - Sem `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, a exclusão de conta apaga a conta sem os arquivos do Storage (só aviso no log). Ver backlog item 15.
+   - Sem `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, a exclusão de conta apaga a conta sem os arquivos do Storage (só aviso no log). Ver backlog item 10.
 4. Diogo organizar rótulos do Trabalho (engrenagem → "Cadastrar os N em uso").
 8. **Segurança (2026-10-21), ações do Diogo antes/depois do deploy:**
    - `firestore.rules` **publicadas em produção em 2026-10-23** (regras travam `is_paid`/`subscription_*`/`trial_started_at` e `user_id`). Ainda por verificar à mão: gravar `is_paid: true` pelo console do navegador tem de falhar.
@@ -18,7 +18,7 @@
    - E-mail de contato LGPD: definido (`digowronski@icloud.com`, constante `CONTACT_PLACEHOLDER` em `components/legal/LegalShell.tsx`). Falta o **prazo de resposta** a titulares.
    - Revisão jurídica de `/privacidade` e `/termos` (rascunho). A faixa "Rascunho" só sai depois dela.
    - Prazo de retenção de `mp_payments` (exportado, não apagado; ver `decisoes.md`).
-   - Reautenticação e Storage sem bucket são código, não bloqueio (backlog item 15).
+   - Reautenticação e Storage sem bucket são código, não bloqueio (backlog item 10).
 
 ## Infra de qualidade (nova fase)
 
