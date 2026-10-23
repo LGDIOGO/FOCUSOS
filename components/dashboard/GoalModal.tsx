@@ -7,6 +7,7 @@ import { CustomDateTimePicker } from '@/components/dashboard/CustomDateTimePicke
 import { useAddGoal, useUpdateGoal } from '@/lib/hooks/useGoals'
 import { useCategories, useAddCategory } from '@/lib/hooks/useCategories'
 import { Goal, TaskPriority } from '@/types'
+import { CategoryManagerSheet } from './CategoryManagerSheet'
 import { cn } from '@/lib/utils/cn'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -31,6 +32,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
   const addCategory = useAddCategory()
 
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false)
+  const [showManageCategories, setShowManageCategories] = useState(false)
   const [newCategory, setNewCategory] = useState({ name: '', icon: '📁', color: '#e02020' })
   const [isParsing, setIsParsing] = useState(false)
 
@@ -96,7 +98,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
         body: JSON.stringify({
           text: formData.title,
           type: 'goal',
-          categories: categories?.filter(c => c.type === 'goals').map(c => ({ id: c.id, name: c.name })),
+          categories: categories?.map(c => ({ id: c.id, name: c.name })),
           currentDetails: {
             today: format(new Date(), 'yyyy-MM-dd'),
             dayName: format(new Date(), 'EEEE', { locale: ptBR })
@@ -273,13 +275,22 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between px-1">
                 <label className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)]">Categoria</label>
-                <button
-                  type="button"
-                  onClick={() => setShowAddCategoryModal(true)}
-                  className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors"
-                >
-                  + Nova
-                </button>
+                <div className="flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowManageCategories(true)}
+                    className="min-h-[44px] px-3 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                  >
+                    Gerenciar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCategoryModal(true)}
+                    className="min-h-[44px] px-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors"
+                  >
+                    + Nova
+                  </button>
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -505,6 +516,13 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
         </form>
 
         <AnimatePresence>
+          {showManageCategories && (
+            <CategoryManagerSheet
+              scope="goals"
+              onClose={() => setShowManageCategories(false)}
+              onDeleted={id => setFormData(f => f.category_id === id ? { ...f, category_id: '' } : f)}
+            />
+          )}
           {showAddCategoryModal && (
             <div className="absolute inset-0 z-[1000] rounded-[48px] bg-[var(--bg-primary)]/60 backdrop-blur-md flex items-center justify-center p-4">
                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-2xl relative">

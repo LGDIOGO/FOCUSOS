@@ -10,6 +10,7 @@ import { useCategories, useAddCategory } from '@/lib/hooks/useCategories'
 import { useGoals } from '@/lib/hooks/useGoals'
 import { useAddHabit, useUpdateHabit } from '@/lib/hooks/useHabits'
 import { Habit, RecurrenceFreq } from '@/types'
+import { CategoryManagerSheet } from './CategoryManagerSheet'
 import { cn } from '@/lib/utils/cn'
 
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
@@ -23,6 +24,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
 
   const [isGoalSelectOpen, setIsGoalSelectOpen] = useState(false)
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false)
+  const [showManageCategories, setShowManageCategories] = useState(false)
   const [newCategory, setNewCategory] = useState({ name: '', icon: '📁', color: '#e02020' })
   const [isParsing, setIsParsing] = useState(false)
   const [parseError, setParseError] = useState<string | null>(null)
@@ -260,13 +262,22 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between px-1">
               <label className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)]">Categoria</label>
-              <button 
-                type="button" 
-                onClick={() => setShowAddCategoryModal(true)}
-                className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors"
-              >
-                + Nova
-              </button>
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => setShowManageCategories(true)}
+                  className="min-h-[44px] px-3 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                >
+                  Gerenciar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddCategoryModal(true)}
+                  className="min-h-[44px] px-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors"
+                >
+                  + Nova
+                </button>
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
@@ -452,6 +463,13 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
         </form>
 
         <AnimatePresence>
+          {showManageCategories && (
+            <CategoryManagerSheet
+              scope="habits"
+              onClose={() => setShowManageCategories(false)}
+              onDeleted={id => setNewHabit(h => h.category_id === id ? { ...h, category_id: '' } : h)}
+            />
+          )}
           {showAddCategoryModal && (
             <div className="absolute inset-0 z-[1000] rounded-[48px] bg-[var(--bg-primary)]/60 backdrop-blur-md flex items-center justify-center p-4">
                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-2xl relative">

@@ -11,6 +11,7 @@ import {
   updateDoc
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
+import { categoriesForScope } from '../utils/categories'
 
 /**
  * Onde a etiqueta é aplicada. O módulo Trabalho usa dois escopos próprios —
@@ -72,7 +73,7 @@ export function useCategories(scope?: CategoryScope | CategoryScope[]) {
       const snap = await getDocs(q)
       return snap.docs.map(d => ({ id: d.id, ...d.data() })) as Category[]
     },
-    select: (all: Category[]) => (scopes ? all.filter(c => scopes.includes(c.type)) : all),
+    select: (all: Category[]) => categoriesForScope(all, scopes),
     enabled: !!user,
     staleTime: 5_000,
   })
@@ -91,6 +92,19 @@ export function useAddCategory() {
         created_at: new Date().toISOString()
       })
       return { id: docRef.id, ...category }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categories'] })
+    }
+  })
+}
+
+export function useUpdateCategory() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, ...patch }: { id: string; name: string; icon: string; color: string }) => {
+      await updateDoc(doc(db, 'categories', id), patch)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['categories'] })
