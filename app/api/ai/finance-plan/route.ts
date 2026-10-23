@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
 import { generateText } from '@/lib/ai/models';
+import { guardAiRequest } from '@/lib/server/guard';
 
 export async function POST(req: Request) {
+  const guard = await guardAiRequest(req, 'finance-plan');
+  if (!guard.ok) return guard.response;
+
   // Fora do try: o fallback no catch precisa dos números reais do usuário,
   // senão devolve o plano genérico de "cadastre sua renda" para quem já cadastrou.
   let income = 0, fixedCosts = 0, variableExpenses = 0;
 
   try {
-    const body = await req.json();
+    const body = guard.body;
     ({ income = 0, fixedCosts = 0, variableExpenses = 0 } = body);
     const { potes, futureTransactions } = body;
 
@@ -109,12 +113,12 @@ Apenas a primeira fase tem "active": true. As demais têm "active": false.`;
     return NextResponse.json({ plan: parsedPlan });
 
   } catch (error: any) {
-    console.error('Error generating AI finance plan:', error);
+    console.error('Error generating AI finance plan:', error?.message);
 
     // On parse error or API error, return a static analytical plan instead of crashing
     return NextResponse.json({
       plan: buildStaticPlan(income, fixedCosts, variableExpenses),
-      warning: error.message
+      warning: 'Plano gerado com dados locais (IA indisponível)'
     });
   }
 }

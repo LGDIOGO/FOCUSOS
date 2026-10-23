@@ -22,12 +22,15 @@ Antes de subir qualquer mudança (o build da Vercel **pula** a checagem de tipos
 
 ```bash
 npx tsc --noEmit     # tipos
-npm test             # vitest — hoje cobre o cálculo de ofensiva dos hábitos
+npm test             # vitest — suíte de regressão (ver docs/testes.md)
 ```
 
 ## Fluxo de trabalho
 
-- Branch única de produção: **`main`**. **Todo push para `main` faz deploy automático na Vercel.**
+Documentação completa em [`docs/`](docs/README.md) (ambientes, testes, armadilhas, decisões, bugs corrigidos).
+
+- Desenvolva em **`develop`** (ambiente de dev/preview); só vai para `main` depois de validado. Ver [`docs/ambientes.md`](docs/ambientes.md).
+- Produção: **`main`**. **Todo push para `main` faz deploy automático na Vercel.**
 - Não use `vercel --prod` pela CLI: o push já publica, e o token da CLI expira.
 - ⚠️ **Cuidado com `sync.bat` / `git-sync.sh`.** Eles fazem `git add .` + commit "Sync: Auto Update"
   + push direto na `main`. Como push na `main` publica, isso manda para produção **tudo o que

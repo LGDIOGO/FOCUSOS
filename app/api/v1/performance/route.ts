@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { adminDb } from '@/lib/firebase/admin'
+import { resolveRange } from '@/lib/server/validate'
 import { authWithApiKey, unauthorizedResponse, errorResponse } from '../_auth'
 
 export async function GET(req: NextRequest) {
@@ -7,9 +8,12 @@ export async function GET(req: NextRequest) {
   if (!auth) return unauthorizedResponse()
 
   const { searchParams } = new URL(req.url)
-  const days = Math.min(Number(searchParams.get('days') || 7), 90)
-  const to = searchParams.get('to') || new Date().toISOString().slice(0, 10)
-  const from = searchParams.get('from') || new Date(Date.now() - days * 86400000).toISOString().slice(0, 10)
+  const range = resolveRange(
+    searchParams.get('from'), searchParams.get('to'), searchParams.get('days'),
+    new Date().toISOString().slice(0, 10),
+  )
+  if (!range.ok) return errorResponse(range.error, 400)
+  const { from, to } = range
 
   try {
     const [habitsSnap, habitLogsSnap, tasksSnap, eventLogsSnap] = await Promise.all([

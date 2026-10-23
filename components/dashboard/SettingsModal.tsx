@@ -14,6 +14,7 @@ import {
   useSyncToGoogleCalendar,
 } from '@/lib/hooks/useGoogleCalendar'
 import { TutorialModal } from '@/components/dashboard/TutorialModal'
+import { AccountDataSection } from '@/components/dashboard/AccountDataSection'
 import { useCategories, useAddCategory, useDeleteCategory, CATEGORY_SCOPES, categoryScopeLabel } from '@/lib/hooks/useCategories'
 import { useSettings, useUpdateSettings } from '@/lib/hooks/useSettings'
 import { useProfile, useUpdateProfile } from '@/lib/hooks/useProfile'
@@ -631,6 +632,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </div>
                   </div>
                 </div>
+
+                <AccountDataSection />
 
                 <div className="p-8 bg-red-400/5 border border-red-400/10 rounded-[32px] flex items-center justify-between">
                   <div>

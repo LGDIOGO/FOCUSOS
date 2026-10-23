@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { authWithApiKey } from '../v1/_auth'
-
+import { internalOrigin } from '@/lib/server/origin'
 // ── Helpers ────────────────────────────────────────────────────────────────
 function ok(id: any, result: unknown) {
   return Response.json({ jsonrpc: '2.0', id, result })
@@ -10,13 +10,11 @@ function err(id: any, code: number, message: string) {
 }
 
 async function callV1(req: NextRequest, path: string, method = 'GET', body?: unknown) {
-  const host = req.headers.get('host') || 'focusos-rlvs.vercel.app'
-  const proto = host.startsWith('localhost') ? 'http' : 'https'
   const apiKey =
     req.headers.get('x-api-key') ||
     req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ||
     ''
-  const res = await fetch(`${proto}://${host}/api/v1${path}`, {
+  const res = await fetch(`${internalOrigin()}/api/v1${path}`, {
     method,
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,

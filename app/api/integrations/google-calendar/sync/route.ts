@@ -7,6 +7,7 @@ import {
   updateCalendarEvent,
   type GCalEvent,
 } from '@/lib/utils/googleCalendar'
+import { parseSyncBody } from '@/lib/server/validate'
 import { toRRule, allocateSlots, busyFrom, type Busy } from '@/lib/utils/calendarScheduling'
 
 type Source = 'events' | 'work' | 'habits'
@@ -65,15 +66,18 @@ export async function POST(req: NextRequest) {
   try {
     accessToken = await refreshAccessToken(gcal.refresh_token)
   } catch (err: any) {
-    return NextResponse.json({ error: `Falha ao renovar token: ${err.message}` }, { status: 401 })
+    console.error('GCal refresh failed:', err.message)
+    return NextResponse.json({ error: 'Falha ao renovar o acesso ao Google. Reconecte a agenda.' }, { status: 401 })
   }
 
   const body = await req.json().catch(() => ({}))
-  const timezone = body.timezone || 'America/Sao_Paulo'
+  const parsed = parseSyncBody(body)
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 })
+  const { timezone } = parsed
   const sources: Source[] = Array.isArray(body.sources) && body.sources.length
     ? body.sources.filter((s: string): s is Source => (ALL_SOURCES as string[]).includes(s))
     : ALL_SOURCES
-  const onlyIds: string[] | undefined = body.event_ids || body.ids
+  const onlyIds = parsed.onlyIds
 
   // Carrega tudo antes de decidir horários: o que não tem hora precisa saber o
   // que já está ocupado, inclusive pelas outras origens.
@@ -114,7 +118,7 @@ export async function POST(req: NextRequest) {
 
   let synced = 0
   let updated = 0
-  const errors: string[] = []
+  let failed = 0
 
   for (const src of sources) {
     const meta = SOURCE_META[src]
@@ -142,7 +146,8 @@ export async function POST(req: NextRequest) {
           synced++
         }
       } catch (err: any) {
-        errors.push(`${meta.label} "${d.title || d.name}": ${err.message}`)
+        failed++
+        console.error(`GCal sync falhou (${src}/${d.id}):`, err?.message)
       }
     }
   }
@@ -152,6 +157,7 @@ export async function POST(req: NextRequest) {
     synced,
     updated,
     sources,
-    errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
+    failed: failed > 0 ? failed : undefined,
+    errors: failed > 0 ? [`${failed} item(ns) não sincronizado(s). Tente novamente ou reconecte a agenda.`] : undefined,
   })
 }

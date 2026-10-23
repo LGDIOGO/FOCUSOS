@@ -1,5 +1,6 @@
 'use client'
 
+import { authFetch } from '@/lib/utils/authFetch'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -272,7 +273,7 @@ export default function IAPage() {
     setLoading(true)
 
     try {
-      const resp = await fetch('/api/ai/onboarding', {
+      const resp = await authFetch('/api/ai/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

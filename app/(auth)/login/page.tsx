@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { LegalFooterLinks } from '@/components/legal/LegalShell'
 import { useRouter } from 'next/navigation'
 import {
   signInWithEmailAndPassword,
@@ -154,6 +155,7 @@ export default function LoginPage() {
             Cadastre-se grátis
           </Link>
         </p>
+        <LegalFooterLinks />
       </motion.div>
     </div>
   )

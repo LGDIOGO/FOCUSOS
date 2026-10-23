@@ -1,5 +1,6 @@
 'use client'
 
+import { authFetch } from '@/lib/utils/authFetch'
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Send, Sparkles, Plus, Check, Loader2, Pencil, Trash2, ArrowLeft } from 'lucide-react'
@@ -86,7 +87,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
 
     let data: any = {}
     try {
-      const resp = await fetch('/api/ai/onboarding', {
+      const resp = await authFetch('/api/ai/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

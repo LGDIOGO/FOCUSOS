@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { adminDb } from '@/lib/firebase/admin'
+import { isIsoDate } from '@/lib/server/validate'
 import { authWithApiKey, unauthorizedResponse, errorResponse } from '../_auth'
 
 export async function GET(req: NextRequest) {
@@ -9,15 +10,18 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const from = searchParams.get('from')
   const to = searchParams.get('to')
+  if (from != null && !isIsoDate(from)) return errorResponse('from must be YYYY-MM-DD', 400)
+  if (to != null && !isIsoDate(to)) return errorResponse('to must be YYYY-MM-DD', 400)
 
   try {
     let q = adminDb.collection('events').where('user_id', '==', auth.userId) as any
 
-    if (from) q = q.where('date', '>=', from)
-    if (to) q = q.where('date', '<=', to)
 
-    const snap = await q.orderBy('date').orderBy('time').get()
+    // Só where de user_id (sem índice composto); filtra from/to e ordena aqui.
+    const snap = await q.get()
     const events = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }))
+      .filter((e: any) => (!from || String(e.date) >= from) && (!to || String(e.date) <= to))
+      .sort((a: any, b: any) => String(a.date).localeCompare(String(b.date)) || String(a.time ?? '').localeCompare(String(b.time ?? '')))
     return Response.json({ events, count: events.length })
   } catch (e) {
     return errorResponse('Failed to fetch events')

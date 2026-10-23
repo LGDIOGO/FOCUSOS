@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateText } from '@/lib/ai/models'
+import { guardAiRequest } from '@/lib/server/guard'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -55,8 +56,10 @@ REGRAS CRÍTICAS:
 }
 
 export async function POST(req: NextRequest) {
+  const guard = await guardAiRequest(req, 'parse-entry')
+  if (!guard.ok) return guard.response
   try {
-    const { text, type, categories, currentDetails } = await req.json()
+    const { text, type, categories, currentDetails } = guard.body
 
     const today = currentDetails?.today || format(new Date(), 'yyyy-MM-dd')
     const dayName = currentDetails?.dayName || format(new Date(), 'EEEE', { locale: ptBR })
@@ -80,11 +83,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(extractJson(raw))
     } catch (aiErr: any) {
       console.error('Parse-entry AI failure:', aiErr.message)
-      return NextResponse.json({ error: 'Falha nos provedores de IA', details: aiErr.message }, { status: 503 })
+      return NextResponse.json({ error: 'Falha nos provedores de IA' }, { status: 503 })
     }
   } catch (err: unknown) {
     const error = err as Error
     console.error('Parse Error:', error.message)
-    return NextResponse.json({ error: error.message || 'Falha no parse inteligente' }, { status: 500 })
+    return NextResponse.json({ error: 'Falha no parse inteligente' }, { status: 500 })
   }
 }

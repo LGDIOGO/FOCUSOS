@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { adminDb } from '@/lib/firebase/admin'
+import { parseGoalNumbers } from '@/lib/server/validate'
 import { authWithApiKey, unauthorizedResponse, errorResponse } from '../_auth'
 
 export async function GET(req: NextRequest) {
@@ -33,15 +34,16 @@ export async function POST(req: NextRequest) {
     const { title, target_value, current_value = 0, unit, start_date, end_date, emoji, color } = body
 
     if (!title) return errorResponse('title is required', 400)
-    if (target_value == null) return errorResponse('target_value is required', 400)
+    const nums = parseGoalNumbers(target_value, current_value)
+    if (!nums.ok) return errorResponse(nums.error, 400)
 
     const today = new Date().toISOString().slice(0, 10)
     const docRef = await adminDb.collection('goals').add({
       user_id: auth.userId,
       title: String(title).slice(0, 120),
-      target_value: Number(target_value),
-      current_value: Number(current_value),
-      progress_pct: target_value > 0 ? Math.round((Number(current_value) / Number(target_value)) * 100) : 0,
+      target_value: nums.target,
+      current_value: nums.current,
+      progress_pct: nums.progress_pct,
       unit: unit ?? null,
       start_date: start_date ?? today,
       end_date: end_date ?? null,
