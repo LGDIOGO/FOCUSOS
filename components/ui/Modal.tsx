@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useId, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { fitToVisualViewport } from '@/lib/utils/visualViewport'
 import { cn } from '@/lib/utils/cn'
@@ -54,6 +54,7 @@ export function Modal({
   maxWidthClass = 'sm:max-w-lg', bodyClassName, subtitle, icon, forceDark,
 }: ModalProps) {
   const uid = useId()
+  const reduceMotion = useReducedMotion()
   const titleId = `modal-title-${uid}`
   const overlayRef = useRef<HTMLDivElement>(null)
   const sheetRef = useRef<HTMLElement>(null)
@@ -148,10 +149,10 @@ export function Modal({
       />
 
       <motion.div
-        initial={{ y: '100%', opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: '100%', opacity: 0 }}
-        transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+        initial={reduceMotion ? { opacity: 0 } : { y: '100%', opacity: 0 }}
+        animate={reduceMotion ? { opacity: 1 } : { y: 0, opacity: 1 }}
+        exit={reduceMotion ? { opacity: 0 } : { y: '100%', opacity: 0 }}
+        transition={reduceMotion ? { duration: 0.15 } : { type: 'spring', damping: 32, stiffness: 320 }}
         className={cn(
           'relative w-full flex flex-col max-h-[92dvh] bg-[var(--bg-primary)] border border-[var(--border-subtle)]',
           'rounded-t-[28px] sm:rounded-[32px] shadow-2xl overflow-hidden',
@@ -169,7 +170,7 @@ export function Modal({
         >
           {/* Cabeçalho fixo */}
           <div className="shrink-0 px-5 pt-3 sm:pt-5 sm:px-7">
-            <div className="w-10 h-1 bg-[var(--border-subtle)] rounded-full mx-auto mb-3 sm:hidden" />
+            <div className="w-10 h-1 bg-[var(--border-subtle)] rounded-full mx-auto mb-3 sm:hidden [@media(max-height:500px)]:hidden" />
             <div className="flex justify-between items-center gap-3 pb-3">
               {icon}
               <div className="min-w-0 flex-1">
@@ -177,7 +178,7 @@ export function Modal({
                 id={titleId}
                 ref={titleRef}
                 tabIndex={-1}
-                className="text-2xl sm:text-3xl font-black tracking-tightest text-[var(--text-primary)] outline-none"
+                className="text-2xl max-[500px]:text-lg sm:text-3xl font-black tracking-tightest text-[var(--text-primary)] outline-none"
               >
                 {title}
               </h2>
@@ -189,7 +190,7 @@ export function Modal({
                 aria-label="Fechar"
                 className={cn('shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-[var(--bg-overlay)] rounded-2xl transition-all', FOCUS_RING)}
               >
-                <X size={20} className="text-[var(--text-muted)]" />
+                <X size={20} className="text-[var(--text-secondary)]" />
               </button>
             </div>
           </div>
@@ -204,7 +205,7 @@ export function Modal({
 
           {/* Rodapé fixo (Salvar sempre visível) */}
           {footer && (
-            <div className="shrink-0 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)] px-5 sm:px-7 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="shrink-0 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)] px-5 sm:px-7 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] [@media(max-height:500px)]:py-2">
               {footer}
             </div>
           )}

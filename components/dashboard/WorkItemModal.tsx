@@ -1,5 +1,6 @@
 'use client'
 
+import { isFinePointer } from '@/lib/utils/pointer'
 import { useState, useEffect } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { X, Trash2, Loader2, Settings2 } from 'lucide-react'
@@ -199,16 +200,18 @@ export function WorkItemModal({
                   </p>
                   <div className="flex gap-2">
                     <button
+                      type="button"
                       onClick={() => setConfirmDelete(false)}
                       disabled={busy}
-                      className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 hover:text-white hover:border-white/25 text-[10px] font-black uppercase tracking-wider transition-all"
+                      className="flex-1 min-h-[44px] py-2.5 rounded-xl border border-white/10 text-white/60 hover:text-white hover:border-white/25 text-[10px] font-black uppercase tracking-wider transition-all"
                     >
                       Cancelar
                     </button>
                     <button
+                      type="button"
                       onClick={handleDelete}
                       disabled={busy}
-                      className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-[10px] font-black uppercase tracking-wider hover:bg-red-400 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="flex-1 min-h-[44px] py-2.5 rounded-xl bg-red-500 text-white text-[10px] font-black uppercase tracking-wider hover:bg-red-400 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {busy && <Loader2 size={12} className="animate-spin" />}
                       Excluir tudo
@@ -216,13 +219,14 @@ export function WorkItemModal({
                   </div>
                 </div>
               ) : (
-                <div className="flex gap-2 pt-1">
+                <div className="flex gap-4 pt-1">
                   {itemToEdit && (
                     <button
                       onClick={handleDelete}
                       disabled={busy}
+                      type="button"
                       aria-label="Excluir item"
-                      className="px-4 py-3 min-h-[44px] min-w-[44px] rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
+                      className="px-4 py-3 min-h-[44px] min-w-[48px] rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -308,7 +312,7 @@ export function WorkItemModal({
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   placeholder="Ex: Reunião de alinhamento"
-                  autoFocus
+                  autoFocus={isFinePointer()}
                   className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-white font-bold text-sm focus:outline-none focus:border-white/30 transition-all placeholder:text-white/20"
                 />
               </div>

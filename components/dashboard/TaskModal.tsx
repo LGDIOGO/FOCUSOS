@@ -132,7 +132,7 @@ export function TaskModal({ isOpen, onClose, taskToEdit }: { isOpen: boolean, on
             <button 
               type="submit" 
               disabled={addTask.isPending || updateTask.isPending} 
-              className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black py-5 rounded-[28px] hover:opacity-90 transition-all active:scale-95 text-lg shadow-xl"
+              className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black min-h-[52px] py-3 rounded-[28px] hover:opacity-90 transition-all active:scale-95 text-lg shadow-xl"
             >
               {addTask.isPending || updateTask.isPending ? (
                 <div className="flex items-center justify-center gap-2">

@@ -78,16 +78,19 @@ export function CpfOnboarding() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-[11px] uppercase tracking-widest font-black text-white/30 px-1 ml-1 flex items-center gap-2">
+            <label htmlFor="cpf-input" className="text-[11px] uppercase tracking-widest font-black text-white/30 px-1 ml-1 flex items-center gap-2">
               <ShieldCheck size={12} />
               CPF (Apenas Um Por Conta)
             </label>
             <input 
+              id="cpf-input"
               type="text"
+              inputMode="numeric"
+              autoComplete="off"
               value={cpf}
               onChange={handleCpfChange}
               placeholder="000.000.000-00"
-              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-6 py-5 text-xl font-bold tracking-tight text-white focus:outline-none focus:border-white/20 transition-all placeholder:text-white/10"
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-6 py-4 text-xl font-bold tracking-tight text-white focus:outline-none focus:border-white/20 transition-all placeholder:text-white/10"
               required
             />
           </div>

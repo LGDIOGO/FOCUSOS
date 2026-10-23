@@ -1,6 +1,7 @@
 import { useModalLayer } from '@/components/ui/useModalLayer'
 'use client'
 
+import { isFinePointer } from '@/lib/utils/pointer'
 import { useState, useEffect, useRef } from 'react'
 import { fitToVisualViewport } from '@/lib/utils/visualViewport'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -367,7 +368,7 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
                       onChange={e => setSearch(e.target.value)}
                       placeholder="Buscar emoji... (ex: fogo, meta, treino)"
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-red-500/50 transition-all placeholder:text-white/20"
-                      autoFocus
+                      autoFocus={isFinePointer()}
                     />
                     {search && (
                       <button
