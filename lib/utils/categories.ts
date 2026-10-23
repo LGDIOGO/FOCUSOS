@@ -63,3 +63,56 @@ export function findDuplicateCategory<T extends CategoryLike>(
 }
 
 export const DUPLICATE_CATEGORY_MESSAGE = 'Já existe uma categoria com esse nome.'
+
+/**
+ * Ordenação manual. `order` é opcional: documentos antigos (e os recém-criados,
+ * que não gravam `order`) vão para o fim, por data de criação e, no empate,
+ * pela posição original (sort estável).
+ */
+export interface OrderableCategory extends CategoryLike {
+  order?: number
+  created_at?: string
+}
+
+const hasOrder = (c: { order?: number }) => typeof c.order === 'number' && isFinite(c.order)
+
+export function sortCategories<T extends OrderableCategory>(list: T[]): T[] {
+  return list
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => {
+      const ao = hasOrder(a.c), bo = hasOrder(b.c)
+      if (ao && bo && a.c.order !== b.c.order) return (a.c.order as number) - (b.c.order as number)
+      if (ao !== bo) return ao ? -1 : 1
+      const ac = a.c.created_at || '', bc = b.c.created_at || ''
+      if (ac !== bc) return ac < bc ? -1 : 1
+      return a.i - b.i
+    })
+    .map(x => x.c)
+}
+
+/**
+ * Sobe (-1) ou desce (+1) uma categoria na lista já exibida. Devolve só os
+ * `{id, order}` que mudaram, com a lista inteira renumerada 0..n-1 (assim docs
+ * sem `order` ganham posição e nada fica `undefined`). Vazio se não há movimento.
+ */
+export function moveCategory<T extends OrderableCategory>(
+  list: T[],
+  id: string,
+  direction: -1 | 1,
+): Array<{ id: string; order: number }> {
+  const sorted = sortCategories(list)
+  const from = sorted.findIndex(c => c.id === id)
+  const to = from + direction
+  if (from < 0 || to < 0 || to >= sorted.length) return []
+  const next = sorted.slice()
+  const tmp = next[from]; next[from] = next[to]; next[to] = tmp
+  const patches: Array<{ id: string; order: number }> = []
+  next.forEach((c, i) => { if (c.order !== i) patches.push({ id: c.id, order: i }) })
+  return patches
+}
+
+/** Seleção do modal depois de excluir uma categoria: solta se era a excluída. */
+export function selectionAfterDelete(value: string | null | undefined, deletedId: string): string | null {
+  if (!value) return null
+  return value === deletedId ? null : value
+}

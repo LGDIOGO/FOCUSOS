@@ -1,3 +1,4 @@
+import { CategoryPicker } from './CategoryPicker'
 import { Modal } from '@/components/ui/Modal'
 import { useModalLayer } from '@/components/ui/useModalLayer'
 import { authFetch } from '@/lib/utils/authFetch'
@@ -8,11 +9,9 @@ import { format, getDay, parseISO, getDate } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { EmojiPicker } from './EmojiPicker'
 import { CustomDateTimePicker } from './CustomDateTimePicker'
-import { useCategories, useAddCategory } from '@/lib/hooks/useCategories'
+import { useCategories } from '@/lib/hooks/useCategories'
 import { useAddEvent, useUpdateEvent } from '@/lib/hooks/useEvents'
 import { CalendarEvent, EventType, RecurrenceFreq, RecurrenceRule } from '@/types'
-import { CategoryManagerSheet } from './CategoryManagerSheet'
-import { findDuplicateCategory, DUPLICATE_CATEGORY_MESSAGE } from '@/lib/utils/categories'
 import { cn } from '@/lib/utils/cn'
 
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
@@ -28,12 +27,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
   const { data: categories } = useCategories('agenda')
   const addEvent = useAddEvent()
   const updateEvent = useUpdateEvent()
-  const addCategory = useAddCategory()
 
-  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false)
-  const [showManageCategories, setShowManageCategories] = useState(false)
-  const [categoryError, setCategoryError] = useState<string | null>(null)
-  const [newCategory, setNewCategory] = useState({ name: '', icon: '📅', color: '#e02020' })
   const [isParsing, setIsParsing] = useState(false)
   const [parseError, setParseError] = useState<string | null>(null)
 
@@ -201,7 +195,6 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
     })
   }
 
-  useModalLayer(showAddCategoryModal, () => { setShowAddCategoryModal(false); setCategoryError(null) })
 
   if (!isOpen) return null
 
@@ -220,42 +213,6 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
             >
               {addEvent.isPending || updateEvent.isPending ? 'Salvando...' : (eventToEdit ? 'Salvar Alterações' : 'Criar Compromisso')}
             </button>
-        </>
-      }
-      overlays={
-        <>
-        <AnimatePresence>
-          {showManageCategories && (
-            <CategoryManagerSheet
-              scope="agenda"
-              onClose={() => setShowManageCategories(false)}
-              onDeleted={id => setNewEvent(e => e.category_id === id ? { ...e, category_id: '' } : e)}
-            />
-          )}
-          {showAddCategoryModal && (
-            <div className="absolute inset-0 z-[1000] bg-[var(--bg-primary)]/60 backdrop-blur-md flex items-center justify-center p-4">
-               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-2xl relative">
-                 <div className="flex justify-between items-center mb-6">
-                   <h3 className="text-xl font-bold text-[var(--text-primary)]">Nova Categoria</h3>
-                   <button type="button" onClick={() => { setShowAddCategoryModal(false); setCategoryError(null) }}><X size={20} className="text-[var(--text-muted)]"/></button>
-                 </div>
-                 <div className="space-y-4 text-[var(--text-primary)]">
-                   <input value={newCategory.name} onChange={e => setNewCategory({ ...newCategory, name: e.target.value })} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-red-500/50" placeholder="Nome da categoria" />
-                   <div className="flex gap-4 items-center">
-                     <EmojiPicker value={newCategory.icon} onChange={icon => setNewCategory({ ...newCategory, icon })} />
-                     <div className="flex gap-2 flex-wrap flex-1">
-                       {['#FF453A', '#32D74B', '#FF9F0A', '#BF5AF2', '#8E8E93', '#FFFFFF'].map(color => (
-                         <button key={color} type="button" onClick={() => setNewCategory({ ...newCategory, color })} className={cn("w-6 h-6 rounded-full border-2 transition-all", newCategory.color === color ? "border-[var(--text-primary)] scale-110" : "border-transparent opacity-40")} style={{ backgroundColor: color }} />
-                       ))}
-                     </div>
-                   </div>
-                   {categoryError && <p className="text-xs font-bold text-red-500">{categoryError}</p>}
-                   <button type="button" onClick={() => { if(!newCategory.name.trim()) return; if (findDuplicateCategory(categories || [], newCategory.name, 'agenda')) { setCategoryError(DUPLICATE_CATEGORY_MESSAGE); return } setCategoryError(null); addCategory.mutate({...newCategory, type: 'agenda'}, { onSuccess: () => setShowAddCategoryModal(false) })}} disabled={addCategory.isPending || !newCategory.name} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl mt-4 hover:bg-red-700 transition-colors">Salvar Categoria</button>
-                 </div>
-               </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
         </>
       }
     >
@@ -301,61 +258,11 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
             )}
           </div>
 
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between px-1">
-              <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-[var(--text-muted)]">Categoria</label>
-              <div className="flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setShowManageCategories(true)}
-                  className="min-h-[44px] px-3 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                >
-                  Gerenciar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAddCategoryModal(true)}
-                  className="min-h-[44px] px-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors"
-                >
-                  + Nova
-                </button>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setNewEvent({ ...newEvent, category_id: '' })}
-                className={cn(
-                  "px-4 py-3 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all",
-                  !newEvent.category_id ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-sm" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"
-                )}
-              >
-                Nenhuma
-              </button>
-              {categories?.map(cat => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => {
-                    setNewEvent({ 
-                      ...newEvent, 
-                      category_id: cat.id,
-                      emoji: cat.icon || newEvent.emoji,
-                      color: cat.color || newEvent.color
-                    })
-                  }}
-                  className={cn(
-                    "px-4 py-3 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                    newEvent.category_id === cat.id ? "border-[var(--text-primary)] bg-[var(--bg-overlay)] text-[var(--text-primary)]" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"
-                  )}
-                  style={newEvent.category_id === cat.id ? { borderColor: cat.color } : {}}
-                >
-                  {cat.icon && <span>{cat.icon}</span>}
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-          </div>
+          <CategoryPicker
+            scope="agenda"
+            value={newEvent.category_id}
+            onChange={(id, cat) => setNewEvent(e => ({ ...e, category_id: id || '', ...(cat ? { emoji: cat.icon || e.emoji, color: cat.color || e.color } : {}) }))}
+          />
 
           <div className="space-y-1.5">
             <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Personalização</label>

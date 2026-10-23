@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { categoriesForScope, findDuplicateCategory } from '../categories'
+import { categoriesForScope, findDuplicateCategory, sortCategories, moveCategory, selectionAfterDelete } from '../categories'
 
 const cats = [
   { id: '1', name: 'Faculdade', type: 'agenda' },
@@ -56,5 +56,51 @@ describe('findDuplicateCategory', () => {
   })
   it('nome vazio não é duplicado', () => {
     expect(findDuplicateCategory(all, '   ', 'habits')).toBeUndefined()
+  })
+})
+
+describe('sortCategories / moveCategory', () => {
+  const mk = (id: string, order?: number, created_at?: string) => ({ id, name: id, order, created_at })
+
+  it('REGRESSÃO: docs sem order vão para o fim (sem data primeiro, depois por criação), sem quebrar', () => {
+    const list = [mk('a'), mk('b', 1), mk('c', 0), mk('d', undefined, '2026-01-01')]
+    expect(sortCategories(list).map(c => c.id)).toEqual(['c', 'b', 'a', 'd'])
+  })
+
+  it('não altera a lista original', () => {
+    const list = [mk('a', 1), mk('b', 0)]
+    sortCategories(list)
+    expect(list.map(c => c.id)).toEqual(['a', 'b'])
+  })
+
+  it('REGRESSÃO: mover com docs sem order renumera tudo e nunca devolve undefined', () => {
+    const list = [mk('a'), mk('b'), mk('c')]
+    const patches = moveCategory(list, 'c', -1)
+    expect(patches.every(p => typeof p.order === 'number')).toBe(true)
+    const applied = list.map(c => ({ ...c, order: patches.find(p => p.id === c.id)?.order ?? c.order }))
+    expect(sortCategories(applied).map(c => c.id)).toEqual(['a', 'c', 'b'])
+  })
+
+  it('só devolve o que mudou', () => {
+    const list = [mk('a', 0), mk('b', 1), mk('c', 2)]
+    expect(moveCategory(list, 'b', 1)).toEqual([{ id: 'c', order: 1 }, { id: 'b', order: 2 }])
+  })
+
+  it('primeiro não sobe, último não desce, id inexistente não faz nada', () => {
+    const list = [mk('a', 0), mk('b', 1)]
+    expect(moveCategory(list, 'a', -1)).toEqual([])
+    expect(moveCategory(list, 'b', 1)).toEqual([])
+    expect(moveCategory(list, 'x', 1)).toEqual([])
+  })
+})
+
+describe('selectionAfterDelete', () => {
+  it('REGRESSÃO: excluir a categoria selecionada limpa a seleção', () => {
+    expect(selectionAfterDelete('x', 'x')).toBeNull()
+  })
+  it('excluir outra mantém a seleção', () => {
+    expect(selectionAfterDelete('x', 'y')).toBe('x')
+    expect(selectionAfterDelete('', 'y')).toBeNull()
+    expect(selectionAfterDelete(null, 'y')).toBeNull()
   })
 })
