@@ -1,3 +1,4 @@
+import { Modal } from '@/components/ui/Modal'
 import { authFetch } from '@/lib/utils/authFetch'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -121,31 +122,29 @@ export function TaskModal({ isOpen, onClose, taskToEdit }: { isOpen: boolean, on
   ]
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-end pb-safe md:pb-0 md:items-center md:justify-center md:p-6">
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="fixed inset-0 bg-black/60 backdrop-blur-xl"
-      />
-
-      <motion.div
-        initial={{ y: '100%', opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: '100%', opacity: 0 }}
-        transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-        className="relative w-full md:max-w-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-t-[32px] md:rounded-[48px] p-5 md:p-8 overflow-y-auto max-h-[85svh] md:max-h-[90vh] shadow-2xl z-[10001]"
-      >
-        {/* Drag handle — mobile only */}
-        <div className="w-10 h-1 bg-[var(--border-subtle)] rounded-full mx-auto mb-4 md:hidden" />
-
-        <div className="flex justify-between items-center mb-6 md:mb-8">
-          <h2 className="text-2xl md:text-4xl font-black tracking-tightest text-[var(--text-primary)]">{taskToEdit ? 'Editar Rascunho' : 'Novo Rascunho'}</h2>
-          <button onClick={onClose} className="p-2.5 md:p-3 hover:bg-[var(--bg-overlay)] rounded-2xl transition-all">
-            <X size={20} className="text-[var(--text-muted)]" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSave} className="space-y-6">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={taskToEdit ? 'Editar Rascunho' : 'Novo Rascunho'}
+      onSubmit={handleSave}
+      footer={
+        <>
+            <button 
+              type="submit" 
+              disabled={addTask.isPending || updateTask.isPending} 
+              className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black py-5 rounded-[28px] hover:opacity-90 transition-all active:scale-95 text-lg shadow-xl"
+            >
+              {addTask.isPending || updateTask.isPending ? (
+                <div className="flex items-center justify-center gap-2">
+                  <RefreshCcw size={20} className="animate-spin" />
+                  Salvando...
+                </div>
+              ) : (taskToEdit ? 'Salvar Alterações' : 'Criar Rascunho')}
+            </button>
+        </>
+      }
+    >
+      <div className="space-y-6 pt-1">
           {/* Título & Magic Parse */}
           <div className="space-y-2">
             <label className="text-[13px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Título da Tarefa</label>
@@ -296,22 +295,7 @@ export function TaskModal({ isOpen, onClose, taskToEdit }: { isOpen: boolean, on
             />
           </div>
 
-          <div className="pt-4">
-            <button 
-              type="submit" 
-              disabled={addTask.isPending || updateTask.isPending} 
-              className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black py-5 rounded-[28px] hover:opacity-90 transition-all active:scale-95 text-lg shadow-xl"
-            >
-              {addTask.isPending || updateTask.isPending ? (
-                <div className="flex items-center justify-center gap-2">
-                  <RefreshCcw size={20} className="animate-spin" />
-                  Salvando...
-                </div>
-              ) : (taskToEdit ? 'Salvar Alterações' : 'Criar Rascunho')}
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </div>
+      </div>
+    </Modal>
   )
 }

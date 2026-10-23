@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Modal } from '@/components/ui/Modal'
 import { X, Trash2, Loader2, Settings2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
@@ -179,31 +179,68 @@ export function WorkItemModal({
   const currentFreq = recurrence?.frequency || 'none'
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-          />
-          <motion.div
-            initial={{ y: 40, opacity: 0, scale: 0.98 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 40, opacity: 0, scale: 0.98 }}
-            transition={{ type: 'spring', damping: 30, stiffness: 320 }}
-            className="relative w-full sm:max-w-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-t-[28px] sm:rounded-[28px] p-6 max-h-[92dvh] overflow-y-auto shadow-2xl"
-          >
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-base font-black text-white">
-                {itemToEdit ? 'Editar item' : 'Novo item de trabalho'}
-              </h2>
-              <button onClick={onClose} className="p-1.5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-all">
-                <X size={18} />
-              </button>
-            </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={itemToEdit ? 'Editar item' : 'Novo item de trabalho'}
+      forceDark
+      footer={
+        <div className="space-y-3">
+              {error && <p className="text-red-400 text-xs font-bold">{error}</p>}
 
-            <div className="space-y-5">
+              {confirmDelete ? (
+                <div className="rounded-2xl border border-red-500/30 bg-red-500/[0.07] p-4">
+                  <p className="text-xs font-bold text-white mb-1">Excluir &quot;{itemToEdit?.title}&quot;?</p>
+                  <p className="text-[11px] text-white/50 mb-3">
+                    {itemToEdit?.recurrence
+                      ? 'Some a série inteira, com todas as ocorrências, registros e anotações.'
+                      : 'Some o item com todos os registros e anotações.'}
+                    {' '}Não dá para desfazer.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setConfirmDelete(false)}
+                      disabled={busy}
+                      className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 hover:text-white hover:border-white/25 text-[10px] font-black uppercase tracking-wider transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={busy}
+                      className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-[10px] font-black uppercase tracking-wider hover:bg-red-400 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {busy && <Loader2 size={12} className="animate-spin" />}
+                      Excluir tudo
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2 pt-1">
+                  {itemToEdit && (
+                    <button
+                      onClick={handleDelete}
+                      disabled={busy}
+                      aria-label="Excluir item"
+                      className="px-4 py-3 min-h-[44px] min-w-[44px] rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                  <button
+                    onClick={handleSave}
+                    disabled={busy}
+                    className="flex-1 py-3 min-h-[44px] rounded-2xl bg-white text-black font-black text-xs uppercase tracking-wider hover:bg-neutral-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {busy && <Loader2 size={14} className="animate-spin" />}
+                    {itemToEdit ? 'Salvar alterações' : 'Adicionar'}
+                  </button>
+                </div>
+              )}
+        </div>
+      }
+    >
+      <div className="space-y-5 pt-1">
               {/* Tipo e Categoria — listas do próprio usuário */}
               {([
                 { scope: 'work_type' as const, titulo: 'Tipo', valor: kind, set: setKind, vazio: false },
@@ -417,62 +454,7 @@ export function WorkItemModal({
                   <WorkNotes itemId={itemToEdit.id} occurrenceDate={defaultDate} />
                 </div>
               )}
-
-              {error && <p className="text-red-400 text-xs font-bold">{error}</p>}
-
-              {confirmDelete ? (
-                <div className="rounded-2xl border border-red-500/30 bg-red-500/[0.07] p-4">
-                  <p className="text-xs font-bold text-white mb-1">Excluir &quot;{itemToEdit?.title}&quot;?</p>
-                  <p className="text-[11px] text-white/50 mb-3">
-                    {itemToEdit?.recurrence
-                      ? 'Some a série inteira, com todas as ocorrências, registros e anotações.'
-                      : 'Some o item com todos os registros e anotações.'}
-                    {' '}Não dá para desfazer.
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setConfirmDelete(false)}
-                      disabled={busy}
-                      className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 hover:text-white hover:border-white/25 text-[10px] font-black uppercase tracking-wider transition-all"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={handleDelete}
-                      disabled={busy}
-                      className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-[10px] font-black uppercase tracking-wider hover:bg-red-400 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {busy && <Loader2 size={12} className="animate-spin" />}
-                      Excluir tudo
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex gap-2 pt-1">
-                  {itemToEdit && (
-                    <button
-                      onClick={handleDelete}
-                      disabled={busy}
-                      aria-label="Excluir item"
-                      className="px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                  <button
-                    onClick={handleSave}
-                    disabled={busy}
-                    className="flex-1 py-3 rounded-2xl bg-white text-black font-black text-xs uppercase tracking-wider hover:bg-neutral-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {busy && <Loader2 size={14} className="animate-spin" />}
-                    {itemToEdit ? 'Salvar alterações' : 'Adicionar'}
-                  </button>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+      </div>
+    </Modal>
   )
 }

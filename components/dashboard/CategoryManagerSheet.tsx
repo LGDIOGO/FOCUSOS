@@ -69,7 +69,7 @@ export function CategoryManagerSheet({ scope, onClose, onDeleted }: {
   }
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Gerenciar categorias" className="absolute inset-0 z-[1000] rounded-[48px] bg-[var(--bg-primary)]/60 backdrop-blur-md flex items-center justify-center p-4">
+    <div role="dialog" aria-modal="true" aria-label="Gerenciar categorias" className="absolute inset-0 z-[1000] bg-[var(--bg-primary)]/60 backdrop-blur-md flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
         className="w-full max-w-sm max-h-full flex flex-col bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-5 shadow-2xl"

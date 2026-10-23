@@ -1,3 +1,4 @@
+import { Modal } from '@/components/ui/Modal'
 import { authFetch } from '@/lib/utils/authFetch'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -183,40 +184,74 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-end md:items-center md:justify-center md:p-6">
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="fixed inset-0 bg-black/60 backdrop-blur-xl"
-      />
-
-      <motion.div
-        initial={{ y: '100%', opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: '100%', opacity: 0 }}
-        transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-        className="relative w-full md:max-w-xl bg-[#0A0A0A] border border-white/10 rounded-t-[32px] md:rounded-[40px] shadow-2xl overflow-visible flex flex-col max-h-[92dvh] md:max-h-[95vh] z-[10001]"
-      >
-        {/* Drag handle — mobile only */}
-        <div className="w-10 h-1 bg-white/10 rounded-full mx-auto mt-3 mb-1 md:hidden" />
-        <div className="p-5 md:p-6 pb-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-              <Target className="text-white w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-black tracking-tightest leading-none">
-                {editingGoal ? 'Editar Meta' : 'Nova Meta'}
-              </h2>
-              <p className="text-[10px] text-white/40 uppercase tracking-widest font-black mt-1">Planejamento Estratégico</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-all">
-            <X className="text-white/40" size={20} />
-          </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={editingGoal ? 'Editar Meta' : 'Nova Meta'}
+      onSubmit={handleSubmit}
+      maxWidthClass="sm:max-w-xl"
+      forceDark
+      bodyClassName="custom-scrollbar"
+      subtitle="Planejamento Estratégico"
+      icon={
+        <div className="shrink-0 w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
+          <Target className="text-white w-5 h-5" />
         </div>
-
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 pt-0 space-y-4 custom-scrollbar">
+      }
+      footer={
+        <>
+            <button 
+              type="submit"
+              disabled={addGoal.isPending || updateGoal.isPending}
+              className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black py-4 rounded-[20px] hover:opacity-90 transition-all active:scale-95 text-lg flex items-center justify-center gap-2 group"
+            >
+              {addGoal.isPending || updateGoal.isPending ? 'Salvando...' : (
+                <>
+                  {editingGoal ? 'Salvar Alterações' : 'Criar Meta Estratégica'}
+                  <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </button>
+        </>
+      }
+      overlays={
+        <>
+        <AnimatePresence>
+          {showManageCategories && (
+            <CategoryManagerSheet
+              scope="goals"
+              onClose={() => setShowManageCategories(false)}
+              onDeleted={id => setFormData(f => f.category_id === id ? { ...f, category_id: '' } : f)}
+            />
+          )}
+          {showAddCategoryModal && (
+            <div className="absolute inset-0 z-[1000] bg-[var(--bg-primary)]/60 backdrop-blur-md flex items-center justify-center p-4">
+               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-2xl relative">
+                 <div className="flex justify-between items-center mb-6">
+                   <h3 className="text-xl font-bold text-[var(--text-primary)]">Nova Categoria</h3>
+                   <button type="button" onClick={() => { setShowAddCategoryModal(false); setCategoryError(null) }}><X size={20} className="text-[var(--text-muted)]"/></button>
+                 </div>
+                 <div className="space-y-4">
+                   <input value={newCategory.name} onChange={e => setNewCategory({ ...newCategory, name: e.target.value })} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-red-500/50" placeholder="Nome da categoria" />
+                   <div className="flex gap-4 items-center">
+                     <EmojiPicker value={newCategory.icon} onChange={icon => setNewCategory({ ...newCategory, icon })} />
+                     <div className="flex gap-2 flex-wrap flex-1">
+                       {['#FF453A', '#32D74B', '#FF9F0A', '#BF5AF2', '#0A84FF', '#8E8E93'].map(color => (
+                         <button key={color} type="button" onClick={() => setNewCategory({ ...newCategory, color })} className={cn("w-6 h-6 rounded-full border-2 transition-all", newCategory.color === color ? "border-[var(--text-primary)] scale-110" : "border-transparent opacity-40")} style={{ backgroundColor: color }} />
+                       ))}
+                     </div>
+                   </div>
+                   {categoryError && <p className="text-xs font-bold text-red-500">{categoryError}</p>}
+                   <button type="button" onClick={() => { if(!newCategory.name.trim()) return; if (findDuplicateCategory(categories || [], newCategory.name, 'goals')) { setCategoryError(DUPLICATE_CATEGORY_MESSAGE); return } setCategoryError(null); addCategory.mutate({...newCategory, type: 'goals'}, { onSuccess: () => setShowAddCategoryModal(false) })}} disabled={addCategory.isPending || !newCategory.name} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl mt-4 hover:bg-red-700 transition-colors disabled:opacity-50">Salvar Categoria</button>
+                 </div>
+               </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+        </>
+      }
+    >
+      <div className="space-y-4 pt-1">
           <div className="space-y-1 relative">
             <label className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Título do Objetivo</label>
             <div className="relative group/input">
@@ -501,55 +536,7 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
             </div>
           </div>
 
-          <div className="pt-2 pb-4">
-            <button 
-              type="submit"
-              disabled={addGoal.isPending || updateGoal.isPending}
-              className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black py-4 rounded-[20px] hover:opacity-90 transition-all active:scale-95 text-lg flex items-center justify-center gap-2 group"
-            >
-              {addGoal.isPending || updateGoal.isPending ? 'Salvando...' : (
-                <>
-                  {editingGoal ? 'Salvar Alterações' : 'Criar Meta Estratégica'}
-                  <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-
-        <AnimatePresence>
-          {showManageCategories && (
-            <CategoryManagerSheet
-              scope="goals"
-              onClose={() => setShowManageCategories(false)}
-              onDeleted={id => setFormData(f => f.category_id === id ? { ...f, category_id: '' } : f)}
-            />
-          )}
-          {showAddCategoryModal && (
-            <div className="absolute inset-0 z-[1000] rounded-[48px] bg-[var(--bg-primary)]/60 backdrop-blur-md flex items-center justify-center p-4">
-               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-2xl relative">
-                 <div className="flex justify-between items-center mb-6">
-                   <h3 className="text-xl font-bold text-[var(--text-primary)]">Nova Categoria</h3>
-                   <button type="button" onClick={() => { setShowAddCategoryModal(false); setCategoryError(null) }}><X size={20} className="text-[var(--text-muted)]"/></button>
-                 </div>
-                 <div className="space-y-4">
-                   <input value={newCategory.name} onChange={e => setNewCategory({ ...newCategory, name: e.target.value })} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-red-500/50" placeholder="Nome da categoria" />
-                   <div className="flex gap-4 items-center">
-                     <EmojiPicker value={newCategory.icon} onChange={icon => setNewCategory({ ...newCategory, icon })} />
-                     <div className="flex gap-2 flex-wrap flex-1">
-                       {['#FF453A', '#32D74B', '#FF9F0A', '#BF5AF2', '#0A84FF', '#8E8E93'].map(color => (
-                         <button key={color} type="button" onClick={() => setNewCategory({ ...newCategory, color })} className={cn("w-6 h-6 rounded-full border-2 transition-all", newCategory.color === color ? "border-[var(--text-primary)] scale-110" : "border-transparent opacity-40")} style={{ backgroundColor: color }} />
-                       ))}
-                     </div>
-                   </div>
-                   {categoryError && <p className="text-xs font-bold text-red-500">{categoryError}</p>}
-                   <button type="button" onClick={() => { if(!newCategory.name.trim()) return; if (findDuplicateCategory(categories || [], newCategory.name, 'goals')) { setCategoryError(DUPLICATE_CATEGORY_MESSAGE); return } setCategoryError(null); addCategory.mutate({...newCategory, type: 'goals'}, { onSuccess: () => setShowAddCategoryModal(false) })}} disabled={addCategory.isPending || !newCategory.name} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl mt-4 hover:bg-red-700 transition-colors disabled:opacity-50">Salvar Categoria</button>
-                 </div>
-               </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    </div>
+      </div>
+    </Modal>
   )
 }

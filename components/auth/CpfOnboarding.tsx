@@ -60,11 +60,11 @@ export function CpfOnboarding() {
   }
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/90 backdrop-blur-xl p-6">
+    <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-start bg-black/90 backdrop-blur-xl px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain">
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md bg-[#161616] border border-white/10 rounded-[32px] p-10 space-y-8 shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+        className="w-full max-w-md sm:my-auto bg-[#161616] border border-white/10 rounded-[32px] p-6 sm:p-10 space-y-6 sm:space-y-8 shadow-[0_0_50px_rgba(0,0,0,0.5)]"
       >
         <div className="text-center space-y-4">
           <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center mx-auto border border-white/10 mb-2">
