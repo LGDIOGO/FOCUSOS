@@ -32,3 +32,4 @@ Pegadinhas que já custaram tempo. Antes de investigar algo estranho, procure aq
 25. **Coleção nova com `user_id` entra em `USER_COLLECTIONS`** (`lib/server/userData.ts`), senão exportação/exclusão de conta (LGPD) deixa dado órfão. Um teste varre `lib/hooks` e `firestore.rules` e falha se faltar.
 
 26. **`/v1/performance`: `days` inválido ou <= 0 vira o padrão (7); `from`>`to` e intervalo > 366 dias dão 400** (`resolveRange` em `lib/server/validate.ts`). Compatível com o MCP.
+27. **`request.resource` não existe em read/delete nas regras do Firestore.** Acessá-lo (mesmo em `request.resource == null`) dá erro = negado, e derrubou todas as leituras em produção em 2026-10-23. Use `request.resource` só em `create`/`update`, e `get()` ou `'x' in map` quando a chave for opcional. `firebase deploy --dry-run` só compila: não detecta isso. Sem emulador (Java 8 aqui), teste regras à mão no dev antes de publicar em prod.

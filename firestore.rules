@@ -6,11 +6,15 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Dono do documento. Em update, user_id não pode mudar (senão o dono
-    // reatribuiria o doc a outro uid). Em read/delete request.resource é null.
     function isOwnerByField() {
-      return isAuth() && request.auth.uid == resource.data.user_id
-        && (request.resource == null || request.resource.data.user_id == resource.data.user_id);
+      return isAuth() && request.auth.uid == resource.data.user_id;
+    }
+
+    // Só para `update` (única operação em que request.resource existe; em
+    // read/delete acessá-lo dá erro = negado). Impede o dono de reatribuir o
+    // documento a outro uid.
+    function userIdUnchanged() {
+      return request.resource.data.user_id == resource.data.user_id;
     }
 
     function isOwnerByFieldOnCreate() {
@@ -55,115 +59,136 @@ service cloud.firestore {
     }
 
     match /habits/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     // habit_logs use getDoc(id) on potentially non-existing docs
     match /habit_logs/{docId} {
       allow read: if canReadLog();
-      allow update, delete: if isOwnerByField();
+      allow delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /events/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     // event_logs use getDoc(id) on potentially non-existing docs
     match /event_logs/{docId} {
       allow read: if canReadLog();
-      allow update, delete: if isOwnerByField();
+      allow delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /tasks/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /work_items/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     // work_logs use getDoc(id) on potentially non-existing docs
     match /work_logs/{docId} {
       allow read: if canReadLog();
-      allow update, delete: if isOwnerByField();
+      allow delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /work_notes/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /goals/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /notifications/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /categories/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /finance_entries/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /finance_transactions/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /finance_recurring_costs/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /finance_potes/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /finance_roadmap/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /books/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /study_entries/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     // retirement_tracking uses getDoc by known ID ({uid}_{yyyyMM}) — doc may not exist yet
     match /retirement_tracking/{docId} {
       allow read: if canReadLog();
-      allow update, delete: if isOwnerByField();
+      allow delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /reserves/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
 
     match /reserve_transactions/{docId} {
-      allow read, update, delete: if isOwnerByField();
+      allow read, delete: if isOwnerByField();
+      allow update: if isOwnerByField() && userIdUnchanged();
       allow create: if isOwnerByFieldOnCreate();
     }
   }

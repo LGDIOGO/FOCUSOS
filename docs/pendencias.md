@@ -10,8 +10,8 @@
    - Sem `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, a exclusão de conta apaga a conta sem os arquivos do Storage (só aviso no log). Ver backlog item 15.
 4. Diogo organizar rótulos do Trabalho (engrenagem → "Cadastrar os N em uso").
 8. **Segurança (2026-10-21), ações do Diogo antes/depois do deploy:**
-   - Publicar `firestore.rules` (dev primeiro, depois prod): `npx firebase-tools deploy --only firestore:rules --project dev`. Testar à mão com a conta de teste: login, criar hábito, editar perfil. Tentar gravar `is_paid: true` pelo console do navegador tem de falhar.
-   - Vercel (Production e Preview): `MP_WEBHOOK_SECRET` (assinatura do webhook, no painel do Mercado Pago), `PLAN_PRICE_MENSAL`, `PLAN_PRICE_TRIMESTRAL`, `PLAN_PRICE_SEMESTRAL`, `PLAN_PRICE_ANUAL` (em reais, ex.: `19.90`). Sem eles checkout e webhook recusam (de propósito).
+   - `firestore.rules` **publicadas em produção em 2026-10-23** (regras travam `is_paid`/`subscription_*`/`trial_started_at` e `user_id`). Ainda por verificar à mão: gravar `is_paid: true` pelo console do navegador tem de falhar.
+   - Vercel: Diogo disse ter criado `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `WEBHOOK_URL`, `NEXT_PUBLIC_APP_URL` e `PLAN_PRICE_*` (não verificável por Claude). Falta: webhook salvo no painel do Mercado Pago (Modo de produção, evento Pagamentos) e **não existe tela de compra** no app (o checkout não tem chamador). Credenciais do Mercado Pago apareceram em prints na conversa de 2026-10-23: renovar Access Token e Client Secret.
    - Rotacionar o **refresh token OAuth** em `.env.local` (`FIREBASE_OAUTH_REFRESH_TOKEN`) e a chave de serviço antiga; a rota `fix-rules` que o usava foi removida. O `client_secret` que estava no código é o público do Firebase CLI (não é seu), mas continua no histórico git.
    - Conferir o console do preview: violações da CSP (modo Report-Only) antes de promovê-la.
 9. **LGPD (fatia 8a), antes de ir para produção [BLOQUEADO: Diogo]:**
