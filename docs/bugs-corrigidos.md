@@ -65,3 +65,4 @@ Legenda: ✅ coberto por teste · ⚠️ corrigido mas **sem teste** (dívida: a
 | Rotas de IA abertas (custo + dados) | Sem auth nem limite | ✅ `lib/server/__tests__/guard.test.ts` (401/413/429/400) |
 | Usuário se dava `is_paid` / reiniciava o teste grátis; reatribuía doc a outro uid | `firestore.rules`: `write` livre em `profiles`; `update` sem travar `user_id` | ⚠️ regras compilam (`--dry-run`), **sem teste automatizado** (não há emulador); verificar à mão com a conta de teste |
 | Rota `admin/fix-rules` pública sobrescrevia as regras | Rota de manutenção sem auth | removida (e o `FirestoreDiagnostic` parou de chamá-la) |
+| Leituras do Firestore negadas em produção (`permission-denied` em tudo) | Regra `isOwnerByField` usava `request.resource` em read/delete, onde ele não existe | ⚠️ sem teste (sem emulador); corrigido separando `update` (`userIdUnchanged`) das demais operações; armadilha 27 |
