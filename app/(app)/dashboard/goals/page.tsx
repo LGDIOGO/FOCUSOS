@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Target, Plus, Trash2, Calendar, TrendingUp, Check, ChevronRight, Sparkles, Zap, History } from 'lucide-react'
 import { useGoals, useDeleteGoal } from '@/lib/hooks/useGoals'
@@ -234,6 +234,10 @@ export default function GoalsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [confirmBulk, setConfirmBulk] = useState(false)
+  // Fecha a confirmação ao sair do modo seleção ou esvaziar a seleção.
+  useEffect(() => {
+    if (!isSelectionMode || selectedIds.length === 0) setConfirmBulk(false)
+  }, [isSelectionMode, selectedIds.length])
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
 
   // Filtros Globais do Histórico

@@ -1099,8 +1099,8 @@ function ReserveCard({ reserve }: { reserve: Reserve }) {
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-sm font-bold text-white truncate">{reserve.name}</p>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <p className="text-sm font-bold text-white truncate min-w-[8rem] flex-1">{reserve.name}</p>
               <div className="flex items-center gap-1 shrink-0">
                 <button onClick={() => setEditing(true)} className="p-1 rounded-lg text-white/25 hover:text-white hover:bg-white/[0.06] transition-all"><Pencil size={11} /></button>
                 <DeleteButton label={`Excluir reserva ${reserve.name}`} iconSize={11} onConfirm={confirmDelete} className="rounded-lg text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-all" />

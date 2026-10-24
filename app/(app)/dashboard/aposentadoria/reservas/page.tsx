@@ -357,7 +357,9 @@ function ReserveCard({ reserve }: { reserve: Reserve }) {
                 >
                   <Pencil size={12} />
                 </button>
-                {!deleting && (
+                {deleting ? (
+                  <span role="status" className="text-xs text-[var(--text-muted)] px-2">Excluindo…</span>
+                ) : (
                   <DeleteButton
                     label={`Excluir reserva ${reserve.name}`}
                     iconSize={12}

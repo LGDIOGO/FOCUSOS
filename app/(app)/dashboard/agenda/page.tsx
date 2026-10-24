@@ -204,6 +204,10 @@ function AgendaPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [confirmBulk, setConfirmBulk] = useState(false)
+  // Fecha a confirmação ao sair do modo seleção ou esvaziar a seleção.
+  useEffect(() => {
+    if (!isSelectionMode || selectedIds.length === 0) setConfirmBulk(false)
+  }, [isSelectionMode, selectedIds.length])
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const [historyStartDate, setHistoryStartDate] = useState<string>('')
   const [historyEndDate, setHistoryEndDate] = useState<string>('')
