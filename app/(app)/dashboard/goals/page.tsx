@@ -8,6 +8,7 @@ import { useCategories } from '@/lib/hooks/useCategories'
 import { Goal } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import { GoalModal } from '@/components/dashboard/GoalModal'
+import { DeleteButton } from '@/components/ui/DeleteButton'
 import { differenceInDays, parseISO, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useLongPress } from '@/lib/hooks/useLongPress'
@@ -144,18 +145,11 @@ function GoalGridItem({
             </div>
           </div>
           {!isSelectionMode && (
-            <button 
-              onClick={(e) => onDelete(goal.id, e)}
-              onMouseDown={(e) => e.stopPropagation()}
-              onMouseUp={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
-              onTouchEnd={(e) => e.stopPropagation()}
-              aria-label="Excluir meta"
-              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--text-muted)] hover:text-red-400 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-primary)] shrink-0"
-            >
-              <Trash2 size={16} />
-            </button>
+            <DeleteButton
+              label="Excluir meta"
+              onConfirm={(e) => onDelete(goal.id, e)}
+              className="text-[var(--text-muted)] hover:text-red-400 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-[var(--text-primary)]"
+            />
           )}
         </div>
 
@@ -191,7 +185,7 @@ function GoalGridItem({
           
           {/* Milestones */}
           {(goal.min_goal_value || goal.elite_goal_value) && (
-            <div className="flex justify-between text-xs font-black uppercase tracking-widest text-[var(--text-muted)]/50 px-0.5">
+            <div className="flex justify-between flex-wrap gap-x-3 gap-y-1 text-xs font-black uppercase tracking-wide sm:tracking-widest text-[var(--text-muted)] px-0.5">
                <span>Início: {goal.initial_value}</span>
                <div className="flex gap-3">
                   {goal.min_goal_value && <span>Mín: {goal.min_goal_value}</span>}
@@ -204,19 +198,19 @@ function GoalGridItem({
       </div>
 
       {/* Footer */}
-      <div className="relative z-10 pt-5 mt-5 flex items-center justify-between border-t border-[var(--border-subtle)] opacity-50 group-hover:opacity-100 transition-opacity">
+      <div className="relative z-10 pt-5 mt-5 flex items-center justify-between border-t border-[var(--border-subtle)] gap-2 transition-opacity">
          <div className="flex items-center gap-2">
             <Calendar size={12} className="text-[var(--text-muted)] shrink-0" />
             <span className="text-xs font-medium text-[var(--text-muted)] truncate">
               Até {formatDateSafely(goal.end_date)}
             </span>
             {daysLeft > 0 && (
-              <span className="text-xs font-black text-[var(--text-muted)]/60 hidden sm:inline whitespace-nowrap">
+              <span className="text-xs font-black text-[var(--text-muted)] hidden sm:inline whitespace-nowrap">
                 · {daysLeft}d
               </span>
             )}
          </div>
-         <div className="flex items-center gap-1 text-xs font-black uppercase tracking-widest text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors whitespace-nowrap">
+         <div className="flex items-center gap-1 text-xs font-black uppercase tracking-wide sm:tracking-widest text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors whitespace-nowrap shrink-0">
             Detalhes <ChevronRight size={12} />
          </div>
       </div>
@@ -252,9 +246,8 @@ export default function GoalsPage() {
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (confirm('Tem certeza que deseja excluir esta meta estratégica?')) {
-      deleteGoal.mutate(id)
-    }
+    // A confirmação agora é inline no DeleteButton do cartão.
+    deleteGoal.mutate(id)
   }
 
   const handleSelectGroup = (type: 'all') => {
@@ -588,7 +581,7 @@ export default function GoalsPage() {
 
                 <button
                   onClick={() => { setIsSelectionMode(false); setSelectedIds([]) }}
-                  className="h-10 px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-[0.12em] text-xs md:text-xs transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
+                  className="h-10 px-3 sm:px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-wide sm:tracking-[0.12em] text-xs transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
                 >
                   Cancelar
                 </button>

@@ -512,7 +512,7 @@ export default function StudyPage() {
                 />
                 {/* Line count hint */}
                 {content.length > 0 && (
-                  <p className="absolute bottom-3 right-4 text-xs text-[var(--text-muted)]/50 select-none pointer-events-none">
+                  <p className="absolute bottom-3 right-4 text-xs text-[var(--text-muted)] select-none pointer-events-none">
                     {content.split('\n').length} linha{content.split('\n').length !== 1 ? 's' : ''}
                   </p>
                 )}

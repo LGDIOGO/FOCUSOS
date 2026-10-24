@@ -6,6 +6,7 @@ import { useNotifications, useDeleteNotification, useClearAllNotifications, useM
 import { format, isToday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
+import { DeleteButton } from '@/components/ui/DeleteButton'
 
 interface NotificationsCenterProps {
   isOpen: boolean
@@ -186,16 +187,12 @@ function NotificationItem({ notif, onDelete, onMarkRead, styles }: any) {
 
       {/* Quick Actions */}
       <div className="absolute top-4 right-4 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete()
-          }}
-          aria-label="Excluir notificação"
-          className="min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-primary)]"
-        >
-          <Trash2 size={14} />
-        </button>
+        <DeleteButton
+          label="Excluir notificação"
+          iconSize={14}
+          onConfirm={() => onDelete()}
+          className="text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all focus-visible:outline-[var(--text-primary)]"
+        />
       </div>
     </motion.div>
   )

@@ -14,6 +14,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore'
 import { useCurrentUser } from '@/lib/context/AuthContext'
 import { CalendarEvent, EventType } from '@/types'
 import { cn } from '@/lib/utils/cn'
+import { DeleteButton } from '@/components/ui/DeleteButton'
 import {
   format, isToday, isTomorrow, parseISO, addMonths, subMonths, startOfMonth, endOfMonth,
   eachDayOfInterval, getDay, differenceInWeeks, differenceInDays, parse, startOfYear, endOfYear,
@@ -168,25 +169,13 @@ function EventItem({
       </div>
 
       {/* Delete button — always visible on touch, hover-only on desktop */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation()
-          if (isSelectionMode) return
-          onDelete(event.id)
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
-        onMouseUp={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-        onTouchEnd={(e) => e.stopPropagation()}
-        aria-label="Excluir item da agenda"
-        className={cn(
-          "min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 transition-all shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-primary)]",
-          isSelectionMode ? "hidden" : "opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100"
-        )}
-      >
-        <Trash2 size={16} />
-      </button>
+      {!isSelectionMode && (
+        <DeleteButton
+          label="Excluir item da agenda"
+          onConfirm={() => onDelete(event.id)}
+          className="rounded-xl text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-[var(--text-primary)]"
+        />
+      )}
     </motion.div>
   )
 }
@@ -959,7 +948,7 @@ function AgendaPage() {
 
                 <button
                   onClick={() => { setIsSelectionMode(false); setSelectedIds([]) }}
-                  className="h-10 px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-[0.12em] text-xs md:text-xs transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
+                  className="h-10 px-3 sm:px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-wide sm:tracking-[0.12em] text-xs transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
                 >
                   Cancelar
                 </button>

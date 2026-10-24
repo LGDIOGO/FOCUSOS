@@ -227,7 +227,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
                     ? "bg-[var(--bg-overlay)] animate-pulse text-red-500"
                     : newHabit.name
                     ? "text-red-500 hover:bg-[var(--bg-overlay)]"
-                    : "text-[var(--text-muted)]/40 hover:bg-[var(--bg-overlay)] hover:text-[var(--text-muted)]"
+                    : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] hover:text-[var(--text-muted)]"
                 )}
               >
                 {isParsing

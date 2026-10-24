@@ -14,6 +14,7 @@ import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'da
 import { ptBR } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
+import { DeleteButton } from '@/components/ui/DeleteButton'
 import {
   useFinanceTransactions,
   useAddFinanceTransaction,
@@ -701,13 +702,12 @@ function LancamentosTab({ transactions }: { transactions: FinanceTransaction[] }
               >
                 {tx.type === 'income' ? '+' : '-'}{brl(tx.amount)}
               </span>
-              <button
-                onClick={() => deleteTx.mutate(tx.id)}
-                aria-label="Excluir lançamento"
-                className="min-w-[44px] min-h-[44px] -my-3 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white text-zinc-500 hover:text-rose-400 transition-all shrink-0"
-              >
-                <Trash2 size={13} />
-              </button>
+              <DeleteButton
+                label="Excluir lançamento"
+                iconSize={13}
+                onConfirm={() => deleteTx.mutate(tx.id)}
+                className="-my-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-white text-zinc-500 hover:text-rose-400 transition-all"
+              />
             </motion.div>
           ))}
         </AnimatePresence>
@@ -762,13 +762,12 @@ function RecurringItem({
           </div>
         )}
       </div>
-      <button
-        onClick={onDelete}
-        aria-label="Excluir item"
-        className="min-w-[44px] min-h-[44px] -my-3 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white text-zinc-500 hover:text-rose-400 transition-all shrink-0"
-      >
-        <Trash2 size={13} />
-      </button>
+      <DeleteButton
+        label="Excluir item"
+        iconSize={13}
+        onConfirm={() => onDelete()}
+        className="-my-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-white text-zinc-500 hover:text-rose-400 transition-all"
+      />
     </motion.div>
   )
 }

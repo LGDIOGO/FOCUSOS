@@ -45,7 +45,7 @@ export function PerformanceHeader({ manualDailyScore }: { manualDailyScore?: num
         {/* Daily */}
         <div className="flex flex-col items-end">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-xs md:text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">HOJE</span>
+            <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">HOJE</span>
             <Target size={12} className="text-[var(--text-muted)]" />
           </div>
           <span className={cn(
@@ -64,7 +64,7 @@ export function PerformanceHeader({ manualDailyScore }: { manualDailyScore?: num
         {/* Weekly */}
         <div className="flex flex-col items-end">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-xs md:text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">SEMANA</span>
+            <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">SEMANA</span>
             <TrendingUp size={12} className={cn(weekly >= threshold ? "text-green-500" : "text-[var(--text-muted)]")} />
           </div>
           {isWeeklyLoading ? (

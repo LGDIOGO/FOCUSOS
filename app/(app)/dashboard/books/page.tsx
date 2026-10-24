@@ -242,7 +242,7 @@ function SortableBookSection({
       <h2 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
         🛒 Quero Ler ({books.length})
         {books.length > 1 && (
-          <span className="ml-2 text-xs font-medium normal-case tracking-normal text-[var(--text-muted)]/60">
+          <span className="ml-2 text-xs font-medium normal-case tracking-normal text-[var(--text-muted)]">
             segure o ícone para reordenar
           </span>
         )}

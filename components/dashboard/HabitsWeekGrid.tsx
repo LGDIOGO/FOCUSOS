@@ -116,13 +116,13 @@ export function HabitsWeekGrid({
           {weekOffset !== 0 && (
             <button
               onClick={onToday}
-              className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mt-0.5"
+              className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mt-0.5"
             >
               Voltar para hoje
             </button>
           )}
           {weekOffset === 0 && (
-            <div className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-0.5">{label}</div>
+            <div className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-0.5">{label}</div>
           )}
         </div>
 
@@ -146,8 +146,8 @@ export function HabitsWeekGrid({
               return (
                 <div key={iso} className="w-10 shrink-0 flex flex-col items-center gap-0.5">
                   <span className={cn(
-                    'text-[9px] font-black uppercase tracking-wider',
-                    isToday ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]/60'
+                    'text-[10px] font-black uppercase tracking-wider',
+                    isToday ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'
                   )}>
                     {WEEKDAYS[i]}
                   </span>
@@ -192,7 +192,7 @@ export function HabitsWeekGrid({
                         title={`${habit.name} — não previsto ${format(days[i].date, 'dd/MM')}`}
                         className="w-10 h-10 shrink-0 rounded-xl border border-dashed border-[var(--border-subtle)]/40 flex items-center justify-center"
                       >
-                        <span className="text-[var(--text-muted)]/25 text-xs font-black">—</span>
+                        <span className="text-[var(--text-muted)] text-xs font-black">—</span>
                       </div>
                     )
                   }
@@ -237,7 +237,7 @@ export function HabitsWeekGrid({
                       className={cn(
                         'text-[11px] font-black tabular-nums',
                         done === due ? 'text-green-400'
-                          : done + partial === 0 ? 'text-[var(--text-muted)]/50'
+                          : done + partial === 0 ? 'text-[var(--text-muted)]'
                           : 'text-[var(--text-muted)]'
                       )}
                       title={`${done} feitos${partial ? `, ${partial} parciais` : ''} de ${due} dias previstos até hoje`}
@@ -245,7 +245,7 @@ export function HabitsWeekGrid({
                       {done}/{due}
                     </span>
                   ) : (
-                    <span className="text-[11px] font-black text-[var(--text-muted)]/25">—</span>
+                    <span className="text-[11px] font-black text-[var(--text-muted)]">—</span>
                   )}
                 </div>
               </motion.div>
@@ -254,14 +254,14 @@ export function HabitsWeekGrid({
 
           {/* Rodapé: aproveitamento por dia */}
           <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-[var(--border-subtle)]">
-            <div className="flex-1 min-w-[92px] text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+            <div className="flex-1 min-w-[92px] text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
               Dia
             </div>
             {dayScores.map((pct, i) => (
               <div key={i} className="w-10 shrink-0 text-center">
                 <span className={cn(
                   'text-[10px] font-black tabular-nums',
-                  pct === null ? 'text-[var(--text-muted)]/25'
+                  pct === null ? 'text-[var(--text-muted)]'
                     : pct >= 80 ? 'text-green-400'
                     : pct >= 50 ? 'text-amber-400'
                     : 'text-red-400/80'
@@ -276,7 +276,7 @@ export function HabitsWeekGrid({
       </div>
 
       {/* Legenda */}
-      <div className="flex items-center gap-3 flex-wrap text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+      <div className="flex items-center gap-3 flex-wrap text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
         {[
           { cls: 'bg-green-500 border-green-400', label: 'Feito' },
           { cls: 'bg-amber-400 border-amber-300', label: 'Parcial' },

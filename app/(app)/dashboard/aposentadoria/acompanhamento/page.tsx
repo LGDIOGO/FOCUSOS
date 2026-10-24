@@ -153,7 +153,7 @@ function LevelCard({ adherence, done, partial, total }: { adherence: number; don
         </div>
         <p className="text-[11px] text-[var(--text-secondary)] leading-snug">{cur.msg}</p>
         {nxt && (
-          <p className="text-[10px] text-[var(--text-muted)]/60 mt-1">
+          <p className="text-[10px] text-[var(--text-muted)] mt-1">
             Próximo: {nxt.name} {nxt.emoji} ao atingir {nxt.min}%
           </p>
         )}
@@ -200,7 +200,7 @@ function MonthGrid({
       {/* Month header */}
       <div className="flex gap-0.5 mb-1.5 ml-9">
         {MONTHS_PT.map(m => (
-          <span key={m} className="w-4 text-center text-[8px] text-[var(--text-muted)] shrink-0 font-medium leading-none">{m[0]}</span>
+          <span key={m} className="w-4 text-center text-[10px] text-[var(--text-muted)] shrink-0 font-medium leading-none">{m[0]}</span>
         ))}
       </div>
 
@@ -211,7 +211,7 @@ function MonthGrid({
           const startPad = firstMonth - 1
           return (
             <div key={year} className="flex items-center gap-0.5">
-              <span className="text-[9px] text-[var(--text-muted)] w-8 shrink-0 font-mono tabular-nums leading-none">{year}</span>
+              <span className="text-[10px] text-[var(--text-muted)] w-8 shrink-0 font-mono tabular-nums leading-none">{year}</span>
               {Array.from({ length: startPad }).map((_, i) => (
                 <div key={i} className="w-4 h-4 shrink-0" />
               ))}

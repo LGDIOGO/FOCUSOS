@@ -16,6 +16,7 @@ import { Check, Minus, X, Circle } from 'lucide-react'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { Habit } from '@/types'
 import { cn } from '@/lib/utils/cn'
+import { DeleteButton } from '@/components/ui/DeleteButton'
 import { format, isToday, parseISO, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, addWeeks, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { getEffectiveOfensiva } from '@/lib/utils/scoring'
@@ -105,21 +106,12 @@ function HabitGridItem({
           </div>
         </div>
         {!isSelectionMode && (
-          <button 
-            onClick={(e) => {
-              e.stopPropagation()
-              onDelete(habit.id)
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onMouseUp={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
-            aria-label="Excluir hábito"
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--text-muted)] hover:text-red-400 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-primary)]"
-          >
-            <Trash2 size={18} />
-          </button>
+          <DeleteButton
+            label="Excluir hábito"
+            iconSize={18}
+            onConfirm={() => onDelete(habit.id)}
+            className="text-[var(--text-muted)] hover:text-red-400 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-[var(--text-primary)]"
+          />
         )}
       </div>
 
@@ -134,7 +126,7 @@ function HabitGridItem({
                 <div
                   key={i}
                   className={cn(
-                    "w-4 h-4 md:w-5 md:h-5 rounded flex items-center justify-center text-xs md:text-xs font-black border transition-all",
+                    "w-6 h-6 rounded flex items-center justify-center text-xs font-black border transition-all",
                     isActive ? "bg-white/10 border-white/20 text-white" : "bg-transparent border-white/5 text-white/5"
                   )}
                 >
@@ -143,7 +135,7 @@ function HabitGridItem({
               )
             })}
           </div>
-          <p className="text-xs md:text-[12px] uppercase tracking-widest font-black text-[var(--text-muted)]">
+          <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)]">
             {habit.recurrence?.frequency === 'specific_days' ? 'Custom' :
              habit.recurrence?.frequency === 'weekly' ? 'Semanal' :
              habit.recurrence?.frequency === 'monthly' ? 'Mensal' :
@@ -561,7 +553,7 @@ export default function HabitsPage() {
 
                 <button
                   onClick={() => { setIsSelectionMode(false); setSelectedIds([]) }}
-                  className="h-10 px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-[0.12em] text-xs md:text-xs transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
+                  className="h-10 px-3 sm:px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-wide sm:tracking-[0.12em] text-xs transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
                 >
                   Cancelar
                 </button>

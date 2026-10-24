@@ -191,7 +191,7 @@ export function StatusChoiceBubble({
               >
                 <opt.icon size={18} strokeWidth={2.5} className="sm:w-[22px] sm:h-[22px]" />
               </div>
-              <span className="text-xs sm:text-xs font-black uppercase tracking-widest text-[var(--text-muted)] group-hover:text-white transition-opacity">
+              <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] group-hover:text-white transition-opacity">
                 {opt.label}
               </span>
             </button>
@@ -211,7 +211,7 @@ export function StatusChoiceBubble({
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center border border-[var(--border-subtle)] bg-[var(--bg-overlay)] text-[var(--text-muted)] group-hover:text-[var(--text-primary)]">
               <X size={18} strokeWidth={2.5} className="sm:w-[22px] sm:h-[22px]" />
             </div>
-            <span className="text-xs sm:text-xs font-black uppercase tracking-widest text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-opacity">
+            <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-opacity">
               Cancelar
             </span>
           </button>
