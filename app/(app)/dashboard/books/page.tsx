@@ -97,7 +97,7 @@ function BookCard({
         {book.status === 'read' && book.rating && book.rating > 0 && (
           <div className="flex gap-0.5 mt-1">
             {[1, 2, 3, 4, 5].map(s => (
-              <span key={s} className={s <= book.rating! ? 'text-amber-400 text-xs' : 'text-white/20 text-xs'}>
+              <span key={s} className={s <= book.rating! ? 'text-amber-400 text-xs' : 'text-[var(--text-muted)] text-xs'}>
                 ★
               </span>
             ))}
@@ -108,7 +108,7 @@ function BookCard({
             href={book.purchase_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 mt-2 text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors"
+            className="inline-flex items-center gap-1 mt-2 text-xs font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors"
           >
             <ExternalLink size={10} />
             Comprar
@@ -193,7 +193,7 @@ function BookSection({
 }) {
   return (
     <div className="space-y-4">
-      <h2 className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+      <h2 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
         {emoji} {title} ({books.length})
       </h2>
       {books.length === 0 ? (
@@ -239,10 +239,10 @@ function SortableBookSection({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+      <h2 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
         🛒 Quero Ler ({books.length})
         {books.length > 1 && (
-          <span className="ml-2 text-[9px] font-medium normal-case tracking-normal text-[var(--text-muted)]/60">
+          <span className="ml-2 text-xs font-medium normal-case tracking-normal text-[var(--text-muted)]/60">
             segure o ícone para reordenar
           </span>
         )}
@@ -507,7 +507,7 @@ export default function BooksPage() {
                         type="button"
                         onClick={() => setForm({ ...form, status: s, rating: s !== 'read' ? 0 : form.rating })}
                         className={cn(
-                          'py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all',
+                          'py-3 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all',
                           form.status === s
                             ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]'
                             : 'bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]'
@@ -539,7 +539,7 @@ export default function BooksPage() {
                             onClick={() => setForm({ ...form, rating: form.rating === s ? 0 : s })}
                             className={cn(
                               'text-2xl transition-all active:scale-110',
-                              s <= form.rating ? 'text-amber-400' : 'text-white/20'
+                              s <= form.rating ? 'text-amber-400' : 'text-[var(--text-muted)]'
                             )}
                           >
                             ★

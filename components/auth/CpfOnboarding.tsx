@@ -78,7 +78,7 @@ export function CpfOnboarding() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label htmlFor="cpf-input" className="text-[11px] uppercase tracking-widest font-black text-white/30 px-1 ml-1 flex items-center gap-2">
+            <label htmlFor="cpf-input" className="text-xs uppercase tracking-widest font-black text-white/60 px-1 ml-1 flex items-center gap-2">
               <ShieldCheck size={12} />
               CPF (Apenas Um Por Conta)
             </label>
@@ -118,7 +118,7 @@ export function CpfOnboarding() {
           </button>
         </form>
 
-        <p className="text-center text-[13px] text-white/20 font-medium">
+        <p className="text-center text-[13px] text-white/60 font-medium">
           Seus dados são protegidos por criptografia de ponta a ponta e usados apenas para fins de verificação de conta.
         </p>
       </motion.div>

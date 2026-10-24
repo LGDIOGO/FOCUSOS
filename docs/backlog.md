@@ -58,3 +58,7 @@ Mantido pelo `gerente-produto`. Máx. 15 itens abertos. Tamanho: P/M/G. Ordem = 
 
 ## Concluídos
 Ver `docs/bugs-corrigidos.md` e o histórico do git.
+
+## F4 parcial (branch feat/legibilidade-toque)
+- Feito: `text-[8-11px]` -> `text-xs` (exceto HabitsMatrix, HabitsWeekGrid e acompanhamento, microtexto de grade); `text-white/20-40` -> `--text-muted` (telas sempre escuras: `text-white/60`); `--text-muted` subiu para 0.5 (escuro) e 0.55 (claro) para atingir ~4.5:1; ações de excluir visíveis no toque com 44px e `aria-label` (agenda, metas, hábitos, finanças, notificações, notas); foco visível global em `button`/`a` (`globals.css`).
+- Fica: `forceDark` de GoalModal/WorkItemModal (conteúdo usa cores fixas; migrar exige revisão tela a tela); `uppercase tracking-widest` em rótulos longos; alvos <44px restantes (chips, ícones de cabeçalho); `text-[var(--text-muted)]/N` (14 usos, classe inválida no Tailwind, sem efeito); overlays de hover do avatar no SettingsModal; verificação visual de estouro de layout com fonte maior.

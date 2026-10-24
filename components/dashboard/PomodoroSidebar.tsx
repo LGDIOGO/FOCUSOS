@@ -75,7 +75,7 @@ function CircleTimer({
         <span className="text-[52px] font-black tracking-tighter text-[var(--text-primary)] tabular-nums leading-none">
           {formatTime(secondsLeft)}
         </span>
-        <span className="text-[10px] font-black uppercase tracking-[0.22em] mt-1" style={{ color }}>
+        <span className="text-xs font-black uppercase tracking-[0.22em] mt-1" style={{ color }}>
           {PHASE_LABELS[phase]}
         </span>
       </div>
@@ -130,7 +130,7 @@ function SettingsPanel({
       className="border-b border-[var(--border-subtle)]"
     >
       <div className="p-5 space-y-5">
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--text-muted)]">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--text-muted)]">
           Configurações do Timer
         </p>
         {fields.map(({ key, label, min, max, unit }) => (
@@ -252,7 +252,7 @@ export function PomodoroSidebar() {
                 </div>
                 <div>
                   <p className="text-base font-black text-[var(--text-primary)] leading-tight">Modo Foco</p>
-                  <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">Pomodoro</p>
+                  <p className="text-xs font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">Pomodoro</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -319,7 +319,7 @@ export function PomodoroSidebar() {
                       style={{ background: 'linear-gradient(135deg, #0D0D0D 0%, #1A1010 50%, #0D0D0D 100%)' }}
                     >
                       <ImageIcon size={28} className="text-white/10" />
-                      <p className="text-[9px] font-bold text-white/15 uppercase tracking-[0.2em] text-center px-8 leading-relaxed">
+                      <p className="text-xs font-bold text-white/15 uppercase tracking-[0.2em] text-center px-8 leading-relaxed">
                         Adicione imagens para criar sua biblioteca de foco
                       </p>
                     </motion.div>
@@ -405,7 +405,7 @@ export function PomodoroSidebar() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.5 }}
-                      className="text-[11px] font-medium text-[var(--text-muted)] text-center italic leading-relaxed"
+                      className="text-xs font-medium text-[var(--text-muted)] text-center italic leading-relaxed"
                     >
                       &ldquo;{MOTIVATIONAL_MESSAGES[motivationIndex % MOTIVATIONAL_MESSAGES.length]}&rdquo;
                     </motion.p>
@@ -420,7 +420,7 @@ export function PomodoroSidebar() {
                 {/* Cycle progress */}
                 <div className="flex flex-col items-center gap-2">
                   <CycleDots count={cycleCount} max={settings.cyclesBeforeLong} />
-                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
                     {cycleCount % settings.cyclesBeforeLong === 0 && cycleCount > 0
                       ? 'Descanso longo — você merece'
                       : cyclesUntilLong === 1
@@ -467,11 +467,11 @@ export function PomodoroSidebar() {
                   className="w-full flex items-center justify-between px-5 py-4 hover:bg-[var(--bg-overlay)] transition-all"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
+                    <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
                       Biblioteca de Foco
                     </span>
                     {images.length > 0 && (
-                      <span className="px-2 py-0.5 bg-white/5 rounded-md text-[9px] font-black text-[var(--text-muted)]">
+                      <span className="px-2 py-0.5 bg-white/5 rounded-md text-xs font-black text-[var(--text-muted)]">
                         {images.length}
                       </span>
                     )}
@@ -499,7 +499,7 @@ export function PomodoroSidebar() {
                             </p>
                             <button
                               onClick={() => fileInputRef.current?.click()}
-                              className="flex items-center gap-2 px-5 py-2.5 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
+                              className="flex items-center gap-2 px-5 py-2.5 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl text-xs font-black uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
                             >
                               <Upload size={12} />
                               Adicionar Imagens

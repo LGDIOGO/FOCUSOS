@@ -128,7 +128,7 @@ function EventItem({
         <div className="flex items-center gap-2 mb-0.5 md:mb-1">
           <h3 className="text-base md:text-lg font-bold text-[var(--text-primary)] truncate transition-colors">{event.title}</h3>
           {event.recurrence && (
-            <div className="flex items-center gap-1 text-[9px] font-black text-white/20 uppercase tracking-widest shrink-0">
+            <div className="flex items-center gap-1 text-xs font-black text-[var(--text-muted)] uppercase tracking-widest shrink-0">
               <RefreshCcw size={9} />
               <span className="hidden sm:inline">
                 {event.recurrence.frequency === 'daily' ? 'Diário' :
@@ -153,14 +153,14 @@ function EventItem({
           {event.isOverdue && (() => {
             const daysLate = event.date ? differenceInDays(new Date(), parseISO(event.date)) : 0
             return (
-              <span className="flex items-center gap-1 px-1.5 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-md text-[#FF453A] text-[9px] font-black uppercase tracking-widest">
+              <span className="flex items-center gap-1 px-1.5 py-0.5 bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-md text-[#FF453A] text-xs font-black uppercase tracking-widest">
                 <AlertCircle size={9} />
                 {daysLate > 0 ? `${daysLate}d` : 'ATRASADO'}
               </span>
             )
           })()}
           {event.description && (
-            <span className="text-[11px] md:text-sm text-[var(--text-muted)] truncate hidden sm:block">
+            <span className="text-xs md:text-sm text-[var(--text-muted)] truncate hidden sm:block">
               {event.description}
             </span>
           )}
@@ -179,9 +179,10 @@ function EventItem({
         onPointerDown={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
+        aria-label="Excluir item da agenda"
         className={cn(
-          "p-2.5 rounded-xl text-white/20 hover:text-red-400 hover:bg-red-400/10 transition-all shrink-0",
-          isSelectionMode ? "hidden" : "opacity-40 md:opacity-0 md:group-hover:opacity-100"
+          "min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 transition-all shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-primary)]",
+          isSelectionMode ? "hidden" : "opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100"
         )}
       >
         <Trash2 size={16} />
@@ -515,7 +516,7 @@ function AgendaPage() {
                 <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-0.5 hover:text-[var(--text-primary)] transition-colors text-[var(--text-muted)]">
                   <ChevronRight className="rotate-180" size={13} />
                 </button>
-                <span className="text-[11px] font-black uppercase tracking-widest min-w-[90px] text-center text-[var(--text-primary)] capitalize">
+                <span className="text-xs font-black uppercase tracking-widest min-w-[90px] text-center text-[var(--text-primary)] capitalize">
                   {format(currentMonth, 'MMM yyyy', { locale: ptBR })}
                 </span>
                 <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-0.5 hover:text-[var(--text-primary)] transition-colors text-[var(--text-muted)]">
@@ -584,12 +585,12 @@ function AgendaPage() {
               >
                 {/* Result count badge */}
                 <div className="flex items-center gap-3">
-                  <span className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                  <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
                     {searchResults.length === 0
                       ? 'Nenhum resultado'
                       : `${searchResults.length} compromisso${searchResults.length !== 1 ? 's' : ''} encontrado${searchResults.length !== 1 ? 's' : ''}`}
                   </span>
-                  <div className="px-2.5 py-0.5 bg-red-500/10 border border-red-500/20 rounded-full text-[10px] font-black text-red-400 truncate max-w-[200px]">
+                  <div className="px-2.5 py-0.5 bg-red-500/10 border border-red-500/20 rounded-full text-xs font-black text-red-400 truncate max-w-[200px]">
                     "{searchQuery}"
                   </div>
                 </div>
@@ -622,7 +623,7 @@ function AgendaPage() {
                           <div className="flex items-center gap-4 px-2">
                             <h2 className={cn(
                               "text-[12px] font-black uppercase tracking-widest shrink-0",
-                              date === todayStr ? "text-white" : isPast ? "text-white/30" : "text-white/60"
+                              date === todayStr ? "text-white" : isPast ? "text-[var(--text-muted)]" : "text-white/60"
                             )}>
                               {date === 'sem-data' ? 'Sem data' :
                                isToday(parseISO(date)) ? `Hoje • ${format(parseISO(date), 'dd/MM/yyyy')}` :
@@ -632,7 +633,7 @@ function AgendaPage() {
                             </h2>
                             <div className="flex-1 border-t border-white/[0.03]" />
                             {isPast && (
-                              <span className="text-[9px] font-black uppercase tracking-widest text-white/20 shrink-0">passado</span>
+                              <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] shrink-0">passado</span>
                             )}
                           </div>
                           <div className="space-y-3">
@@ -668,16 +669,16 @@ function AgendaPage() {
                 onClick={() => setIsHistoryOpen(!isHistoryOpen)}
                 className="flex items-center gap-4 px-2 w-full group"
               >
-                <div className="flex items-center gap-2 text-base font-black uppercase tracking-widest text-white/20 group-hover:text-white/40 transition-colors">
+                <div className="flex items-center gap-2 text-base font-black uppercase tracking-widest text-[var(--text-muted)] group-hover:text-[var(--text-muted)] transition-colors">
                   <History size={16} />
                   Compromissos Passados
-                  <span className="ml-2 px-2 py-0.5 bg-white/5 rounded-md text-[10px]">{Object.values(pastEventsGrouped).flat().length}</span>
+                  <span className="ml-2 px-2 py-0.5 bg-white/5 rounded-md text-xs">{Object.values(pastEventsGrouped).flat().length}</span>
                 </div>
                 <div className="flex-1 border-t border-white/[0.03]" />
                 <ChevronRight 
                   size={16} 
                   className={cn(
-                    "text-white/20 transition-transform duration-300",
+                    "text-[var(--text-muted)] transition-transform duration-300",
                     isHistoryOpen ? "rotate-90" : ""
                   )} 
                 />
@@ -729,7 +730,7 @@ function AgendaPage() {
                                 }
                               }}
                               className={cn(
-                                "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all",
+                                "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all",
                                 (historyPeriod === btn.id || (btn.id === 'custom' && historyPeriod === 'custom')) ? "bg-white text-black" : "bg-white/5 text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-primary)]"
                               )}
                             >
@@ -745,21 +746,21 @@ function AgendaPage() {
                             className="flex flex-wrap items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10"
                           >
                             <div className="flex flex-col gap-1">
-                              <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Início</label>
+                              <label className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">Início</label>
                               <input 
                                 type="date" 
                                 value={historyStartDate}
                                 onChange={(e) => setHistoryStartDate(e.target.value)}
-                                className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
+                                className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
                               />
                             </div>
                             <div className="flex flex-col gap-1">
-                              <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Fim</label>
+                              <label className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">Fim</label>
                               <input 
                                 type="date" 
                                 value={historyEndDate}
                                 onChange={(e) => setHistoryEndDate(e.target.value)}
-                                className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
+                                className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-red-500 transition-colors"
                               />
                             </div>
                             <button 
@@ -768,7 +769,7 @@ function AgendaPage() {
                                 setHistoryEndDate('')
                                 setHistoryPeriod('all')
                               }}
-                              className="mt-4 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                              className="mt-4 px-4 py-2 text-xs font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
                             >
                               Limpar
                             </button>
@@ -778,7 +779,7 @@ function AgendaPage() {
                     {Object.entries(pastEventsGrouped).map(([date, eventList]: [string, CalendarEvent[]]) => (
                       <div key={date} className="space-y-4 opacity-50 hover:opacity-100 transition-opacity">
                         <div className="flex items-center gap-4 px-2">
-                           <h2 className="text-[12px] font-black uppercase tracking-widest text-white/20">
+                           <h2 className="text-[12px] font-black uppercase tracking-widest text-[var(--text-muted)]">
                              {format(parseISO(date), "dd/MM/yyyy • EEEE", { locale: ptBR })}
                            </h2>
                            <div className="flex-1 border-t border-white/[0.01]" />
@@ -825,7 +826,7 @@ function AgendaPage() {
                 <div className="flex items-center gap-4 px-2">
                    <h2 className={cn(
                      "text-sm font-black uppercase tracking-widest",
-                     isToday(parseISO(date)) ? "text-white" : "text-white/30"
+                     isToday(parseISO(date)) ? "text-white" : "text-[var(--text-muted)]"
                    )}>
                      {isToday(parseISO(date)) ? `Hoje • ${format(parseISO(date), 'dd/MM/yyyy')}` : 
                       isTomorrow(parseISO(date)) ? `Amanhã • ${format(parseISO(date), 'dd/MM/yyyy')}` : 
@@ -872,7 +873,7 @@ function AgendaPage() {
                         <span className="text-base font-bold text-white/60">{format(d, 'EEE, d', { locale: ptBR })}</span>
                         <div className={cn(
                           "w-6 h-6 rounded-lg flex items-center justify-center text-[12px] font-black",
-                          count > 0 ? "bg-white text-black" : "bg-white/5 text-white/20"
+                          count > 0 ? "bg-white text-black" : "bg-white/5 text-[var(--text-muted)]"
                         )}>
                           {count}
                         </div>
@@ -912,7 +913,7 @@ function AgendaPage() {
               {/* Count */}
               <div className="flex flex-col items-center justify-center min-w-[48px] md:min-w-[60px]">
                 <span className="text-xl md:text-2xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>
-                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-0.5">Itens</span>
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-0.5">Itens</span>
               </div>
 
               <div className="h-8 w-px bg-[var(--border-subtle)] flex-shrink-0" />
@@ -934,7 +935,7 @@ function AgendaPage() {
                     <div className="w-10 h-10 rounded-2xl bg-[var(--bg-overlay)] flex items-center justify-center border border-[var(--border-subtle)] group-hover/sel:bg-[var(--text-primary)] group-hover/sel:text-[var(--bg-primary)] text-[var(--text-muted)] group-hover/sel:border-transparent transition-all duration-200">
                       <btn.icon size={16} />
                     </div>
-                    <span className="text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] group-hover/sel:text-[var(--text-primary)] transition-colors hidden md:block whitespace-nowrap">
+                    <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] group-hover/sel:text-[var(--text-primary)] transition-colors hidden md:block whitespace-nowrap">
                       {btn.label}
                     </span>
                   </button>
@@ -953,12 +954,12 @@ function AgendaPage() {
                   <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white text-red-500 transition-all duration-200">
                     <Trash2 size={16} />
                   </div>
-                  <span className="text-[8px] font-black uppercase tracking-widest text-red-400/60 hidden md:block whitespace-nowrap">Excluir</span>
+                  <span className="text-xs font-black uppercase tracking-widest text-red-400/60 hidden md:block whitespace-nowrap">Excluir</span>
                 </button>
 
                 <button
                   onClick={() => { setIsSelectionMode(false); setSelectedIds([]) }}
-                  className="h-10 px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-[0.12em] text-[9px] md:text-[10px] transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
+                  className="h-10 px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-[0.12em] text-xs md:text-xs transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
                 >
                   Cancelar
                 </button>

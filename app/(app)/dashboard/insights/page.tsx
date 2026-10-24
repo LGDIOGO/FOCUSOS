@@ -68,7 +68,7 @@ function Heatmap({
     return (
       <div className="grid grid-cols-7 gap-2">
         {DAY_LABELS.map((l, i) => (
-          <p key={i} className="text-center text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">{l}</p>
+          <p key={i} className="text-center text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">{l}</p>
         ))}
         {dailyData.map(d => {
           const dayNum = parseInt(d.date.split('-')[2], 10)
@@ -79,7 +79,7 @@ function Heatmap({
             >
               <span className={cn('text-lg font-black', d.score !== null ? 'text-white' : 'text-[var(--text-muted)]')}>{dayNum}</span>
               {d.score !== null && (
-                <span className="text-[10px] font-black text-white/80">{d.score}%</span>
+                <span className="text-xs font-black text-white/80">{d.score}%</span>
               )}
             </div>
           )
@@ -96,7 +96,7 @@ function Heatmap({
       <div className="space-y-1.5">
         <div className="grid grid-cols-7 gap-1 mb-1">
           {DAY_LABELS.map(l => (
-            <p key={l} className="text-center text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)]">{l}</p>
+            <p key={l} className="text-center text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">{l}</p>
           ))}
         </div>
         <div
@@ -113,7 +113,7 @@ function Heatmap({
                 onMouseEnter={() => setTooltip({ date: d.date, score: d.score, done: d.done, total: d.total })}
                 onMouseLeave={() => setTooltip(null)}
               >
-                <span className={cn('text-[10px] font-black', d.score !== null ? 'text-white' : 'text-[var(--text-muted)]')}>{dayNum}</span>
+                <span className={cn('text-xs font-black', d.score !== null ? 'text-white' : 'text-[var(--text-muted)]')}>{dayNum}</span>
               </div>
             )
           })}
@@ -158,7 +158,7 @@ function Heatmap({
         {Array.from({ length: numWeeks }, (_, wi) => {
           const monthLabel = monthLabels.find(m => m.weekIdx === wi)
           return (
-            <div key={wi} className="text-[8px] text-[var(--text-muted)] font-bold whitespace-nowrap">
+            <div key={wi} className="text-xs text-[var(--text-muted)] font-bold whitespace-nowrap">
               {monthLabel?.label ?? ''}
             </div>
           )
@@ -204,7 +204,7 @@ function Heatmap({
 
       {/* Legend */}
       <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-[9px] text-[var(--text-muted)]">Menos</span>
+        <span className="text-xs text-[var(--text-muted)]">Menos</span>
         {[null, 0, 40, 65, 100].map((v, i) => (
           <div
             key={i}
@@ -213,9 +213,9 @@ function Heatmap({
             title={v === null ? 'Sem dados' : `${v}%`}
           />
         ))}
-        <span className="text-[9px] text-[var(--text-muted)]">Mais</span>
+        <span className="text-xs text-[var(--text-muted)]">Mais</span>
         {tooltip && (
-          <span className="ml-2 text-[10px] text-[var(--text-secondary)]">
+          <span className="ml-2 text-xs text-[var(--text-secondary)]">
             <span className="font-bold text-[var(--text-primary)]">{tooltip.date}</span>
             {tooltip.score !== null ? ` — ${tooltip.score}%` : ' — sem hábitos'}
           </span>
@@ -400,7 +400,7 @@ function HabitBreakdown({
         {habitStats.map(h => h.streak > 0 && (
           <div key={h.id} className="flex items-center gap-1 px-2 py-1 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-full">
             <Flame size={11} className="text-orange-400" />
-            <span className="text-[10px] font-black text-[var(--text-secondary)]">
+            <span className="text-xs font-black text-[var(--text-secondary)]">
               {h.emoji} {h.streak}
             </span>
           </div>
@@ -444,7 +444,7 @@ export default function InsightsPage() {
               key={p.key}
               onClick={() => setPeriod(p.key)}
               className={cn(
-                'px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all',
+                'px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all',
                 period === p.key
                   ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
@@ -467,7 +467,7 @@ export default function InsightsPage() {
             ? 'bg-amber-500/10 border-amber-500/20'
             : 'bg-red-500/10 border-red-500/20'
         )}>
-          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Score médio</p>
+          <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Score médio</p>
           <p className={cn(
             'text-5xl font-black tabular-nums',
             summary.avgScore >= target ? 'text-green-400'
@@ -477,14 +477,14 @@ export default function InsightsPage() {
             {summary.avgScore}<span className="text-2xl">%</span>
           </p>
           {badge && (
-            <span className={cn('self-start text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full border', badge.cls)}>
+            <span className={cn('self-start text-xs font-black uppercase tracking-widest px-2 py-1 rounded-full border', badge.cls)}>
               {badge.label}
             </span>
           )}
         </div>
 
         <div className="p-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl flex flex-col gap-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Dias na meta</p>
+          <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Dias na meta</p>
           <div className="flex items-end gap-1 mt-1">
             <span className="text-3xl font-black text-green-400">{summary.daysAtTarget}</span>
             <span className="text-sm text-[var(--text-muted)] mb-0.5">/ {summary.daysTotal}</span>
@@ -498,24 +498,24 @@ export default function InsightsPage() {
         </div>
 
         <div className="p-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl flex flex-col gap-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Melhor dia</p>
+          <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Melhor dia</p>
           <span className="text-3xl font-black text-[var(--text-primary)] mt-1">{summary.bestScore}%</span>
           <TrendingUp size={14} className="text-green-400 mt-auto" />
         </div>
 
         <div className="p-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl flex flex-col gap-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Concluídos</p>
+          <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Concluídos</p>
           <span className="text-3xl font-black text-[var(--text-primary)] mt-1">{summary.totalDone}</span>
           <div className="flex items-center gap-1 mt-auto">
             <CheckCircle2 size={12} className="text-green-400" />
-            <span className="text-[9px] text-[var(--text-muted)]">hábitos done</span>
+            <span className="text-xs text-[var(--text-muted)]">hábitos done</span>
           </div>
         </div>
       </div>
 
       {/* Trend chart */}
       <div className="p-4 md:p-5 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl space-y-3">
-        <p className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+        <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
           📈 Evolução
         </p>
         <TrendChart dailyData={dailyData} period={period} target={target} />
@@ -524,10 +524,10 @@ export default function InsightsPage() {
       {/* Heatmap */}
       <div className="p-4 md:p-5 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <p className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+          <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
             🟩 Calendário de atividade
           </p>
-          <div className="flex items-center gap-2 text-[9px] text-[var(--text-muted)] font-black uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] font-black uppercase tracking-wider">
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-500 inline-block" /> Meta</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-amber-400 inline-block" /> Perto</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500 inline-block" /> Abaixo</span>
@@ -538,7 +538,7 @@ export default function InsightsPage() {
 
       {/* Habit breakdown */}
       <div className="p-4 md:p-5 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl space-y-4">
-        <p className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+        <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
           💪 Desempenho por hábito
         </p>
         <HabitBreakdown habitStats={habitStats} target={target} />

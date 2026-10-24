@@ -40,7 +40,7 @@ export const CHANNEL_INTERNAL = 'Interno'
 export const CHANNEL_ALL = 'Todos'
 
 export const PRIORITY_META: Record<TaskPriority, { label: string; color: string }> = {
-  low:      { label: 'Baixa',   color: 'text-white/40 border-white/10' },
+  low:      { label: 'Baixa',   color: 'text-[var(--text-muted)] border-white/10' },
   medium:   { label: 'Média',   color: 'text-blue-400 border-blue-400/30' },
   high:     { label: 'Alta',    color: 'text-amber-400 border-amber-400/30' },
   critical: { label: 'Crítica', color: 'text-red-400 border-red-400/30' },
@@ -192,7 +192,7 @@ export function WorkItemModal({
               {confirmDelete ? (
                 <div className="rounded-2xl border border-red-500/30 bg-red-500/[0.07] p-4">
                   <p className="text-xs font-bold text-white mb-1">Excluir &quot;{itemToEdit?.title}&quot;?</p>
-                  <p className="text-[11px] text-white/50 mb-3">
+                  <p className="text-xs text-white/50 mb-3">
                     {itemToEdit?.recurrence
                       ? 'Some a série inteira, com todas as ocorrências, registros e anotações.'
                       : 'Some o item com todos os registros e anotações.'}
@@ -203,7 +203,7 @@ export function WorkItemModal({
                       type="button"
                       onClick={() => setConfirmDelete(false)}
                       disabled={busy}
-                      className="flex-1 min-h-[44px] py-2.5 rounded-xl border border-white/10 text-white/60 hover:text-white hover:border-white/25 text-[10px] font-black uppercase tracking-wider transition-all"
+                      className="flex-1 min-h-[44px] py-2.5 rounded-xl border border-white/10 text-white/60 hover:text-white hover:border-white/25 text-xs font-black uppercase tracking-wider transition-all"
                     >
                       Cancelar
                     </button>
@@ -211,7 +211,7 @@ export function WorkItemModal({
                       type="button"
                       onClick={handleDelete}
                       disabled={busy}
-                      className="flex-1 min-h-[44px] py-2.5 rounded-xl bg-red-500 text-white text-[10px] font-black uppercase tracking-wider hover:bg-red-400 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="flex-1 min-h-[44px] py-2.5 rounded-xl bg-red-500 text-white text-xs font-black uppercase tracking-wider hover:bg-red-400 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {busy && <Loader2 size={12} className="animate-spin" />}
                       Excluir tudo
@@ -254,11 +254,11 @@ export function WorkItemModal({
                 return (
                   <div key={campo.scope}>
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-[9px] uppercase tracking-widest font-black text-white/30">{campo.titulo}</p>
+                      <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)]">{campo.titulo}</p>
                       {onManageLabels && (
                         <button
                           onClick={onManageLabels}
-                          className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-white/30 hover:text-white transition-colors"
+                          className="flex items-center gap-1 text-xs font-black uppercase tracking-wider text-[var(--text-muted)] hover:text-white transition-colors"
                         >
                           <Settings2 size={10} /> Gerenciar
                         </button>
@@ -268,7 +268,7 @@ export function WorkItemModal({
                     {opcoes.length === 0 ? (
                       <button
                         onClick={onManageLabels}
-                        className="w-full py-3 rounded-xl border border-dashed border-white/10 text-[10px] font-black uppercase tracking-wider text-white/30 hover:text-white hover:border-white/30 transition-all"
+                        className="w-full py-3 rounded-xl border border-dashed border-white/10 text-xs font-black uppercase tracking-wider text-[var(--text-muted)] hover:text-white hover:border-white/30 transition-all"
                       >
                         Criar {campo.titulo.toLowerCase()}s
                       </button>
@@ -278,7 +278,7 @@ export function WorkItemModal({
                           <button
                             onClick={() => campo.set('')}
                             className={cn(
-                              'px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all',
+                              'px-2.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider border transition-all',
                               !campo.valor ? 'bg-white text-black border-white' : 'text-white/35 border-white/10 hover:border-white/30'
                             )}
                           >
@@ -294,7 +294,7 @@ export function WorkItemModal({
                               style={active
                                 ? { backgroundColor: l.color, borderColor: l.color, color: labelTextColor(l.color) }
                                 : { borderColor: `${l.color}66`, color: l.color }}
-                              className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all hover:brightness-125"
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider border transition-all hover:brightness-125"
                             >
                               {campo.scope === 'work_type' ? kindLabel(l.name) : l.name}
                             </button>
@@ -307,52 +307,52 @@ export function WorkItemModal({
               })}
 
               <div>
-                <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Título</p>
+                <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">Título</p>
                 <input
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   placeholder="Ex: Reunião de alinhamento"
                   autoFocus={isFinePointer()}
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-white font-bold text-sm focus:outline-none focus:border-white/30 transition-all placeholder:text-white/20"
+                  className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-white font-bold text-sm focus:outline-none focus:border-white/30 transition-all placeholder:text-[var(--text-muted)]"
                 />
               </div>
 
               <div>
-                <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Solicitante / Área</p>
+                <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">Solicitante / Área</p>
                 <input
                   value={project}
                   onChange={e => setProject(e.target.value)}
                   placeholder="Ex: Comercial, Diretoria, Marketing"
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30 transition-all placeholder:text-white/20"
+                  className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30 transition-all placeholder:text-[var(--text-muted)]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">
+                  <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">
                     {recurrence ? 'Começa em' : 'Data'}
                   </p>
                   <CustomDateTimePicker label="Data" type="date" value={date} onChange={setDate} />
                 </div>
                 <div>
-                  <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Horário</p>
+                  <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">Horário</p>
                   <CustomDateTimePicker label="Horário" type="time" value={time} onChange={setTime} align="right" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Duração (min)</p>
+                  <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">Duração (min)</p>
                   <input
                     value={duration}
                     onChange={e => setDuration(e.target.value.replace(/\D/g, ''))}
                     placeholder="60"
                     inputMode="numeric"
-                    className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30 transition-all placeholder:text-white/20"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30 transition-all placeholder:text-[var(--text-muted)]"
                   />
                 </div>
                 <div>
-                  <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Prioridade</p>
+                  <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">Prioridade</p>
                   <div className="grid grid-cols-4 gap-1">
                     {(Object.keys(PRIORITY_META) as TaskPriority[]).map(p => (
                       <button
@@ -360,7 +360,7 @@ export function WorkItemModal({
                         onClick={() => setPriority(p)}
                         title={PRIORITY_META[p].label}
                         className={cn(
-                          'py-3 rounded-xl border text-[8px] font-black uppercase transition-all',
+                          'py-3 rounded-xl border text-xs font-black uppercase transition-all',
                           priority === p
                             ? `bg-white/10 ${PRIORITY_META[p].color}`
                             : 'text-white/25 border-white/8 hover:border-white/20'
@@ -375,17 +375,17 @@ export function WorkItemModal({
 
               {/* Repetição */}
               <div>
-                <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Repetição</p>
+                <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">Repetição</p>
                 <div className="grid grid-cols-3 gap-2">
                   {FREQ_OPTIONS.map(f => (
                     <button
                       key={f.id}
                       onClick={() => setFreq(f.id)}
                       className={cn(
-                        'py-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all',
+                        'py-2.5 rounded-xl text-xs font-black uppercase tracking-wider border transition-all',
                         currentFreq === f.id
                           ? 'bg-white text-black border-white'
-                          : 'bg-white/5 text-white/40 border-white/8 hover:border-white/20'
+                          : 'bg-white/5 text-[var(--text-muted)] border-white/8 hover:border-white/20'
                       )}
                     >
                       {f.label}
@@ -403,7 +403,7 @@ export function WorkItemModal({
                           'w-9 h-9 rounded-xl font-black text-sm transition-all',
                           recurrence?.days_of_week?.includes(i)
                             ? 'bg-white text-black'
-                            : 'text-white/20 border border-white/8 hover:bg-white/5'
+                            : 'text-[var(--text-muted)] border border-white/8 hover:bg-white/5'
                         )}
                       >
                         {d}
@@ -414,20 +414,20 @@ export function WorkItemModal({
 
                 {['daily', 'weekly', 'monthly'].includes(currentFreq) && (
                   <div className="flex items-center gap-2 mt-3">
-                    <span className="text-[10px] font-bold text-white/40">A cada</span>
+                    <span className="text-xs font-bold text-[var(--text-muted)]">A cada</span>
                     {[1, 2, 3, 4].map(n => (
                       <button
                         key={n}
                         onClick={() => setRecurrence(prev => ({ ...prev!, interval: n }))}
                         className={cn(
                           'w-9 h-8 rounded-lg text-xs font-black transition-all',
-                          (recurrence?.interval || 1) === n ? 'bg-white text-black' : 'text-white/30 border border-white/10 hover:bg-white/5'
+                          (recurrence?.interval || 1) === n ? 'bg-white text-black' : 'text-[var(--text-muted)] border border-white/10 hover:bg-white/5'
                         )}
                       >
                         {n}
                       </button>
                     ))}
-                    <span className="text-[10px] font-bold text-white/40">
+                    <span className="text-xs font-bold text-[var(--text-muted)]">
                       {currentFreq === 'daily' ? 'dia(s)' : currentFreq === 'weekly' ? 'semana(s)' : 'mês(es)'}
                     </span>
                   </div>
@@ -435,20 +435,20 @@ export function WorkItemModal({
 
                 {recurrence && (
                   <div className="mt-3">
-                    <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Termina em (opcional)</p>
+                    <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">Termina em (opcional)</p>
                     <CustomDateTimePicker label="Fim" type="date" value={endDate} onChange={setEndDate} direction="up" />
                   </div>
                 )}
               </div>
 
               <div>
-                <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Anotações</p>
+                <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">Anotações</p>
                 <textarea
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   rows={2}
                   placeholder="Pauta, link da call, contexto..."
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30 transition-all resize-none placeholder:text-white/20"
+                  className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30 transition-all resize-none placeholder:text-[var(--text-muted)]"
                 />
               </div>
 

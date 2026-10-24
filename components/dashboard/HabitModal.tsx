@@ -240,7 +240,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="text-[11px] font-bold text-red-400 px-2 mt-1"
+                className="text-xs font-bold text-red-400 px-2 mt-1"
               >
                 {parseError}
               </motion.p>
@@ -274,13 +274,13 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button" onClick={() => setNewHabit({ ...newHabit, type: 'positive' })}
-                className={cn("py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2", newHabit.type === 'positive' ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]")}
+                className={cn("py-3 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2", newHabit.type === 'positive' ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]")}
               >
                 <Sparkles size={14} /> Positivo
               </button>
               <button
                 type="button" onClick={() => setNewHabit({ ...newHabit, type: 'negative' })}
-                className={cn("py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2", newHabit.type === 'negative' ? "bg-red-500 text-[var(--bg-primary)] border-red-500" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]")}
+                className={cn("py-3 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2", newHabit.type === 'negative' ? "bg-red-500 text-[var(--bg-primary)] border-red-500" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]")}
               >
                 <ShieldAlert size={14} /> A evitar
               </button>
@@ -312,7 +312,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
               </div>
               <div className="relative">
                 <input type="number" step="0.1" min="0" placeholder="Impacto" value={newHabit.goal_impact} onChange={e => setNewHabit({ ...newHabit, goal_impact: parseFloat(e.target.value) || 0 })} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl px-5 py-3 text-[var(--text-primary)] focus:outline-none focus:border-[var(--text-primary)]/30 transition-all font-bold text-sm" />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pointer-events-none">Impacto</span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-[var(--text-muted)] uppercase tracking-widest pointer-events-none">Impacto</span>
               </div>
             </div>
           </div>
@@ -346,7 +346,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
                         setNewHabit({ ...newHabit, recurrence: { frequency: freq.id as RecurrenceFreq, interval: 1, days_of_week: [] } })
                       }
                     }}
-                    className={cn("py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all", isActive ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-lg" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--text-primary)]/20")}
+                    className={cn("py-3 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all", isActive ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-lg" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--text-primary)]/20")}
                   >
                     {freq.label}
                   </button>
@@ -357,17 +357,17 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
             {/* Day picker — shown for Semanal (specific_days) */}
             {newHabit.recurrence.frequency === 'specific_days' && (
               <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] p-6 rounded-[32px] mt-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Dias da semana</p>
+                <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Dias da semana</p>
                 <div className="flex justify-between gap-1">
                   {DAYS.map((day, i) => (
                     <button key={i} type="button" onClick={() => toggleDay(i)} className={cn("w-10 h-10 rounded-xl font-black text-sm transition-all flex items-center justify-center", newHabit.recurrence.days_of_week?.includes(i) ? "bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-lg" : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] border border-[var(--border-subtle)]")}>{day}</button>
                   ))}
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
-                  <span className="text-[11px] font-black uppercase text-[var(--text-muted)] tracking-widest">Frequência</span>
+                  <span className="text-xs font-black uppercase text-[var(--text-muted)] tracking-widest">Frequência</span>
                   <div className="flex gap-2">
                     {[{ v: 1, label: 'Toda semana' }, { v: 2, label: 'Quinzenal' }].map(({ v, label }) => (
-                      <button key={v} type="button" onClick={() => setNewHabit({ ...newHabit, recurrence: { ...newHabit.recurrence, interval: v } })} className={cn("px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all", newHabit.recurrence.interval === v ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]" : "text-[var(--text-muted)] border-[var(--border-subtle)] hover:bg-[var(--bg-overlay)]")}>{label}</button>
+                      <button key={v} type="button" onClick={() => setNewHabit({ ...newHabit, recurrence: { ...newHabit.recurrence, interval: v } })} className={cn("px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border transition-all", newHabit.recurrence.interval === v ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]" : "text-[var(--text-muted)] border-[var(--border-subtle)] hover:bg-[var(--bg-overlay)]")}>{label}</button>
                     ))}
                   </div>
                 </div>
@@ -376,14 +376,14 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
 
             {/* Monthly helper */}
             {newHabit.recurrence.frequency === 'monthly' && (
-              <p className="text-[11px] font-bold text-[var(--text-muted)] px-2 mt-2">
+              <p className="text-xs font-bold text-[var(--text-muted)] px-2 mt-2">
                 Repete todo dia <span className="text-[var(--text-primary)]">{getDate(parseISO(newHabit.start_date || format(new Date(), 'yyyy-MM-dd')))}</span> de cada mês
               </p>
             )}
 
             {/* Yearly helper */}
             {newHabit.recurrence.frequency === 'yearly' && (
-              <p className="text-[11px] font-bold text-[var(--text-muted)] px-2 mt-2">
+              <p className="text-xs font-bold text-[var(--text-muted)] px-2 mt-2">
                 Repete todo ano em <span className="text-[var(--text-primary)]">{format(parseISO(newHabit.start_date || format(new Date(), 'yyyy-MM-dd')), "d 'de' MMMM", { locale: ptBR })}</span>
               </p>
             )}

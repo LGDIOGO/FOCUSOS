@@ -91,7 +91,7 @@ export default function MobileNav({ onOpenSettings, onMoreOpenChange }: MobileNa
               )}
             >
               <Icon size={22} strokeWidth={active ? 2.5 : 1.75} className={cn('shrink-0', active && 'text-red-500')} />
-              <span className="text-[11px] font-semibold leading-none">{item.label}</span>
+              <span className="text-xs font-semibold leading-none">{item.label}</span>
               {active && (
                 <motion.div
                   layoutId="active-nav-dot"
@@ -116,7 +116,7 @@ export default function MobileNav({ onOpenSettings, onMoreOpenChange }: MobileNa
           )}
         >
           <MoreHorizontal size={22} strokeWidth={moreActive || moreOpen ? 2.5 : 1.75} className={cn('shrink-0', moreActive && 'text-red-500')} />
-          <span className="text-[11px] font-semibold leading-none">Mais</span>
+          <span className="text-xs font-semibold leading-none">Mais</span>
           {moreActive && (
             <span className="absolute top-1 w-1 h-1 bg-red-500 rounded-full shadow-[0_0_6px_rgba(239,68,68,0.7)]" aria-hidden="true" />
           )}
@@ -157,7 +157,7 @@ export default function MobileNav({ onOpenSettings, onMoreOpenChange }: MobileNa
                       className={cn(tileClass, active && 'text-[var(--text-primary)] border-red-500/40')}
                     >
                       <Icon size={22} className={cn(active && 'text-red-500')} />
-                      <span className="text-[11px] font-semibold text-center leading-tight">{item.label}</span>
+                      <span className="text-xs font-semibold text-center leading-tight">{item.label}</span>
                     </Link>
                   )
                 })}

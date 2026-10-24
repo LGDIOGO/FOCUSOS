@@ -63,7 +63,7 @@ export function NotificationsCenter({ isOpen, onClose }: NotificationsCenterProp
                 </div>
                 <div>
                   <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Notificações</h2>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-0.5">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-0.5">
                     {unreadCount > 0 ? `${unreadCount} novas` : 'Tudo em dia'}
                   </p>
                 </div>
@@ -97,10 +97,10 @@ export function NotificationsCenter({ isOpen, onClose }: NotificationsCenterProp
                   {todayNotifs.length > 0 && (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">Hoje</h3>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Hoje</h3>
                         <button
                           onClick={() => clearAll(visibleNotifs.map(n => n.id))}
-                          className="text-[10px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 transition-colors"
+                          className="text-xs font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 transition-colors"
                         >
                           Limpar tudo
                         </button>
@@ -122,7 +122,7 @@ export function NotificationsCenter({ isOpen, onClose }: NotificationsCenterProp
                   {/* Older Section */}
                   {olderNotifs.length > 0 && (
                     <div className="space-y-4">
-                      <h3 className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">Anteriores</h3>
+                      <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Anteriores</h3>
                       <div className="grid gap-3">
                         {olderNotifs.map(n => (
                           <NotificationItem 
@@ -178,20 +178,21 @@ function NotificationItem({ notif, onDelete, onMarkRead, styles }: any) {
           <p className="text-xs text-[var(--text-muted)] leading-relaxed break-words whitespace-pre-wrap line-clamp-4">
             {notif.body}
           </p>
-          <span className="text-[9px] font-bold text-white/10 mt-3 block uppercase tracking-widest">
+          <span className="text-xs font-bold text-white/10 mt-3 block uppercase tracking-widest">
             {format(new Date(notif.created_at), 'HH:mm • dd MMM', { locale: ptBR })}
           </span>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute top-4 right-4 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
         <button
           onClick={(e) => {
             e.stopPropagation()
             onDelete()
           }}
-          className="p-1.5 text-white/20 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+          aria-label="Excluir notificação"
+          className="min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-primary)]"
         >
           <Trash2 size={14} />
         </button>

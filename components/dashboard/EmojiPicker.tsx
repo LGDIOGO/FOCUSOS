@@ -310,7 +310,7 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
           isOpen && "border-white/30 bg-white/10 ring-4 ring-white/5"
         )}
       >
-        {value || <Smile className="text-white/20" size={32} />}
+        {value || <Smile className="text-[var(--text-muted)]" size={32} />}
       </button>
 
       {/* Portal — always mounted when isMounted; AnimatePresence lives INSIDE the portal */}
@@ -351,7 +351,7 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
                         "p-3 rounded-2xl transition-all relative flex-1 flex justify-center shrink-0",
                         activeCategory === cat.id && !search
                           ? "bg-white text-black shadow-lg shadow-white/10"
-                          : "text-white/40 hover:bg-white/5 hover:text-white/60"
+                          : "text-[var(--text-muted)] hover:bg-white/5 hover:text-white/60"
                       )}
                     >
                       <cat.icon size={16} strokeWidth={2.5} />
@@ -367,14 +367,14 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
                       value={search}
                       onChange={e => setSearch(e.target.value)}
                       placeholder="Buscar emoji... (ex: fogo, meta, treino)"
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-red-500/50 transition-all placeholder:text-white/20"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-red-500/50 transition-all placeholder:text-[var(--text-muted)]"
                       autoFocus={isFinePointer()}
                     />
                     {search && (
                       <button
                         type="button"
                         onClick={() => setSearch('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/30 hover:text-white transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[var(--text-muted)] hover:text-white transition-colors"
                       >
                         <X size={13} />
                       </button>
@@ -383,21 +383,21 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
 
                   {/* Header row */}
                   <div className="flex justify-between items-center mb-3 px-0.5 shrink-0">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 truncate max-w-[160px]">
+                    <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--text-muted)] truncate max-w-[160px]">
                       {currentCategoryLabel}
                     </span>
                     <div className="flex gap-3">
                       <button
                         type="button"
                         onClick={() => { onChange(''); setIsOpen(false) }}
-                        className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors bg-white/5 px-3 min-h-[44px] rounded-lg"
+                        className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-white transition-colors bg-white/5 px-3 min-h-[44px] rounded-lg"
                       >
                         Nenhum
                       </button>
                       <button
                         type="button"
                         onClick={() => setIsOpen(false)}
-                        className="text-[10px] font-black uppercase tracking-widest text-red-400/80 hover:text-red-300 transition-colors px-2 min-h-[44px]"
+                        className="text-xs font-black uppercase tracking-widest text-red-400/80 hover:text-red-300 transition-colors px-2 min-h-[44px]"
                       >
                         Fechar
                       </button>
@@ -423,7 +423,7 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
                     ))}
                     {filteredEmojis.length === 0 && (
                       <div className="col-span-6 py-8 text-center">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/20">
+                        <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
                           Nenhum emoji encontrado
                         </p>
                       </div>

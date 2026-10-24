@@ -22,7 +22,7 @@ export function AppleTimePicker({ value, onChange, onClose, direction = 'down' }
       className="bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-[32px] p-4 sm:p-6 shadow-2xl w-[260px] max-w-[95vw] transition-colors duration-300"
     >
       <div className="flex justify-between items-center mb-6 px-2">
-        <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Escolher Horário</span>
+        <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Escolher Horário</span>
         <span className="text-[var(--text-primary)] font-black text-xl tracking-tighter">{value}</span>
       </div>
 

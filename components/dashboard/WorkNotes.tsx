@@ -80,8 +80,8 @@ export function WorkNotes({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <MessageSquare size={12} className="text-white/30" />
-        <p className="text-[9px] uppercase tracking-widest font-black text-white/30">
+        <MessageSquare size={12} className="text-[var(--text-muted)]" />
+        <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)]">
           Histórico e observações {notes.length > 0 && `· ${notes.length}`}
         </p>
       </div>
@@ -101,7 +101,7 @@ export function WorkNotes({
           }}
           rows={2}
           placeholder="Anote o que aconteceu, cole um print, número, decisão..."
-          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 pr-20 text-white text-sm focus:outline-none focus:border-white/30 transition-all resize-none placeholder:text-white/20"
+          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 pr-20 text-white text-sm focus:outline-none focus:border-white/30 transition-all resize-none placeholder:text-[var(--text-muted)]"
         />
         <div className="absolute right-2 bottom-2.5 flex items-center gap-1">
           <input
@@ -116,7 +116,7 @@ export function WorkNotes({
             onClick={() => fileInput.current?.click()}
             aria-label="Anexar imagem"
             title="Anexar imagem (ou cole com Ctrl+V)"
-            className="w-8 h-8 rounded-xl border border-white/10 text-white/40 flex items-center justify-center hover:text-white hover:border-white/30 transition-all"
+            className="w-8 h-8 rounded-xl border border-white/10 text-[var(--text-muted)] flex items-center justify-center hover:text-white hover:border-white/30 transition-all"
           >
             <ImagePlus size={13} />
           </button>
@@ -145,7 +145,7 @@ export function WorkNotes({
               <button
                 onClick={() => setPending(p => p.filter((_, j) => j !== i))}
                 aria-label={`Remover ${f.name}`}
-                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition-opacity"
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-100 md:opacity-0 md:group-hover/att:opacity-100 focus-visible:opacity-100 transition-opacity"
               >
                 <X size={11} />
               </button>
@@ -153,18 +153,18 @@ export function WorkNotes({
           ))}
           {uploading && (
             <div className="w-14 h-14 rounded-lg border border-white/10 flex items-center justify-center">
-              <Loader2 size={16} className="animate-spin text-white/40" />
+              <Loader2 size={16} className="animate-spin text-[var(--text-muted)]" />
             </div>
           )}
         </div>
       )}
 
-      {error && <p className="text-red-400 text-[11px] font-bold">{error}</p>}
+      {error && <p className="text-red-400 text-xs font-bold">{error}</p>}
 
       {isLoading ? (
-        <p className="text-white/25 text-[11px] font-bold">Carregando histórico...</p>
+        <p className="text-white/25 text-xs font-bold">Carregando histórico...</p>
       ) : notes.length === 0 ? (
-        <p className="text-white/20 text-[11px] font-bold">
+        <p className="text-[var(--text-muted)] text-xs font-bold">
           Nada registrado ainda. O que você escrever aqui fica guardado com data e hora.
         </p>
       ) : (
@@ -179,23 +179,23 @@ export function WorkNotes({
                 className="group rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2.5"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/30">
+                  <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
                     {stamp(n.created_at)}
                     {n.occurrence_date && (
-                      <span className="text-white/20"> · ref. {format(parseISO(`${n.occurrence_date}T12:00:00`), 'dd/MM')}</span>
+                      <span className="text-[var(--text-muted)]"> · ref. {format(parseISO(`${n.occurrence_date}T12:00:00`), 'dd/MM')}</span>
                     )}
                   </span>
                   {pendingDelete === n.id ? (
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => setPendingDelete(null)}
-                        className="text-[8px] font-black uppercase text-white/40 hover:text-white px-1"
+                        className="text-xs font-black uppercase text-[var(--text-muted)] hover:text-white px-1"
                       >
                         não
                       </button>
                       <button
                         onClick={() => { delNote.mutate(n.id); setPendingDelete(null) }}
-                        className="text-[8px] font-black uppercase text-red-400 hover:text-red-300 px-1"
+                        className="text-xs font-black uppercase text-red-400 hover:text-red-300 px-1"
                       >
                         excluir
                       </button>
@@ -204,7 +204,7 @@ export function WorkNotes({
                     <button
                       onClick={() => setPendingDelete(n.id)}
                       aria-label="Excluir anotação"
-                      className="opacity-0 group-hover:opacity-100 text-white/25 hover:text-red-400 transition-all shrink-0"
+                      className="min-w-[44px] min-h-[44px] -my-3 -mr-3 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-primary)] text-[var(--text-muted)] hover:text-red-400 transition-all shrink-0"
                     >
                       <Trash2 size={11} />
                     </button>

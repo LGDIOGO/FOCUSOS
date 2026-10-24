@@ -66,7 +66,7 @@ export function AccountDataSection() {
     <div className="p-8 bg-white/[0.03] border border-white/10 rounded-[32px] space-y-6">
       <div>
         <h4 className="font-black text-lg text-[var(--text-primary)]">Seus dados</h4>
-        <p className="text-sm text-white/40 font-medium">
+        <p className="text-sm text-[var(--text-muted)] font-medium">
           Baixe uma cópia de tudo que o FocusOS guarda sobre você ou apague sua conta de vez.{' '}
           <Link href="/privacidade" target="_blank" className="underline">Política de Privacidade</Link>
           {' · '}

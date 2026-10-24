@@ -51,7 +51,7 @@ export function CustomDateTimePicker({
 
   return (
     <div className="space-y-2 flex-1" ref={containerRef}>
-      <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">{label}</label>
+      <label className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">{label}</label>
       <div 
         onPointerDown={(e) => {
           e.preventDefault()

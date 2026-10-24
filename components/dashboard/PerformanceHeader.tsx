@@ -45,7 +45,7 @@ export function PerformanceHeader({ manualDailyScore }: { manualDailyScore?: num
         {/* Daily */}
         <div className="flex flex-col items-end">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">HOJE</span>
+            <span className="text-xs md:text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">HOJE</span>
             <Target size={12} className="text-[var(--text-muted)]" />
           </div>
           <span className={cn(
@@ -64,7 +64,7 @@ export function PerformanceHeader({ manualDailyScore }: { manualDailyScore?: num
         {/* Weekly */}
         <div className="flex flex-col items-end">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">SEMANA</span>
+            <span className="text-xs md:text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">SEMANA</span>
             <TrendingUp size={12} className={cn(weekly >= threshold ? "text-green-500" : "text-[var(--text-muted)]")} />
           </div>
           {isWeeklyLoading ? (
@@ -92,7 +92,7 @@ export function PerformanceHeader({ manualDailyScore }: { manualDailyScore?: num
       <motion.p
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
-        className="hidden sm:block text-[11px] md:text-[13px] font-black text-[var(--text-primary)] italic text-right leading-snug tracking-tightest bg-[var(--bg-overlay)] px-3 py-1.5 md:px-4 md:py-2 rounded-full border border-[var(--border-subtle)] shadow-xl max-w-[240px] md:max-w-none"
+        className="hidden sm:block text-xs md:text-[13px] font-black text-[var(--text-primary)] italic text-right leading-snug tracking-tightest bg-[var(--bg-overlay)] px-3 py-1.5 md:px-4 md:py-2 rounded-full border border-[var(--border-subtle)] shadow-xl max-w-[240px] md:max-w-none"
       >
         {paretoMessage}
       </motion.p>

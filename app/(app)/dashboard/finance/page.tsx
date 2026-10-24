@@ -220,7 +220,7 @@ function Wizard({ onDone }: { onDone: () => void }) {
                   {saving ? 'Salvando...' : 'Continuar →'}
                 </button>
               </div>
-              <p className="text-zinc-600 text-[11px] text-center mt-3">
+              <p className="text-zinc-600 text-xs text-center mt-3">
                 Você pode configurar isso depois na aba Recorrentes.
               </p>
             </motion.div>
@@ -703,7 +703,8 @@ function LancamentosTab({ transactions }: { transactions: FinanceTransaction[] }
               </span>
               <button
                 onClick={() => deleteTx.mutate(tx.id)}
-                className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-rose-400 transition-all ml-1 shrink-0"
+                aria-label="Excluir lançamento"
+                className="min-w-[44px] min-h-[44px] -my-3 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white text-zinc-500 hover:text-rose-400 transition-all shrink-0"
               >
                 <Trash2 size={13} />
               </button>
@@ -756,14 +757,15 @@ function RecurringItem({
         </span>
         {/* O resumo trabalha em base mensal — deixa explícito quanto este item pesa lá. */}
         {item.billing_cycle !== 'monthly' && (
-          <div className="text-[10px] text-zinc-500 leading-tight">
+          <div className="text-xs text-zinc-500 leading-tight">
             ≈ {brl(monthlyAmount(item))}/mês
           </div>
         )}
       </div>
       <button
         onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-rose-400 transition-all shrink-0"
+        aria-label="Excluir item"
+        className="min-w-[44px] min-h-[44px] -my-3 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white text-zinc-500 hover:text-rose-400 transition-all shrink-0"
       >
         <Trash2 size={13} />
       </button>
@@ -1020,7 +1022,7 @@ function ReserveEditModal({ reserve, onClose }: { reserve: Reserve; onClose: () 
       >
         <div className="flex items-center justify-between">
           <p className="text-base font-black text-white">Editar Reserva</p>
-          <button onClick={onClose} className="p-2 rounded-xl text-white/30 hover:text-white hover:bg-white/[0.06] transition-all"><X size={16} /></button>
+          <button onClick={onClose} className="p-2 rounded-xl text-[var(--text-muted)] hover:text-white hover:bg-white/[0.06] transition-all"><X size={16} /></button>
         </div>
         <div className="flex justify-center">
           <EmojiPicker value={emoji} onChange={setEmoji} />
@@ -1029,7 +1031,7 @@ function ReserveEditModal({ reserve, onClose }: { reserve: Reserve; onClose: () 
           className="w-full px-4 py-3 rounded-2xl border border-white/[0.08] bg-white/[0.04] text-sm font-bold text-white placeholder:text-white/25 outline-none focus:border-white/25 transition-colors"
         />
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-white/30 mb-2.5">Cor</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-2.5">Cor</p>
           <div className="flex gap-2.5 flex-wrap">
             {RESERVE_COLORS.map(c => (
               <button key={c.id} onClick={() => setColor(c.id)}
@@ -1039,14 +1041,14 @@ function ReserveEditModal({ reserve, onClose }: { reserve: Reserve; onClose: () 
           </div>
         </div>
         <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] focus-within:border-white/20 transition-colors">
-          <Target size={14} className="text-white/30 shrink-0" />
-          <span className="text-sm text-white/30 font-semibold shrink-0">Meta R$</span>
+          <Target size={14} className="text-[var(--text-muted)] shrink-0" />
+          <span className="text-sm text-[var(--text-muted)] font-semibold shrink-0">Meta R$</span>
           <input type="text" inputMode="numeric" placeholder="Sem meta" value={target} onChange={e => setTarget(e.target.value.replace(/\D/g, ''))}
-            className="flex-1 bg-transparent text-sm font-bold text-white outline-none min-w-0 placeholder:text-white/20"
+            className="flex-1 bg-transparent text-sm font-bold text-white outline-none min-w-0 placeholder:text-[var(--text-muted)]"
           />
         </div>
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-white/[0.08] text-sm text-white/40 hover:text-white/70 transition-all">Cancelar</button>
+          <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-white/[0.08] text-sm text-[var(--text-muted)] hover:text-white/70 transition-all">Cancelar</button>
           <button onClick={handleSave} disabled={isPending || !name.trim()}
             className={cn('flex-1 py-3 rounded-2xl bg-white text-black text-sm font-black transition-all hover:bg-white/90', (isPending || !name.trim()) && 'opacity-40 cursor-not-allowed')}
           >{isPending ? '...' : 'Salvar'}</button>
@@ -1107,7 +1109,7 @@ function ReserveCard({ reserve }: { reserve: Reserve }) {
             </div>
             <div className="flex items-baseline gap-1 mt-1">
               <span className={cn('text-xl font-black tabular-nums', col.text)}>{brl(reserve.balance)}</span>
-              {reserve.target > 0 && <span className="text-xs text-white/30">/ {brl(reserve.target)}</span>}
+              {reserve.target > 0 && <span className="text-xs text-[var(--text-muted)]">/ {brl(reserve.target)}</span>}
             </div>
             {pct !== null && (
               <div className="flex items-center gap-2 mt-1.5">
@@ -1115,7 +1117,7 @@ function ReserveCard({ reserve }: { reserve: Reserve }) {
                   <motion.div className="h-full rounded-full" style={{ backgroundColor: col.stroke }}
                     initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.6, ease: 'easeOut' }} />
                 </div>
-                <span className="text-[10px] font-bold text-white/25 tabular-nums">{pct}%</span>
+                <span className="text-xs font-bold text-white/25 tabular-nums">{pct}%</span>
               </div>
             )}
           </div>
@@ -1143,7 +1145,7 @@ function ReserveCard({ reserve }: { reserve: Reserve }) {
                       className={cn('flex-1 py-2 rounded-xl text-xs font-bold border transition-all uppercase tracking-wide flex items-center justify-center gap-1',
                         txType === t && t === 'deposit' ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
                           : txType === t ? 'bg-red-500/20 border-red-500/40 text-red-400'
-                          : 'border-white/[0.08] text-white/30 hover:text-white/60'
+                          : 'border-white/[0.08] text-[var(--text-muted)] hover:text-white/60'
                       )}
                     >
                       {t === 'deposit' ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
@@ -1152,10 +1154,10 @@ function ReserveCard({ reserve }: { reserve: Reserve }) {
                   ))}
                 </div>
                 <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] focus-within:border-white/20 transition-colors">
-                  <span className="text-xs text-white/30 font-semibold shrink-0">R$</span>
+                  <span className="text-xs text-[var(--text-muted)] font-semibold shrink-0">R$</span>
                   <input type="text" inputMode="numeric" placeholder="0" value={txAmount} onChange={e => setTxAmount(e.target.value.replace(/\D/g, ''))}
                     onKeyDown={e => e.key === 'Enter' && handleTransact()} autoFocus
-                    className="flex-1 bg-transparent text-base font-black text-white outline-none min-w-0 placeholder:text-white/20"
+                    className="flex-1 bg-transparent text-base font-black text-white outline-none min-w-0 placeholder:text-[var(--text-muted)]"
                   />
                 </div>
                 <input type="text" placeholder="Observação (opcional)" value={txNote} onChange={e => setTxNote(e.target.value)}
@@ -1206,7 +1208,7 @@ function ReservasTab() {
     })
   }
 
-  if (isLoading) return <div className="text-center py-12 text-white/30 text-sm">Carregando reservas...</div>
+  if (isLoading) return <div className="text-center py-12 text-[var(--text-muted)] text-sm">Carregando reservas...</div>
 
   return (
     <div className="space-y-4">
@@ -1216,7 +1218,7 @@ function ReservasTab() {
           <div className="flex-1">
             <p className="text-xs text-white/35 mb-0.5">Total em Reservas</p>
             <p className="text-xl font-black text-white">{brl(totalReserves)}</p>
-            <p className="text-xs text-white/30 mt-0.5">
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
               {reserves.length} {reserves.length === 1 ? 'reserva' : 'reservas'}
               {goalsMetCount > 0 && <span className="text-emerald-400 ml-2">· {goalsMetCount} meta{goalsMetCount > 1 ? 's' : ''} ✓</span>}
             </p>
@@ -1249,10 +1251,10 @@ function ReservasTab() {
                 ))}
               </div>
               <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] focus-within:border-white/20 transition-colors">
-                <Target size={13} className="text-white/30 shrink-0" />
-                <span className="text-sm text-white/30 shrink-0">Meta R$</span>
+                <Target size={13} className="text-[var(--text-muted)] shrink-0" />
+                <span className="text-sm text-[var(--text-muted)] shrink-0">Meta R$</span>
                 <input type="text" inputMode="numeric" placeholder="Opcional" value={target} onChange={e => setTarget(e.target.value.replace(/\D/g, ''))}
-                  className="flex-1 bg-transparent text-sm font-bold text-white outline-none min-w-0 placeholder:text-white/20"
+                  className="flex-1 bg-transparent text-sm font-bold text-white outline-none min-w-0 placeholder:text-[var(--text-muted)]"
                 />
               </div>
               <div className="flex gap-2">

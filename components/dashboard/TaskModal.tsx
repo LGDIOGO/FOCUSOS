@@ -190,7 +190,7 @@ export function TaskModal({ isOpen, onClose, taskToEdit }: { isOpen: boolean, on
                     type="button"
                     onClick={() => setTaskData({ ...taskData, priority: p.id })}
                     className={cn(
-                      "py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2",
+                      "py-2 rounded-xl text-xs font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2",
                       taskData.priority === p.id 
                         ? (p.id === 'critical' ? "bg-red-600 border-red-600 text-white shadow-lg" : "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-lg")
                         : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"

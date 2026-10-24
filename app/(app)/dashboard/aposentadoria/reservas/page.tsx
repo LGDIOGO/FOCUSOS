@@ -77,8 +77,8 @@ function TxList({ reserveId }: { reserveId: string }) {
   const { data: txs = [], isLoading } = useReserveTxs(reserveId)
   const sorted = useMemo(() => [...txs].sort((a, b) => b.created_at.localeCompare(a.created_at)), [txs])
 
-  if (isLoading) return <p className="text-xs text-white/30 py-3 text-center">Carregando...</p>
-  if (!sorted.length) return <p className="text-xs text-white/30 py-3 text-center">Nenhuma movimentação ainda.</p>
+  if (isLoading) return <p className="text-xs text-[var(--text-muted)] py-3 text-center">Carregando...</p>
+  if (!sorted.length) return <p className="text-xs text-[var(--text-muted)] py-3 text-center">Nenhuma movimentação ainda.</p>
 
   return (
     <div className="space-y-px max-h-52 overflow-y-auto">
@@ -95,7 +95,7 @@ function TxList({ reserveId }: { reserveId: string }) {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold text-white/80 truncate">{tx.note || (tx.type === 'deposit' ? 'Depósito' : 'Retirada')}</p>
-              <p className="text-[10px] text-white/30">{fmtDate(tx.date)}</p>
+              <p className="text-xs text-[var(--text-muted)]">{fmtDate(tx.date)}</p>
             </div>
           </div>
           <span className={cn('text-sm font-bold tabular-nums shrink-0', tx.type === 'deposit' ? 'text-emerald-400' : 'text-red-400')}>
@@ -140,7 +140,7 @@ function TransactPanel({ reserve, onClose }: { reserve: Reserve; onClose: () => 
                 'flex-1 py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 uppercase tracking-wide',
                 type === t && t === 'deposit'  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
                   : type === t && t === 'withdrawal' ? 'bg-red-500/20 border-red-500/40 text-red-400'
-                  : 'border-white/[0.08] text-white/30 hover:text-white/60'
+                  : 'border-white/[0.08] text-[var(--text-muted)] hover:text-white/60'
               )}
             >
               {t === 'deposit' ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
@@ -151,14 +151,14 @@ function TransactPanel({ reserve, onClose }: { reserve: Reserve; onClose: () => 
 
         {/* Amount */}
         <div className="flex items-center gap-2 px-4 py-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] focus-within:border-white/20 transition-colors">
-          <span className="text-sm text-white/40 font-semibold shrink-0">R$</span>
+          <span className="text-sm text-[var(--text-muted)] font-semibold shrink-0">R$</span>
           <input
             type="text" inputMode="numeric" placeholder="0"
             value={amount}
             onChange={e => setAmount(e.target.value.replace(/\D/g, ''))}
             onKeyDown={e => e.key === 'Enter' && handleSubmit()}
             autoFocus
-            className="flex-1 bg-transparent text-xl font-black text-white outline-none min-w-0 placeholder:text-white/20"
+            className="flex-1 bg-transparent text-xl font-black text-white outline-none min-w-0 placeholder:text-[var(--text-muted)]"
           />
         </div>
 
@@ -172,7 +172,7 @@ function TransactPanel({ reserve, onClose }: { reserve: Reserve; onClose: () => 
 
         {/* Actions */}
         <div className="flex gap-2">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-sm text-white/40 hover:text-white/70 transition-all">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-sm text-[var(--text-muted)] hover:text-white/70 transition-all">
             Cancelar
           </button>
           <button
@@ -227,7 +227,7 @@ function EditModal({ reserve, onClose }: { reserve: Reserve; onClose: () => void
         {/* Header */}
         <div className="flex items-center justify-between">
           <p className="text-base font-black text-white tracking-tight">Editar Reserva</p>
-          <button onClick={onClose} className="p-2 rounded-xl text-white/30 hover:text-white hover:bg-white/[0.06] transition-all">
+          <button onClick={onClose} className="p-2 rounded-xl text-[var(--text-muted)] hover:text-white hover:bg-white/[0.06] transition-all">
             <X size={16} />
           </button>
         </div>
@@ -247,7 +247,7 @@ function EditModal({ reserve, onClose }: { reserve: Reserve; onClose: () => void
 
         {/* Color */}
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-white/30 mb-2.5">Cor</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-2.5">Cor</p>
           <div className="flex gap-2.5 flex-wrap">
             {COLORS.map(c => (
               <button
@@ -265,19 +265,19 @@ function EditModal({ reserve, onClose }: { reserve: Reserve; onClose: () => void
 
         {/* Target */}
         <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] focus-within:border-white/20 transition-colors">
-          <Target size={14} className="text-white/30 shrink-0" />
-          <span className="text-sm text-white/30 font-semibold shrink-0">Meta R$</span>
+          <Target size={14} className="text-[var(--text-muted)] shrink-0" />
+          <span className="text-sm text-[var(--text-muted)] font-semibold shrink-0">Meta R$</span>
           <input
             type="text" inputMode="numeric" placeholder="Sem meta"
             value={target}
             onChange={e => setTarget(e.target.value.replace(/\D/g, ''))}
-            className="flex-1 bg-transparent text-sm font-bold text-white outline-none min-w-0 placeholder:text-white/20"
+            className="flex-1 bg-transparent text-sm font-bold text-white outline-none min-w-0 placeholder:text-[var(--text-muted)]"
           />
         </div>
 
         {/* Actions */}
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-white/[0.08] text-sm text-white/40 hover:text-white/70 transition-all">
+          <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-white/[0.08] text-sm text-[var(--text-muted)] hover:text-white/70 transition-all">
             Cancelar
           </button>
           <button
@@ -373,7 +373,7 @@ function ReserveCard({ reserve }: { reserve: Reserve }) {
                 {fmtBRL(reserve.balance, true)}
               </span>
               {reserve.target > 0 && (
-                <span className="text-xs text-white/30 font-medium">/ {fmtBRL(reserve.target, true)}</span>
+                <span className="text-xs text-[var(--text-muted)] font-medium">/ {fmtBRL(reserve.target, true)}</span>
               )}
             </div>
 
@@ -388,7 +388,7 @@ function ReserveCard({ reserve }: { reserve: Reserve }) {
                     transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
                   />
                 </div>
-                <span className="text-[10px] font-black text-white/30 tabular-nums shrink-0">{pct}%</span>
+                <span className="text-xs font-black text-[var(--text-muted)] tabular-nums shrink-0">{pct}%</span>
               </div>
             )}
           </div>
@@ -396,12 +396,12 @@ function ReserveCard({ reserve }: { reserve: Reserve }) {
 
         {/* Faltam badge */}
         {reserve.target > 0 && !isGoalMet && (
-          <p className="text-[11px] text-white/30 mt-3 pl-1">
+          <p className="text-xs text-[var(--text-muted)] mt-3 pl-1">
             Faltam <span className="font-bold text-white/50">{fmtBRL(reserve.target - reserve.balance, true)}</span> para a meta
           </p>
         )}
         {isGoalMet && (
-          <p className="text-[11px] font-bold text-emerald-400 mt-3 pl-1">✓ Meta atingida!</p>
+          <p className="text-xs font-bold text-emerald-400 mt-3 pl-1">✓ Meta atingida!</p>
         )}
 
         {/* Action buttons */}
@@ -412,7 +412,7 @@ function ReserveCard({ reserve }: { reserve: Reserve }) {
               'flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-xs font-bold border uppercase tracking-wide transition-all',
               panel === 'transact'
                 ? 'bg-white/[0.08] border-white/20 text-white'
-                : 'border-white/[0.08] text-white/40 hover:text-white hover:border-white/20'
+                : 'border-white/[0.08] text-[var(--text-muted)] hover:text-white hover:border-white/20'
             )}
           >
             <TrendingUp size={12} /> Movimentar
@@ -423,7 +423,7 @@ function ReserveCard({ reserve }: { reserve: Reserve }) {
               'flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-xs font-bold border uppercase tracking-wide transition-all',
               panel === 'history'
                 ? 'bg-white/[0.08] border-white/20 text-white'
-                : 'border-white/[0.08] text-white/40 hover:text-white hover:border-white/20'
+                : 'border-white/[0.08] text-[var(--text-muted)] hover:text-white hover:border-white/20'
             )}
           >
             <Clock size={12} /> Histórico
@@ -496,7 +496,7 @@ function CreateForm({ onDone }: { onDone: () => void }) {
 
       {/* Color */}
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-white/30 mb-2.5">Cor</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-2.5">Cor</p>
         <div className="flex gap-2.5 flex-wrap">
           {COLORS.map(c => (
             <button
@@ -514,19 +514,19 @@ function CreateForm({ onDone }: { onDone: () => void }) {
 
       {/* Target */}
       <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] focus-within:border-white/20 transition-colors">
-        <Target size={14} className="text-white/30 shrink-0" />
-        <span className="text-sm text-white/30 font-semibold shrink-0">Meta R$</span>
+        <Target size={14} className="text-[var(--text-muted)] shrink-0" />
+        <span className="text-sm text-[var(--text-muted)] font-semibold shrink-0">Meta R$</span>
         <input
           type="text" inputMode="numeric" placeholder="Opcional"
           value={target}
           onChange={e => setTarget(e.target.value.replace(/\D/g, ''))}
-          className="flex-1 bg-transparent text-sm font-bold text-white outline-none min-w-0 placeholder:text-white/20"
+          className="flex-1 bg-transparent text-sm font-bold text-white outline-none min-w-0 placeholder:text-[var(--text-muted)]"
         />
       </div>
 
       {/* Actions */}
       <div className="flex gap-2">
-        <button onClick={onDone} className="flex-1 py-3 rounded-2xl border border-white/[0.08] text-sm text-white/40 hover:text-white/70 transition-all">
+        <button onClick={onDone} className="flex-1 py-3 rounded-2xl border border-white/[0.08] text-sm text-[var(--text-muted)] hover:text-white/70 transition-all">
           Cancelar
         </button>
         <button
@@ -565,7 +565,7 @@ export default function ReservasPage() {
       <div className="flex items-center gap-3 pt-1">
         <button
           onClick={() => router.push('/dashboard/aposentadoria')}
-          className="p-2.5 rounded-2xl text-white/40 hover:text-white hover:bg-white/[0.06] transition-all"
+          className="p-2.5 rounded-2xl text-[var(--text-muted)] hover:text-white hover:bg-white/[0.06] transition-all"
         >
           <ArrowLeft size={18} />
         </button>
@@ -607,7 +607,7 @@ export default function ReservasPage() {
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-white/35 mb-1">Total em Reservas</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/35 mb-1">Total em Reservas</p>
               <p className="text-3xl font-black text-white tabular-nums leading-none">{fmtBRL(totalBalance)}</p>
               {totalTarget > 0 && (
                 <p className="text-xs text-white/35 mt-1.5">
@@ -633,7 +633,7 @@ export default function ReservasPage() {
 
       {/* List */}
       {isLoading ? (
-        <div className="text-center py-12 text-white/30 text-sm">Carregando...</div>
+        <div className="text-center py-12 text-[var(--text-muted)] text-sm">Carregando...</div>
       ) : sorted.length === 0 && !creating ? (
         <motion.div
           initial={{ opacity: 0 }}

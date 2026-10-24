@@ -84,7 +84,7 @@ export default function LoginPage() {
             <div className="w-8 h-8 bg-black rounded-[8px] rotate-45 transition-transform group-hover:rotate-[135deg] duration-700" />
           </Link>
           <h1 className="text-4xl font-black tracking-tightest">Entrar</h1>
-          <p className="text-white/40 text-[15px] font-medium leading-relaxed">Bem-vindo de volta ao seu centro de comando.</p>
+          <p className="text-white/60 text-[15px] font-medium leading-relaxed">Bem-vindo de volta ao seu centro de comando.</p>
         </div>
 
         <div className="space-y-6">
@@ -103,7 +103,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[12px] uppercase tracking-widest font-black text-white/30 px-1">E-mail</label>
+              <label className="text-[12px] uppercase tracking-widest font-black text-white/60 px-1">E-mail</label>
               <input
                 type="email"
                 value={email}
@@ -115,7 +115,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[12px] uppercase tracking-widest font-black text-white/30 px-1">Senha</label>
+              <label className="text-[12px] uppercase tracking-widest font-black text-white/60 px-1">Senha</label>
               <input
                 type="password"
                 value={password}
@@ -149,7 +149,7 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-[15px] text-white/40 font-medium">
+        <p className="text-center text-[15px] text-white/60 font-medium">
           Ainda não tem conta?
           <Link href="/signup" className="ml-2 text-white hover:underline font-bold">
             Cadastre-se grátis

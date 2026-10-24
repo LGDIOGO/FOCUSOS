@@ -15,7 +15,7 @@
   --bg-overlay: rgba(255, 255, 255, 0.04);
   --text-primary: #FFFFFF;
   --text-secondary: rgba(255, 255, 255, 0.6);
-  --text-muted: rgba(255, 255, 255, 0.35);
+  --text-muted: rgba(255, 255, 255, 0.5);
   --border-subtle: rgba(255, 255, 255, 0.08);
   --selection-ring: rgba(255, 255, 255, 0.15);
 
@@ -40,7 +40,7 @@
   --bg-overlay: rgba(0, 0, 0, 0.03);
   --text-primary: #000000;
   --text-secondary: rgba(0, 0, 0, 0.6);
-  --text-muted: rgba(0, 0, 0, 0.35);
+  --text-muted: rgba(0, 0, 0, 0.55);
   --border-subtle: rgba(0, 0, 0, 0.06);
   --selection-ring: rgba(0, 0, 0, 0.1);
 }
@@ -64,6 +64,14 @@
   -webkit-tap-highlight-color: transparent;
   /* Prevent elastic scroll flashing on Safari */
   -webkit-overflow-scrolling: touch;
+}
+
+/* Foco visível por teclado em botões e links (não aparece no clique/toque) */
+button:focus-visible,
+a:focus-visible,
+[role='button']:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
 }
 
 body {
