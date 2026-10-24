@@ -21,6 +21,7 @@ import { useSettings, useUpdateSettings } from '@/lib/hooks/useSettings'
 import { useProfile, useUpdateProfile } from '@/lib/hooks/useProfile'
 import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
 import { cn } from '@/lib/utils/cn'
+import { InlineConfirm } from '@/components/ui/InlineConfirm'
 import { auth, db } from '@/lib/firebase/config'
 import { onAuthStateChanged } from 'firebase/auth'
 import { collection, addDoc, getDocs, deleteDoc, doc, query, where } from 'firebase/firestore'
@@ -603,16 +604,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <h5 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Gerenciar Assinatura</h5>
                     <div className="grid grid-cols-1 gap-3">
                       {profile?.is_paid && (
-                        <button 
+                        <InlineConfirm
+                          label="Cancelar meu plano"
+                          message="Tem certeza que deseja cancelar seu plano? Para processamento imediato, entre em contato com o suporte."
+                          confirmLabel="Sim, cancelar"
                           className="w-full bg-red-500/10 border border-red-500/20 text-red-500 font-bold py-3 rounded-xl text-xs hover:bg-red-500 hover:text-white transition-all active:scale-95"
-                          onClick={() => {
-                            if (confirm('Tem certeza que deseja cancelar seu plano? Para processamento imediato, entre em contato com o suporte.')) {
-                              window.open('https://wa.me/seu_numero', '_blank')
-                            }
-                          }}
-                        >
-                          Cancelar meu plano
-                        </button>
+                          onConfirm={() => { window.open('https://wa.me/seu_numero', '_blank') }}
+                        />
                       )}
                       <button 
                         disabled={isUpgrading}
@@ -936,18 +934,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               <><RefreshCw size={14} /> Sincronizar Todos os Compromissos</>
                             )}
                           </button>
-                          <button
-                            onClick={() => {
-                              if (confirm('Desconectar o Google Calendar? Os eventos já sincronizados não serão apagados do Google.')) {
-                                setSyncResult(null)
-                                disconnectGCal.mutate()
-                              }
-                            }}
+                          <InlineConfirm
+                            label={disconnectGCal.isPending ? 'Desconectando...' : 'Desconectar'}
+                            message="Desconectar o Google Calendar? Os eventos já sincronizados não serão apagados do Google."
+                            confirmLabel="Sim, desconectar"
+                            onConfirm={() => { setSyncResult(null); disconnectGCal.mutate() }}
                             disabled={disconnectGCal.isPending}
                             className="w-full py-2.5 border border-red-500/20 text-red-400 hover:bg-red-500/10 font-bold text-xs rounded-xl transition-all disabled:opacity-50"
-                          >
-                            {disconnectGCal.isPending ? 'Desconectando...' : 'Desconectar'}
-                          </button>
+                          />
                         </div>
                       </>
                     ) : (

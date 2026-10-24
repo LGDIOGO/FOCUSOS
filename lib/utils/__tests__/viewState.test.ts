@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resolveViewState, isMatrixDayHiddenOnMobile, MATRIX_MOBILE_DAYS } from '../viewState'
+import { resolveViewState, matrixInitialScrollLeft } from '../viewState'
 
 describe('resolveViewState', () => {
   it('REGRESSÃO: conta nova (sem dados, sem erro) mostra estado vazio, nunca tela em branco nem erro', () => {
@@ -18,18 +18,13 @@ describe('resolveViewState', () => {
   })
 })
 
-describe('isMatrixDayHiddenOnMobile', () => {
-  it('REGRESSÃO: no celular só os últimos N dias aparecem; os mais recentes nunca somem', () => {
-    const total = 30
-    const hidden = Array.from({ length: total }, (_, i) => isMatrixDayHiddenOnMobile(i, total))
-    expect(hidden.filter(h => !h).length).toBe(MATRIX_MOBILE_DAYS)
-    expect(hidden[total - 1]).toBe(false)
-    expect(hidden[total - MATRIX_MOBILE_DAYS]).toBe(false)
-    expect(hidden[total - MATRIX_MOBILE_DAYS - 1]).toBe(true)
+describe('matrixInitialScrollLeft', () => {
+  it('REGRESSÃO: matriz larga abre rolada até o fim (dia mais recente visível), sem esconder dias antigos', () => {
+    expect(matrixInitialScrollLeft(900, 360)).toBe(540)
   })
-  it('período curto (menos dias que a janela) não esconde nada', () => {
-    expect(isMatrixDayHiddenOnMobile(0, 5)).toBe(false)
-    expect(isMatrixDayHiddenOnMobile(0, MATRIX_MOBILE_DAYS)).toBe(false)
+  it('matriz que cabe na tela não rola', () => {
+    expect(matrixInitialScrollLeft(300, 360)).toBe(0)
+    expect(matrixInitialScrollLeft(360, 360)).toBe(0)
   })
 })
 

@@ -19,12 +19,12 @@ export function resolveViewState(input: {
   return 'empty'
 }
 
-/** Quantos dias a matriz de habitos mostra no celular (as colunas antigas ficam so a partir de sm). */
-export const MATRIX_MOBILE_DAYS = 10
-
-/** true se a coluna `index` (0 = mais antiga) de `total` deve sumir no celular. */
-export function isMatrixDayHiddenOnMobile(index: number, total: number, mobileDays: number = MATRIX_MOBILE_DAYS): boolean {
-  return index < total - mobileDays
+/**
+ * Posicao inicial de rolagem da matriz de habitos: sempre no fim, para o dia mais
+ * recente ficar visivel. Todos os dias seguem no DOM (rolagem horizontal no celular).
+ */
+export function matrixInitialScrollLeft(scrollWidth: number, clientWidth: number): number {
+  return Math.max(0, scrollWidth - clientWidth)
 }
 
 /**

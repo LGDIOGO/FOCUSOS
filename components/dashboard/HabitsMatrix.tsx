@@ -5,7 +5,7 @@ import { format, parseISO, eachDayOfInterval, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 import { occursOn } from '@/lib/utils/recurrence'
-import { isMatrixDayHiddenOnMobile, MATRIX_MOBILE_DAYS } from '@/lib/utils/viewState'
+import { matrixInitialScrollLeft } from '@/lib/utils/viewState'
 import type { Habit, HabitStatus } from '@/types'
 
 /** Teto de colunas: "todo o tempo" chega a milhares de dias. */
@@ -88,7 +88,7 @@ export function HabitsMatrix({
 
   // Abre já mostrando os dias mais recentes.
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
+    if (scrollRef.current) scrollRef.current.scrollLeft = matrixInitialScrollLeft(scrollRef.current.scrollWidth, scrollRef.current.clientWidth)
   }, [days.length, habits.length])
 
   if (habits.length === 0) {
@@ -127,7 +127,7 @@ export function HabitsMatrix({
               const prev = i > 0 ? days[i - 1].date : null
               const startsMonth = !prev || !isSameMonth(date, prev)
               return (
-                <div key={iso} className={cn('w-7 sm:w-5 shrink-0 flex-col items-center', isMatrixDayHiddenOnMobile(i, days.length) ? 'hidden sm:flex' : 'flex')}>
+                <div key={iso} className="w-7 sm:w-5 shrink-0 flex flex-col items-center">
                   <span className={cn(
                     'text-xs font-bold whitespace-nowrap h-4',
                     startsMonth ? 'text-[var(--text-muted)]' : 'text-transparent'
@@ -163,7 +163,7 @@ export function HabitsMatrix({
                     return (
                       <div
                         key={iso}
-                        className={cn('w-7 h-7 sm:w-5 sm:h-5 shrink-0 rounded-[4px] border border-dashed border-[var(--border-subtle)]/40', isMatrixDayHiddenOnMobile(i, days.length) && 'hidden sm:block')}
+                        className="w-7 h-7 sm:w-5 sm:h-5 shrink-0 rounded-[4px] border border-dashed border-[var(--border-subtle)]/40"
                         title={`${habit.name} — não previsto em ${format(days[i].date, "dd/MM")}`}
                       />
                     )
@@ -180,7 +180,6 @@ export function HabitsMatrix({
                       aria-label={`${habit.name}, ${format(days[i].date, "dd/MM")}: ${cell.status === 'done' ? 'Feito' : cell.status === 'partial' ? 'Parcial' : cell.status === 'failed' ? 'Falhou' : 'Sem registro'}`}
                       className={cn(
                         'relative w-7 h-7 sm:w-5 sm:h-5 before:absolute before:-inset-1.5 sm:before:hidden shrink-0 rounded-[4px] border transition-transform hover:scale-125 hover:ring-1 hover:ring-white/40',
-                        isMatrixDayHiddenOnMobile(i, days.length) && 'hidden sm:block',
                         style
                       )}
                     />
@@ -208,9 +207,9 @@ export function HabitsMatrix({
           Mostrando os últimos {MAX_DAYS} dias do período
         </p>
       )}
-      {days.length > MATRIX_MOBILE_DAYS && (
+      {days.length > 7 && (
         <p className="sm:hidden text-xs text-[var(--text-muted)]">
-          Mostrando os últimos {MATRIX_MOBILE_DAYS} dias. Em telas maiores aparece o período inteiro.
+          Role para o lado para ver dias anteriores.
         </p>
       )}
     </div>
