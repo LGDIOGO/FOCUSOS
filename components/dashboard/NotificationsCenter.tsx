@@ -186,12 +186,12 @@ function NotificationItem({ notif, onDelete, onMarkRead, styles }: any) {
       </div>
 
       {/* Quick Actions */}
-      <div className="absolute top-4 right-4 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+      <div className="absolute top-4 right-4 flex items-center gap-1">
         <DeleteButton
           label="Excluir notificação"
           iconSize={14}
           onConfirm={() => onDelete()}
-          className="text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all focus-visible:outline-[var(--text-primary)]"
+          className="text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-[var(--text-primary)]"
         />
       </div>
     </motion.div>
