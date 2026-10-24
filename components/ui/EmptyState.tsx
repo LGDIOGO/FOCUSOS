@@ -19,7 +19,7 @@ export function EmptyState({ icon, title, description, actionLabel, onAction, cl
     <div
       role="status"
       className={cn(
-        'flex flex-col items-center justify-center text-center px-6 py-12 md:py-16 gap-4 rounded-[32px] border border-dashed border-[var(--border-subtle)] bg-[var(--bg-overlay)]',
+        'flex flex-col items-center justify-center text-center px-6 py-12 md:py-16 gap-4 rounded-3xl md:rounded-[32px] border border-dashed border-[var(--border-subtle)] bg-[var(--bg-overlay)]',
         className
       )}
     >
@@ -28,7 +28,7 @@ export function EmptyState({ icon, title, description, actionLabel, onAction, cl
       </div>
       <div className="space-y-1.5 max-w-sm">
         <h3 className="text-lg font-black text-[var(--text-primary)]">{title}</h3>
-        {description && <p className="text-sm font-medium text-[var(--text-muted)]">{description}</p>}
+        {description && <p className="text-sm font-medium text-[var(--text-secondary)]">{description}</p>}
       </div>
       {actionLabel && onAction && (
         <button

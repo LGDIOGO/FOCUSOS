@@ -5,7 +5,7 @@ import { format, parseISO, eachDayOfInterval, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 import { occursOn } from '@/lib/utils/recurrence'
-import { isMatrixDayHiddenOnMobile } from '@/lib/utils/viewState'
+import { isMatrixDayHiddenOnMobile, MATRIX_MOBILE_DAYS } from '@/lib/utils/viewState'
 import type { Habit, HabitStatus } from '@/types'
 
 /** Teto de colunas: "todo o tempo" chega a milhares de dias. */
@@ -101,7 +101,7 @@ export function HabitsMatrix({
   return (
     <div className="space-y-3">
       {/* Legenda */}
-      <div className="flex items-center gap-4 flex-wrap text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+      <div className="flex items-center gap-4 flex-wrap text-xs font-bold text-[var(--text-muted)]">
         {[
           { cls: STATUS_STYLE.done, label: 'Feito' },
           { cls: STATUS_STYLE.partial, label: 'Parcial' },
@@ -122,19 +122,19 @@ export function HabitsMatrix({
       <div ref={scrollRef} className="overflow-x-auto pb-2">
         <div className="min-w-fit">
           {/* Cabeçalho: mês + dia */}
-          <div className="flex items-end gap-1 mb-1.5 pl-[112px] sm:pl-[136px]">
+          <div className="flex items-end gap-1.5 sm:gap-1 mb-1.5 pl-[128px] sm:pl-[136px]">
             {days.map(({ date, iso }, i) => {
               const prev = i > 0 ? days[i - 1].date : null
               const startsMonth = !prev || !isSameMonth(date, prev)
               return (
                 <div key={iso} className={cn('w-7 sm:w-5 shrink-0 flex-col items-center', isMatrixDayHiddenOnMobile(i, days.length) ? 'hidden sm:flex' : 'flex')}>
                   <span className={cn(
-                    'text-[10px] font-black uppercase tracking-wider whitespace-nowrap h-3',
+                    'text-xs font-bold whitespace-nowrap h-4',
                     startsMonth ? 'text-[var(--text-muted)]' : 'text-transparent'
                   )}>
                     {startsMonth ? format(date, 'MMM', { locale: ptBR }) : '·'}
                   </span>
-                  <span className="text-[10px] font-bold text-[var(--text-muted)] tabular-nums">
+                  <span className="text-xs font-bold text-[var(--text-muted)] tabular-nums">
                     {format(date, 'd')}
                   </span>
                 </div>
@@ -146,11 +146,11 @@ export function HabitsMatrix({
           {/* Linhas */}
           <div className="space-y-1">
             {rows.map(({ habit, cells, planned, rate }) => (
-              <div key={habit.id} className="flex items-center gap-1">
-                <div className="w-[112px] sm:w-[136px] shrink-0 pr-2 flex items-center gap-1.5 min-w-0 sticky left-0 bg-[var(--bg-primary)] z-10">
+              <div key={habit.id} className="flex items-center gap-1.5 sm:gap-1">
+                <div className="w-[128px] sm:w-[136px] shrink-0 pr-2 flex items-center gap-1.5 min-w-0 sticky left-0 bg-[var(--bg-primary)] z-10">
                   <span className="text-sm shrink-0">{habit.emoji || '✨'}</span>
                   <span
-                    className="text-[11px] font-bold text-[var(--text-primary)] truncate"
+                    className="text-xs font-bold text-[var(--text-primary)] truncate"
                     title={habit.name}
                   >
                     {habit.name}
@@ -177,8 +177,9 @@ export function HabitsMatrix({
                       key={iso}
                       onClick={e => onCellClick?.(habit.id, iso, { x: e.clientX, y: e.clientY })}
                       title={`${habit.name} — ${format(days[i].date, "dd/MM")} — ${label}`}
+                      aria-label={`${habit.name}, ${format(days[i].date, "dd/MM")}: ${cell.status === 'done' ? 'Feito' : cell.status === 'partial' ? 'Parcial' : cell.status === 'failed' ? 'Falhou' : 'Sem registro'}`}
                       className={cn(
-                        'w-7 h-7 sm:w-5 sm:h-5 shrink-0 rounded-[4px] border transition-transform hover:scale-125 hover:ring-1 hover:ring-white/40',
+                        'relative w-7 h-7 sm:w-5 sm:h-5 before:absolute before:-inset-1.5 sm:before:hidden shrink-0 rounded-[4px] border transition-transform hover:scale-125 hover:ring-1 hover:ring-white/40',
                         isMatrixDayHiddenOnMobile(i, days.length) && 'hidden sm:block',
                         style
                       )}
@@ -189,7 +190,7 @@ export function HabitsMatrix({
                 <div className="w-10 sm:w-12 shrink-0 text-right pl-1">
                   {rate !== null && (
                     <span className={cn(
-                      'text-[10px] font-black tabular-nums',
+                      'text-xs font-black tabular-nums',
                       rate >= 80 ? 'text-green-400' : rate >= 50 ? 'text-amber-400' : 'text-[var(--text-muted)]'
                     )} title={`${planned} dias previstos no período`}>
                       {rate}%
@@ -203,8 +204,13 @@ export function HabitsMatrix({
       </div>
 
       {days.length === MAX_DAYS && (
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+        <p className="text-xs font-bold text-[var(--text-muted)]">
           Mostrando os últimos {MAX_DAYS} dias do período
+        </p>
+      )}
+      {days.length > MATRIX_MOBILE_DAYS && (
+        <p className="sm:hidden text-xs text-[var(--text-muted)]">
+          Mostrando os últimos {MATRIX_MOBILE_DAYS} dias. Em telas maiores aparece o período inteiro.
         </p>
       )}
     </div>

@@ -338,7 +338,7 @@ export default function HabitsPage() {
               ))}
             </div>
           ) : habitsView === 'error' ? (
-            <div key="habits-error"><ErrorState title="Não foi possível carregar seus hábitos" onRetry={() => { refetchHabits() }} /></div>
+            <div key="habits-error"><ErrorState title="Não foi possível carregar seus hábitos" onRetry={() => refetchHabits()} /></div>
           ) : habitsView === 'empty' ? (
             <div key="habits-empty">
               <EmptyState
@@ -355,7 +355,7 @@ export default function HabitsPage() {
                 <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" 
                    style={{ backgroundColor: group.category?.color || '#FFFFFF', color: group.category?.color || '#FFFFFF' }} 
                 />
-                <h2 className="text-sm font-black tracking-widest text-white/50 uppercase">{group.category?.name || 'Sem Categoria'}</h2>
+                <h2 className="text-sm font-black tracking-widest text-[var(--text-muted)] uppercase">{group.category?.name || 'Sem Categoria'}</h2>
                 <span className="text-[var(--text-muted)] text-xs font-black uppercase tracking-widest">{group.items.length} {group.items.length === 1 ? 'Hábito' : 'Hábitos'}</span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">

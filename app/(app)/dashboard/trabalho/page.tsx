@@ -680,15 +680,15 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
       )}
 
       {isLoading ? (
-        <div className="text-[var(--text-muted)] text-sm font-medium py-10 text-center">Carregando...</div>
+        <div role="status" aria-label="Carregando" className="space-y-3 py-6">{[1, 2, 3].map(i => (<div key={i} className="h-16 rounded-3xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] animate-pulse" />))}</div>
       ) : items.length === 0 && workError ? (
-        <ErrorState title="Não foi possível carregar seu trabalho" onRetry={() => { refetchWork() }} />
+        <ErrorState title="Não foi possível carregar seu trabalho" onRetry={() => refetchWork()} />
       ) : items.length === 0 ? (
         <EmptyState
           icon={<Briefcase size={28} />}
-          title="Adicione seu primeiro item de trabalho"
+          title="Seu trabalho começa aqui"
           description="Registre tarefas, reuniões e prazos com o tipo e a categoria que você mesmo criar. O que se repete entra uma vez só."
-          actionLabel="Adicionar o primeiro"
+          actionLabel="Adicionar item"
           onAction={() => openNew()}
         />
       ) : (

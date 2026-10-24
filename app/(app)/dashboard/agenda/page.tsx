@@ -810,12 +810,12 @@ function AgendaPage() {
                 </div>
               ))
             ) : eventsView === 'error' ? (
-              <div key="agenda-error"><ErrorState title="Não foi possível carregar sua agenda" onRetry={() => { refetchEvents() }} /></div>
+              <div key="agenda-error"><ErrorState title="Não foi possível carregar sua agenda" onRetry={() => refetchEvents()} /></div>
             ) : eventsView === 'empty' ? (
               <div key="agenda-empty">
                 <EmptyState
                   icon={<CalendarIcon size={28} />}
-                  title="Sua agenda está livre"
+                  title="Nenhum compromisso ainda"
                   description="Adicione reuniões, consultas ou lembretes com data e hora para vê-los aqui."
                   actionLabel="Novo compromisso"
                   onAction={() => setShowAddModal(true)}

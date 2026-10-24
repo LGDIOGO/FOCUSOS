@@ -470,7 +470,7 @@ export default function GoalsPage() {
 
       {/* Empty State */}
       {goalsView === 'error' && (
-        <ErrorState title="Não foi possível carregar suas metas" onRetry={() => { refetchGoals() }} />
+        <ErrorState title="Não foi possível carregar suas metas" onRetry={() => refetchGoals()} />
       )}
       {!isLoading && goalsView !== 'error' && activeGoals?.length === 0 && (
         <EmptyState
@@ -483,6 +483,7 @@ export default function GoalsPage() {
       )}
 
       {/* HISTÓRICO EXPANSÍVEL (METAS) */}
+      {goalsView !== 'error' && (
       <SharedHistoryBar
         icon={History}
         title="Histórico de Metas Concluídas"
@@ -523,6 +524,7 @@ export default function GoalsPage() {
                  )}
               </div>
       </SharedHistoryBar>
+      )}
       {/* Selection Tray */}
       <AnimatePresence>
         {isSelectionMode && (

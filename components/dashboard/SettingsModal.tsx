@@ -175,7 +175,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       <motion.div 
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 bg-black/60 md:backdrop-blur-xl"
+        className="fixed inset-0 bg-black/80 md:bg-black/60 md:backdrop-blur-xl"
       />
       
       <motion.div 
@@ -744,7 +744,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-black text-white/80">Suas chaves</h4>
-                    <button onClick={loadApiKeys} className="text-[var(--text-muted)] hover:text-white/60 transition-colors">
+                    <button onClick={loadApiKeys} aria-label="Atualizar chaves" className="w-11 h-11 flex items-center justify-center text-[var(--text-muted)] hover:text-white/60 transition-colors">
                       <RefreshCw size={14} className={loadingApiKeys ? 'animate-spin' : ''} />
                     </button>
                   </div>
@@ -771,9 +771,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             </p>
                           </div>
                           <button
-                            onClick={() => revokeApiKey(k.id)}
+                            onClick={() => revokeApiKey(k.id)} aria-label="Revogar chave"
                             disabled={revokingId === k.id}
-                            className="p-2 text-[var(--text-muted)] hover:text-red-400 transition-colors disabled:opacity-30"
+                            className="w-11 h-11 flex items-center justify-center text-[var(--text-muted)] hover:text-red-400 transition-colors disabled:opacity-30"
                           >
                             {revokingId === k.id ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
                           </button>
@@ -886,13 +886,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         ? 'bg-green-500/15 text-green-400 border border-green-500/20'
                         : 'bg-white/5 text-[var(--text-muted)] border border-white/10'
                     )}>
-                      {gcalStatus.isLoading ? '...' : gcalStatus.data?.connected ? 'Conectado' : 'Não conectado'}
+                      {gcalStatus.isLoading ? 'Verificando...' : gcalStatus.data?.connected ? 'Conectado' : 'Não conectado'}
                     </div>
                   </div>
 
                   <div className="p-6 space-y-5">
                     {gcalStatus.isLoading ? (
-                      <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm">
+                      <div role="status" className="flex items-center gap-2 text-[var(--text-muted)] text-sm">
                         <Loader2 size={14} className="animate-spin" /> Verificando conexão...
                       </div>
                     ) : gcalStatus.data?.connected ? (
