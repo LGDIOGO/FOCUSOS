@@ -49,6 +49,8 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
 
   useEffect(() => {
     if (isOpen) {
+      addEvent.reset()
+      updateEvent.reset()
       if (eventToEdit) {
         setNewEvent({
           title: eventToEdit.title,

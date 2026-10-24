@@ -34,11 +34,12 @@ export function isMatrixDayHiddenOnMobile(index: number, total: number, mobileDa
  */
 export function isFirstUseSummary(input: {
   loading: boolean
+  hasError?: boolean
   totalHabits: number | undefined
   habitsToday: number
   tasksToday: number
   eventsToday: number
 }): boolean {
-  if (input.loading || input.totalHabits === undefined) return false
+  if (input.loading || input.hasError || input.totalHabits === undefined) return false
   return input.totalHabits === 0 && input.habitsToday === 0 && input.tasksToday === 0 && input.eventsToday === 0
 }

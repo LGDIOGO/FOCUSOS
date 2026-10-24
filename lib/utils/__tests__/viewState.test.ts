@@ -50,3 +50,9 @@ describe('isFirstUseSummary', () => {
     expect(isFirstUseSummary({ ...vazio, eventsToday: 1 })).toBe(false)
   })
 })
+
+describe('isFirstUseSummary com erro', () => {
+  it('REGRESSÃO: falha de carregamento sem dados não vira "primeiro uso"', () => {
+    expect(isFirstUseSummary({ loading: false, hasError: true, totalHabits: 0, habitsToday: 0, tasksToday: 0, eventsToday: 0 })).toBe(false)
+  })
+})

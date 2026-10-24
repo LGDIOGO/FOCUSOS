@@ -9,7 +9,14 @@ import dynamic from 'next/dynamic'
 // Modal pesado: so baixa o codigo quando o usuario abre Configuracoes pela primeira vez.
 const SettingsModal = dynamic(
   () => import('@/components/dashboard/SettingsModal').then(m => m.SettingsModal),
-  { ssr: false, loading: () => null }
+  {
+    ssr: false,
+    loading: () => (
+      <div role="status" aria-label="Carregando configurações" className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 pointer-events-none">
+        <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+      </div>
+    ),
+  }
 )
 import { NotificationSystem } from '@/components/dashboard/NotificationSystem'
 import { PomodoroSidebar } from '@/components/dashboard/PomodoroSidebar'

@@ -89,10 +89,10 @@ export default function DashboardPage() {
     setSelectedDate(new Date())
   }, [])
 
-  const { data: habitsData, isLoading: loadingHabits } = useHabitsToday(selectedDate)
-  const { data: allHabitsData } = useHabits()
-  const { data: tasksData, isLoading: loadingTasks } = useTasksToday(selectedDate)
-  const { data: eventsToday, isLoading: loadingEvents } = useEventsToday(selectedDate)
+  const { data: habitsData, isLoading: loadingHabits, isError: errHabits } = useHabitsToday(selectedDate)
+  const { data: allHabitsData, isError: errAllHabits } = useHabits()
+  const { data: tasksData, isLoading: loadingTasks, isError: errTasks } = useTasksToday(selectedDate)
+  const { data: eventsToday, isLoading: loadingEvents, isError: errEvents } = useEventsToday(selectedDate)
   const { mutate: logHabit } = useLogHabit()
   const { mutate: logEvent } = useLogEvent()
   const { mutate: updateTask } = useUpdateTask()
@@ -611,6 +611,7 @@ export default function DashboardPage() {
         <div className="space-y-10 max-w-[1600px] mx-auto w-full">
           {isFirstUseSummary({
             loading: loadingHabits || loadingTasks || loadingEvents,
+            hasError: errHabits || errAllHabits || errTasks || errEvents,
             totalHabits: allHabitsData?.length,
             habitsToday: habits.length,
             tasksToday: tasks.length,

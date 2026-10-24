@@ -32,6 +32,8 @@ export function TaskModal({ isOpen, onClose, taskToEdit }: { isOpen: boolean, on
 
   useEffect(() => {
     if (isOpen) {
+      addTask.reset()
+      updateTask.reset()
       if (taskToEdit) {
         setTaskData({
           title: taskToEdit.title,

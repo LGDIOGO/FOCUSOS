@@ -75,6 +75,14 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
   }, [editingGoal, isOpen])
 
   useEffect(() => {
+    if (isOpen) {
+      addGoal.reset()
+      updateGoal.reset()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editingGoal])
+
+  useEffect(() => {
     const total = (formData.target_value || 0) - (formData.initial_value || 0)
     const current = (formData.current_value || 0) - (formData.initial_value || 0)
     

@@ -8,6 +8,8 @@ import { useCategories } from '@/lib/hooks/useCategories'
 import { Goal } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { resolveViewState } from '@/lib/utils/viewState'
 import { GoalModal } from '@/components/dashboard/GoalModal'
 import { DeleteButton } from '@/components/ui/DeleteButton'
 import { differenceInDays, parseISO, format } from 'date-fns'
@@ -220,7 +222,8 @@ function GoalGridItem({
 }
 
 export default function GoalsPage() {
-  const { data: goals, isLoading, error: goalsError } = useGoals()
+  const { data: goals, isLoading, error: goalsError, refetch: refetchGoals } = useGoals()
+  const goalsView = resolveViewState({ isLoading, isError: !!goalsError, count: goals?.length ?? 0 })
   const deleteGoal = useDeleteGoal()
   const { data: categories } = useCategories()
 
@@ -466,7 +469,10 @@ export default function GoalsPage() {
       </div>
 
       {/* Empty State */}
-      {!isLoading && activeGoals?.length === 0 && (
+      {goalsView === 'error' && (
+        <ErrorState title="Não foi possível carregar suas metas" onRetry={() => { refetchGoals() }} />
+      )}
+      {!isLoading && goalsView !== 'error' && activeGoals?.length === 0 && (
         <EmptyState
           icon={<Target size={28} />}
           title={completedGoals && completedGoals.length > 0 ? 'Nenhuma meta ativa' : 'Crie sua primeira meta'}

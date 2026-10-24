@@ -48,6 +48,8 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
 
   useEffect(() => {
     if (isOpen) {
+      addHabit.reset()
+      updateHabit.reset()
       if (habitToEdit) {
         setNewHabit({
           name: habitToEdit.name,
@@ -202,7 +204,7 @@ export function HabitModal({ isOpen, onClose, habitToEdit }: { isOpen: boolean, 
             {(addHabit.isError || updateHabit.isError) && (
               <p role="alert" className="text-center text-sm font-bold text-red-400 mb-2">Não foi possível salvar. Verifique a conexão e tente de novo.</p>
             )}
-            <button type="submit" disabled={addHabit.isPending || updateHabit.isPending}className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black min-h-[52px] py-3 rounded-[24px] hover:opacity-90 transition-all active:scale-95 text-lg">
+            <button type="submit" disabled={addHabit.isPending || updateHabit.isPending} className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black min-h-[52px] py-3 rounded-[24px] hover:opacity-90 transition-all active:scale-95 text-lg">
               {addHabit.isPending || updateHabit.isPending ? 'Salvando...' : (addHabit.isError || updateHabit.isError) ? 'Tentar de novo' : (habitToEdit ? 'Salvar Alterações' : 'Criar Hábito')}
             </button>
         </>
