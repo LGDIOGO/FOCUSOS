@@ -24,6 +24,8 @@ import {
 } from 'lucide-react'
 import { PerformanceHeader } from '@/components/dashboard/PerformanceHeader'
 import { cn } from '@/lib/utils/cn'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { isFirstUseSummary } from '@/lib/utils/viewState'
 import Link from 'next/link'
 import AgendaItem from '@/components/dashboard/AgendaItem'
 import { RescheduleModal } from '@/components/dashboard/RescheduleModal'
@@ -607,6 +609,22 @@ export default function DashboardPage() {
         <ScoreWidget score={score} selectedDate={selectedDate} />
 
         <div className="space-y-10 max-w-[1600px] mx-auto w-full">
+          {isFirstUseSummary({
+            loading: loadingHabits || loadingTasks || loadingEvents,
+            totalHabits: allHabitsData?.length,
+            habitsToday: habits.length,
+            tasksToday: tasks.length,
+            eventsToday: todayEvents.length,
+          }) && (
+            <EmptyState
+              icon={<Zap size={28} />}
+              title="Crie seu primeiro hábito"
+              description="Seu resumo do dia aparece aqui. Comece com um hábito pequeno; depois adicione compromissos e tarefas."
+              actionLabel="Criar hábito"
+              onAction={() => { setHabitToEdit(null); setShowHabitModal(true) }}
+            />
+          )}
+
           {/* ─── Today's Agenda ─── */}
           <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
             <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
@@ -995,7 +1013,7 @@ export default function DashboardPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsBulkDeleteModalOpen(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+              className="absolute inset-0 bg-black/60 md:backdrop-blur-md"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 30 }}

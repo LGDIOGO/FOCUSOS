@@ -60,7 +60,7 @@ export function CpfOnboarding() {
   }
 
   return (
-    <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-start bg-black/90 backdrop-blur-xl px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain">
+    <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-start bg-black/90 md:backdrop-blur-xl px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain">
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}

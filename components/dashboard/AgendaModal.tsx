@@ -206,12 +206,15 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
       onSubmit={handleAddEvent}
       footer={
         <>
-            <button 
+            {(addEvent.isError || updateEvent.isError) && (
+              <p role="alert" className="text-center text-sm font-bold text-red-400 mb-2">Não foi possível salvar. Verifique a conexão e tente de novo.</p>
+            )}
+            <button
               type="submit"
               disabled={addEvent.isPending || updateEvent.isPending}
               className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black py-5 rounded-[24px] hover:opacity-90 transition-all active:scale-95 text-lg shadow-2xl"
             >
-              {addEvent.isPending || updateEvent.isPending ? 'Salvando...' : (eventToEdit ? 'Salvar Alterações' : 'Criar Compromisso')}
+              {addEvent.isPending || updateEvent.isPending ? 'Salvando...' : (addEvent.isError || updateEvent.isError) ? 'Tentar de novo' : (eventToEdit ? 'Salvar Alterações' : 'Criar Compromisso')}
             </button>
         </>
       }

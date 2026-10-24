@@ -5,6 +5,7 @@ import { format, parseISO, eachDayOfInterval, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 import { occursOn } from '@/lib/utils/recurrence'
+import { isMatrixDayHiddenOnMobile } from '@/lib/utils/viewState'
 import type { Habit, HabitStatus } from '@/types'
 
 /** Teto de colunas: "todo o tempo" chega a milhares de dias. */
@@ -121,12 +122,12 @@ export function HabitsMatrix({
       <div ref={scrollRef} className="overflow-x-auto pb-2">
         <div className="min-w-fit">
           {/* Cabeçalho: mês + dia */}
-          <div className="flex items-end gap-1 mb-1.5 pl-[136px]">
+          <div className="flex items-end gap-1 mb-1.5 pl-[112px] sm:pl-[136px]">
             {days.map(({ date, iso }, i) => {
               const prev = i > 0 ? days[i - 1].date : null
               const startsMonth = !prev || !isSameMonth(date, prev)
               return (
-                <div key={iso} className="w-5 shrink-0 flex flex-col items-center">
+                <div key={iso} className={cn('w-7 sm:w-5 shrink-0 flex-col items-center', isMatrixDayHiddenOnMobile(i, days.length) ? 'hidden sm:flex' : 'flex')}>
                   <span className={cn(
                     'text-[10px] font-black uppercase tracking-wider whitespace-nowrap h-3',
                     startsMonth ? 'text-[var(--text-muted)]' : 'text-transparent'
@@ -139,14 +140,14 @@ export function HabitsMatrix({
                 </div>
               )
             })}
-            <div className="w-12 shrink-0" />
+            <div className="w-10 sm:w-12 shrink-0" />
           </div>
 
           {/* Linhas */}
           <div className="space-y-1">
             {rows.map(({ habit, cells, planned, rate }) => (
               <div key={habit.id} className="flex items-center gap-1">
-                <div className="w-[136px] shrink-0 pr-2 flex items-center gap-1.5 min-w-0 sticky left-0 bg-[var(--bg-primary)] z-10">
+                <div className="w-[112px] sm:w-[136px] shrink-0 pr-2 flex items-center gap-1.5 min-w-0 sticky left-0 bg-[var(--bg-primary)] z-10">
                   <span className="text-sm shrink-0">{habit.emoji || '✨'}</span>
                   <span
                     className="text-[11px] font-bold text-[var(--text-primary)] truncate"
@@ -162,7 +163,7 @@ export function HabitsMatrix({
                     return (
                       <div
                         key={iso}
-                        className="w-5 h-5 shrink-0 rounded-[4px] border border-dashed border-[var(--border-subtle)]/40"
+                        className={cn('w-7 h-7 sm:w-5 sm:h-5 shrink-0 rounded-[4px] border border-dashed border-[var(--border-subtle)]/40', isMatrixDayHiddenOnMobile(i, days.length) && 'hidden sm:block')}
                         title={`${habit.name} — não previsto em ${format(days[i].date, "dd/MM")}`}
                       />
                     )
@@ -177,14 +178,15 @@ export function HabitsMatrix({
                       onClick={e => onCellClick?.(habit.id, iso, { x: e.clientX, y: e.clientY })}
                       title={`${habit.name} — ${format(days[i].date, "dd/MM")} — ${label}`}
                       className={cn(
-                        'w-5 h-5 shrink-0 rounded-[4px] border transition-transform hover:scale-125 hover:ring-1 hover:ring-white/40',
+                        'w-7 h-7 sm:w-5 sm:h-5 shrink-0 rounded-[4px] border transition-transform hover:scale-125 hover:ring-1 hover:ring-white/40',
+                        isMatrixDayHiddenOnMobile(i, days.length) && 'hidden sm:block',
                         style
                       )}
                     />
                   )
                 })}
 
-                <div className="w-12 shrink-0 text-right pl-1">
+                <div className="w-10 sm:w-12 shrink-0 text-right pl-1">
                   {rate !== null && (
                     <span className={cn(
                       'text-[10px] font-black tabular-nums',

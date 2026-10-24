@@ -196,12 +196,15 @@ export function GoalModal({ isOpen, onClose, editingGoal }: GoalModalProps) {
       }
       footer={
         <>
-            <button 
+            {(addGoal.isError || updateGoal.isError) && (
+              <p role="alert" className="text-center text-sm font-bold text-red-400 mb-2">Não foi possível salvar. Verifique a conexão e tente de novo.</p>
+            )}
+            <button
               type="submit"
               disabled={addGoal.isPending || updateGoal.isPending}
               className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black py-4 rounded-[20px] hover:opacity-90 transition-all active:scale-95 text-lg flex items-center justify-center gap-2 group"
             >
-              {addGoal.isPending || updateGoal.isPending ? 'Salvando...' : (
+              {addGoal.isPending || updateGoal.isPending ? 'Salvando...' : (addGoal.isError || updateGoal.isError) ? 'Tentar de novo' : (
                 <>
                   {editingGoal ? 'Salvar Alterações' : 'Criar Meta Estratégica'}
                   <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />

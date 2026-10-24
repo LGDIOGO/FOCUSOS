@@ -442,7 +442,7 @@ export default function BooksPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeModal}
-              className="fixed inset-0 bg-black/60 backdrop-blur-xl"
+              className="fixed inset-0 bg-black/60 md:backdrop-blur-xl"
             />
 
             <motion.div

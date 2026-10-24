@@ -129,9 +129,12 @@ export function TaskModal({ isOpen, onClose, taskToEdit }: { isOpen: boolean, on
       onSubmit={handleSave}
       footer={
         <>
-            <button 
-              type="submit" 
-              disabled={addTask.isPending || updateTask.isPending} 
+            {(addTask.isError || updateTask.isError) && (
+              <p role="alert" className="text-center text-sm font-bold text-red-400 mb-2">Não foi possível salvar. Verifique a conexão e tente de novo.</p>
+            )}
+            <button
+              type="submit"
+              disabled={addTask.isPending || updateTask.isPending}
               className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black min-h-[52px] py-3 rounded-[28px] hover:opacity-90 transition-all active:scale-95 text-lg shadow-xl"
             >
               {addTask.isPending || updateTask.isPending ? (
@@ -139,7 +142,7 @@ export function TaskModal({ isOpen, onClose, taskToEdit }: { isOpen: boolean, on
                   <RefreshCcw size={20} className="animate-spin" />
                   Salvando...
                 </div>
-              ) : (taskToEdit ? 'Salvar Alterações' : 'Criar Rascunho')}
+              ) : (addTask.isError || updateTask.isError) ? 'Tentar de novo' : (taskToEdit ? 'Salvar Alterações' : 'Criar Rascunho')}
             </button>
         </>
       }

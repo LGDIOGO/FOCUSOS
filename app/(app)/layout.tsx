@@ -4,7 +4,13 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/layout/Sidebar'
 import MobileNav from '@/components/layout/MobileNav'
-import { SettingsModal } from '@/components/dashboard/SettingsModal'
+import dynamic from 'next/dynamic'
+
+// Modal pesado: so baixa o codigo quando o usuario abre Configuracoes pela primeira vez.
+const SettingsModal = dynamic(
+  () => import('@/components/dashboard/SettingsModal').then(m => m.SettingsModal),
+  { ssr: false, loading: () => null }
+)
 import { NotificationSystem } from '@/components/dashboard/NotificationSystem'
 import { PomodoroSidebar } from '@/components/dashboard/PomodoroSidebar'
 import { PomodoroFAB } from '@/components/dashboard/PomodoroFAB'
@@ -26,6 +32,10 @@ export default function AppLayout({
   const { data: profile } = useProfile()
   const router = useRouter()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [settingsEverOpened, setSettingsEverOpened] = useState(false)
+  useEffect(() => {
+    if (isSettingsOpen) setSettingsEverOpened(true)
+  }, [isSettingsOpen])
   const [moreOpen, setMoreOpen] = useState(false)
 
   useEffect(() => {
@@ -73,7 +83,7 @@ export default function AppLayout({
         <NotificationSystem />
       </main>
       <MobileNav onOpenSettings={() => setIsSettingsOpen(true)} onMoreOpenChange={setMoreOpen} />
-      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      {settingsEverOpened && <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />}
       <PomodoroSidebar />
       <PomodoroFAB hidden={moreOpen} />
     </div>

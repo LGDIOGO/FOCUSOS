@@ -137,7 +137,7 @@ export function HabitsWeekGrid({
       </div>
 
       <div className="overflow-x-auto -mx-1 px-1">
-        <div className="min-w-[340px]">
+        <div className="min-w-0 w-full">
           {/* Cabeçalho dos dias */}
           <div className="flex items-center gap-1.5 mb-2">
             <div className="flex-1 min-w-[92px]" />
