@@ -7,6 +7,9 @@ import { useGoals, useDeleteGoal } from '@/lib/hooks/useGoals'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { Goal } from '@/types'
 import { cn } from '@/lib/utils/cn'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { resolveViewState } from '@/lib/utils/viewState'
 import { GoalModal } from '@/components/dashboard/GoalModal'
 import { DeleteButton } from '@/components/ui/DeleteButton'
 import { differenceInDays, parseISO, format } from 'date-fns'
@@ -219,7 +222,8 @@ function GoalGridItem({
 }
 
 export default function GoalsPage() {
-  const { data: goals, isLoading, error: goalsError } = useGoals()
+  const { data: goals, isLoading, error: goalsError, refetch: refetchGoals } = useGoals()
+  const goalsView = resolveViewState({ isLoading, isError: !!goalsError, count: goals?.length ?? 0 })
   const deleteGoal = useDeleteGoal()
   const { data: categories } = useCategories()
 
@@ -465,25 +469,21 @@ export default function GoalsPage() {
       </div>
 
       {/* Empty State */}
-      {!isLoading && activeGoals?.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 bg-[var(--bg-overlay)] border border-dashed border-[var(--border-subtle)] rounded-[48px] space-y-6">
-           <div className="w-20 h-20 bg-[var(--bg-overlay)] rounded-[32px] flex items-center justify-center border border-[var(--border-subtle)]">
-              <Target className="text-[var(--text-muted)] w-10 h-10" />
-           </div>
-           <div className="text-center space-y-2">
-              <h3 className="text-2xl font-black text-[var(--text-primary)]">Nenhuma meta ativa</h3>
-              <p className="text-[var(--text-muted)] font-medium">Crie seu primeiro grande objetivo para começar a trilhar o progresso ou verifique seu histórico.</p>
-           </div>
-           <button 
-             onClick={() => setShowAddModal(true)}
-             className="bg-[var(--bg-overlay)] hover:opacity-80 text-[var(--text-primary)] border border-[var(--border-subtle)] px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all"
-           >
-             Nova Meta
-           </button>
-        </div>
+      {goalsView === 'error' && (
+        <ErrorState title="Não foi possível carregar suas metas" onRetry={() => refetchGoals()} />
+      )}
+      {!isLoading && goalsView !== 'error' && activeGoals?.length === 0 && (
+        <EmptyState
+          icon={<Target size={28} />}
+          title={completedGoals && completedGoals.length > 0 ? 'Nenhuma meta ativa' : 'Crie sua primeira meta'}
+          description="Defina um grande objetivo e acompanhe o progresso até concluí-lo. Metas já batidas ficam no histórico."
+          actionLabel="Nova meta"
+          onAction={() => setShowAddModal(true)}
+        />
       )}
 
       {/* HISTÓRICO EXPANSÍVEL (METAS) */}
+      {goalsView !== 'error' && (
       <SharedHistoryBar
         icon={History}
         title="Histórico de Metas Concluídas"
@@ -524,6 +524,7 @@ export default function GoalsPage() {
                  )}
               </div>
       </SharedHistoryBar>
+      )}
       {/* Selection Tray */}
       <AnimatePresence>
         {isSelectionMode && (

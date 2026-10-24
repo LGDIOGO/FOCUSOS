@@ -24,6 +24,8 @@ import {
 } from 'lucide-react'
 import { PerformanceHeader } from '@/components/dashboard/PerformanceHeader'
 import { cn } from '@/lib/utils/cn'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { isFirstUseSummary } from '@/lib/utils/viewState'
 import Link from 'next/link'
 import AgendaItem from '@/components/dashboard/AgendaItem'
 import { RescheduleModal } from '@/components/dashboard/RescheduleModal'
@@ -87,10 +89,10 @@ export default function DashboardPage() {
     setSelectedDate(new Date())
   }, [])
 
-  const { data: habitsData, isLoading: loadingHabits } = useHabitsToday(selectedDate)
-  const { data: allHabitsData } = useHabits()
-  const { data: tasksData, isLoading: loadingTasks } = useTasksToday(selectedDate)
-  const { data: eventsToday, isLoading: loadingEvents } = useEventsToday(selectedDate)
+  const { data: habitsData, isLoading: loadingHabits, isError: errHabits } = useHabitsToday(selectedDate)
+  const { data: allHabitsData, isError: errAllHabits } = useHabits()
+  const { data: tasksData, isLoading: loadingTasks, isError: errTasks } = useTasksToday(selectedDate)
+  const { data: eventsToday, isLoading: loadingEvents, isError: errEvents } = useEventsToday(selectedDate)
   const { mutate: logHabit } = useLogHabit()
   const { mutate: logEvent } = useLogEvent()
   const { mutate: updateTask } = useUpdateTask()
@@ -457,6 +459,14 @@ export default function DashboardPage() {
     if (labels[nextStatus]) setToast(labels[nextStatus])
   }
 
+  const firstUse = isFirstUseSummary({
+    loading: loadingHabits || loadingTasks || loadingEvents,
+    hasError: errHabits || errAllHabits || errTasks || errEvents,
+    totalHabits: allHabitsData?.length,
+    habitsToday: habits.length,
+    tasksToday: tasks.length,
+    eventsToday: todayEvents.length,
+  })
   const positive = habits.filter((h: Habit) => h.type === 'positive')
   const negative = habits.filter((h: Habit) => h.type === 'negative')
 
@@ -528,7 +538,7 @@ export default function DashboardPage() {
         <section>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50" suppressHydrationWarning>
+              <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[var(--text-muted)]" suppressHydrationWarning>
                 {weekOffset === 0 ? 'Semana atual' : weekOffset < 0 ? `${Math.abs(weekOffset)} semanas atrás` : `${weekOffset} semanas à frente`}
               </p>
               <div className="flex items-center gap-1">
@@ -604,15 +614,25 @@ export default function DashboardPage() {
         </section>
 
         {/* ─── Score Cards ─── */}
-        <ScoreWidget score={score} selectedDate={selectedDate} />
+        {!firstUse && <ScoreWidget score={score} selectedDate={selectedDate} />}
 
         <div className="space-y-10 max-w-[1600px] mx-auto w-full">
+          {firstUse && (
+            <EmptyState
+              icon={<Zap size={28} />}
+              title="Bem-vindo ao FocusOS"
+              description="Comece com um hábito pequeno, como beber água. Depois você adiciona compromissos e tarefas."
+              actionLabel="Novo hábito"
+              onAction={() => { setHabitToEdit(null); setShowHabitModal(true) }}
+            />
+          )}
+
           {/* ─── Today's Agenda ─── */}
-          <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <section className={cn('animate-in fade-in slide-in-from-bottom-2 duration-500', firstUse && 'hidden')}>
             <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
-              <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Compromissos</p>
+              <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[var(--text-muted)]">Compromissos</p>
               <div className="flex items-center gap-3">
-                <Link href="/dashboard/agenda?add=true" className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all active:scale-90 touch-manipulation">
+                <Link href="/dashboard/agenda?add=true" aria-label="Novo compromisso" className="w-11 h-11 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all active:scale-90 touch-manipulation">
                   <Plus size={14} />
                 </Link>
                 <Link href="/dashboard/agenda" className="text-sm text-white/60 hover:text-white flex items-center gap-0.5 transition-colors">
@@ -720,7 +740,7 @@ export default function DashboardPage() {
           {/* ─── Positive Habits ─── */}
           <section>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Hábitos</p>
+              <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[var(--text-muted)]">Hábitos</p>
               <div className="flex items-center gap-3">
                 <Link href="/dashboard/habits?add=true" className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white hover:text-black flex items-center justify-center transition-all active:scale-90 touch-manipulation">
                   <Plus size={14} />
@@ -796,10 +816,10 @@ export default function DashboardPage() {
           </section>
 
           {/* ─── Tasks ─── */}
-          <section>
+          <section className={cn(firstUse && 'hidden')}>
             <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
-              <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-white/50">Rascunho</p>
-              <span className="text-[13px] text-white/50">{score.tasksDone}/{score.tasksTotal} concluídas</span>
+              <p className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[var(--text-muted)]">Rascunho</p>
+              <span className="text-[13px] text-[var(--text-muted)]">{score.tasksDone}/{score.tasksTotal} concluídas</span>
             </div>
             <div className="flex flex-col gap-1.5">
               <form onSubmit={handleQuickAddTask} className="mb-2 relative group">
@@ -995,7 +1015,7 @@ export default function DashboardPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsBulkDeleteModalOpen(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+              className="absolute inset-0 bg-black/60 md:backdrop-blur-md"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 30 }}
@@ -1026,7 +1046,7 @@ export default function DashboardPage() {
                 </button>
                 <button
                   onClick={() => setIsBulkDeleteModalOpen(false)}
-                  className="w-full h-14 rounded-2xl bg-white/[0.03] border border-white/5 text-white/50 hover:bg-white/[0.08] hover:text-white font-black uppercase tracking-widest text-xs transition-all active:scale-95"
+                  className="w-full h-14 rounded-2xl bg-white/[0.03] border border-white/5 text-[var(--text-muted)] hover:bg-white/[0.08] hover:text-white font-black uppercase tracking-widest text-xs transition-all active:scale-95"
                 >
                   Cancelar
                 </button>

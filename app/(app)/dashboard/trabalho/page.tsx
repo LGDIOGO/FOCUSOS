@@ -13,6 +13,8 @@ import {
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
 import {
   WorkItemModal, PRIORITY_META, kindLabel, CHANNEL_ALL, CHANNEL_INTERNAL,
 } from '@/components/dashboard/WorkItemModal'
@@ -238,7 +240,7 @@ export default function TrabalhoPage() {
     }
   }, [selectedDayStr, todayStr, range.start, range.end])
 
-  const { data: items = [], isLoading } = useWorkItems()
+  const { data: items = [], isLoading, isError: workError, refetch: refetchWork } = useWorkItems()
 
   // Cores vêm dos rótulos do usuário; nome não cadastrado cai no cinza neutro.
   // Conta nova recebe os três tipos e três categorias padrão na primeira visita.
@@ -678,24 +680,17 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
       )}
 
       {isLoading ? (
-        <div className="text-[var(--text-muted)] text-sm font-medium py-10 text-center">Carregando...</div>
+        <div role="status" aria-label="Carregando" className="space-y-3 py-6">{[1, 2, 3].map(i => (<div key={i} className="h-16 rounded-3xl bg-[var(--bg-overlay)] border border-[var(--border-subtle)] animate-pulse" />))}</div>
+      ) : items.length === 0 && workError ? (
+        <ErrorState title="Não foi possível carregar seu trabalho" onRetry={() => refetchWork()} />
       ) : items.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mx-auto mb-4">
-            <Briefcase size={22} className="text-white/25" />
-          </div>
-          <p className="text-white font-bold mb-1">Nada por aqui ainda</p>
-          <p className="text-white/35 text-sm mb-5 max-w-sm mx-auto">
-            Registre tarefas, reuniões e prazos com o tipo e a categoria que você
-            mesmo criar. O que se repete entra uma vez só.
-          </p>
-          <button
-            onClick={() => openNew()}
-            className="px-5 py-2.5 rounded-2xl bg-white text-black font-black text-xs uppercase tracking-wider hover:bg-neutral-200 transition-all"
-          >
-            Adicionar o primeiro
-          </button>
-        </div>
+        <EmptyState
+          icon={<Briefcase size={28} />}
+          title="Seu trabalho começa aqui"
+          description="Registre tarefas, reuniões e prazos com o tipo e a categoria que você mesmo criar. O que se repete entra uma vez só."
+          actionLabel="Adicionar item"
+          onAction={() => openNew()}
+        />
       ) : (
         <AnimatePresence mode="wait">
           {/* ── HOJE ── */}

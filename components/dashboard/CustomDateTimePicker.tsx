@@ -166,7 +166,7 @@ function PickerPortal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0, transition: { duration: 0 } }}
-        className="fixed inset-0 z-[99998] bg-black/60 backdrop-blur-md"
+        className="fixed inset-0 z-[99998] bg-black/60 md:backdrop-blur-md"
         onPointerDown={(e) => {
           e.stopPropagation()
           onClose()

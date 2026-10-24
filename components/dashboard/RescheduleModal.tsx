@@ -46,7 +46,7 @@ export function RescheduleModal({ onClose, onConfirm, event }: RescheduleModalPr
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         onClick={handleClose}
-        className="fixed inset-0 z-[29998] bg-black/60 backdrop-blur-md cursor-default"
+        className="fixed inset-0 z-[29998] bg-black/60 md:backdrop-blur-md cursor-default"
       />
 
       {/* Modal card wrapper — pointer-events-none so only the card itself is interactive */}

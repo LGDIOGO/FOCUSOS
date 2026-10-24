@@ -14,6 +14,9 @@ import { collection, query, where, getDocs } from 'firebase/firestore'
 import { useCurrentUser } from '@/lib/context/AuthContext'
 import { CalendarEvent, EventType } from '@/types'
 import { cn } from '@/lib/utils/cn'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { resolveViewState } from '@/lib/utils/viewState'
 import { DeleteButton } from '@/components/ui/DeleteButton'
 import {
   format, isToday, isTomorrow, parseISO, addMonths, subMonths, startOfMonth, endOfMonth,
@@ -190,7 +193,8 @@ export default function AgendaPageWrapper() {
 }
 
 function AgendaPage() {
-  const { data: events, isLoading } = useEvents()
+  const { data: events, isLoading, isError: eventsError, refetch: refetchEvents } = useEvents()
+  const eventsView = resolveViewState({ isLoading, isError: eventsError, count: events?.length ?? 0 })
   const deleteEvent = useDeleteEvent()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const searchParams = useSearchParams()
@@ -805,6 +809,18 @@ function AgendaPage() {
                   <div className="h-24 bg-white/2 rounded-[32px] animate-pulse" />
                 </div>
               ))
+            ) : eventsView === 'error' ? (
+              <div key="agenda-error"><ErrorState title="Não foi possível carregar sua agenda" onRetry={() => refetchEvents()} /></div>
+            ) : eventsView === 'empty' ? (
+              <div key="agenda-empty">
+                <EmptyState
+                  icon={<CalendarIcon size={28} />}
+                  title="Nenhum compromisso ainda"
+                  description="Adicione reuniões, consultas ou lembretes com data e hora para vê-los aqui."
+                  actionLabel="Novo compromisso"
+                  onAction={() => setShowAddModal(true)}
+                />
+              </div>
             ) : Object.entries(groupedEvents || {}).sort().map(([date, eventList]: [string, CalendarEvent[]]) => (
               <motion.div 
                 key={date}

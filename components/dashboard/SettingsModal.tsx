@@ -21,6 +21,7 @@ import { useSettings, useUpdateSettings } from '@/lib/hooks/useSettings'
 import { useProfile, useUpdateProfile } from '@/lib/hooks/useProfile'
 import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
 import { cn } from '@/lib/utils/cn'
+import { InlineConfirm } from '@/components/ui/InlineConfirm'
 import { auth, db } from '@/lib/firebase/config'
 import { onAuthStateChanged } from 'firebase/auth'
 import { collection, addDoc, getDocs, deleteDoc, doc, query, where } from 'firebase/firestore'
@@ -175,7 +176,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       <motion.div 
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 bg-black/60 backdrop-blur-xl"
+        className="fixed inset-0 bg-black/80 md:bg-black/60 md:backdrop-blur-xl"
       />
       
       <motion.div 
@@ -603,16 +604,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <h5 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Gerenciar Assinatura</h5>
                     <div className="grid grid-cols-1 gap-3">
                       {profile?.is_paid && (
-                        <button 
+                        <InlineConfirm
+                          label="Cancelar meu plano"
+                          message="Tem certeza que deseja cancelar seu plano? Para processamento imediato, entre em contato com o suporte."
+                          confirmLabel="Sim, cancelar"
                           className="w-full bg-red-500/10 border border-red-500/20 text-red-500 font-bold py-3 rounded-xl text-xs hover:bg-red-500 hover:text-white transition-all active:scale-95"
-                          onClick={() => {
-                            if (confirm('Tem certeza que deseja cancelar seu plano? Para processamento imediato, entre em contato com o suporte.')) {
-                              window.open('https://wa.me/seu_numero', '_blank')
-                            }
-                          }}
-                        >
-                          Cancelar meu plano
-                        </button>
+                          onConfirm={() => { window.open('https://wa.me/seu_numero', '_blank') }}
+                        />
                       )}
                       <button 
                         disabled={isUpgrading}
@@ -744,7 +742,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-black text-white/80">Suas chaves</h4>
-                    <button onClick={loadApiKeys} className="text-[var(--text-muted)] hover:text-white/60 transition-colors">
+                    <button onClick={loadApiKeys} aria-label="Atualizar chaves" className="w-11 h-11 flex items-center justify-center text-[var(--text-muted)] hover:text-white/60 transition-colors">
                       <RefreshCw size={14} className={loadingApiKeys ? 'animate-spin' : ''} />
                     </button>
                   </div>
@@ -771,9 +769,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             </p>
                           </div>
                           <button
-                            onClick={() => revokeApiKey(k.id)}
+                            onClick={() => revokeApiKey(k.id)} aria-label="Revogar chave"
                             disabled={revokingId === k.id}
-                            className="p-2 text-[var(--text-muted)] hover:text-red-400 transition-colors disabled:opacity-30"
+                            className="w-11 h-11 flex items-center justify-center text-[var(--text-muted)] hover:text-red-400 transition-colors disabled:opacity-30"
                           >
                             {revokingId === k.id ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
                           </button>
@@ -886,13 +884,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         ? 'bg-green-500/15 text-green-400 border border-green-500/20'
                         : 'bg-white/5 text-[var(--text-muted)] border border-white/10'
                     )}>
-                      {gcalStatus.isLoading ? '...' : gcalStatus.data?.connected ? 'Conectado' : 'Não conectado'}
+                      {gcalStatus.isLoading ? 'Verificando...' : gcalStatus.data?.connected ? 'Conectado' : 'Não conectado'}
                     </div>
                   </div>
 
                   <div className="p-6 space-y-5">
                     {gcalStatus.isLoading ? (
-                      <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm">
+                      <div role="status" className="flex items-center gap-2 text-[var(--text-muted)] text-sm">
                         <Loader2 size={14} className="animate-spin" /> Verificando conexão...
                       </div>
                     ) : gcalStatus.data?.connected ? (
@@ -936,18 +934,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               <><RefreshCw size={14} /> Sincronizar Todos os Compromissos</>
                             )}
                           </button>
-                          <button
-                            onClick={() => {
-                              if (confirm('Desconectar o Google Calendar? Os eventos já sincronizados não serão apagados do Google.')) {
-                                setSyncResult(null)
-                                disconnectGCal.mutate()
-                              }
-                            }}
+                          <InlineConfirm
+                            label={disconnectGCal.isPending ? 'Desconectando...' : 'Desconectar'}
+                            message="Desconectar o Google Calendar? Os eventos já sincronizados não serão apagados do Google."
+                            confirmLabel="Sim, desconectar"
+                            onConfirm={() => { setSyncResult(null); disconnectGCal.mutate() }}
                             disabled={disconnectGCal.isPending}
                             className="w-full py-2.5 border border-red-500/20 text-red-400 hover:bg-red-500/10 font-bold text-xs rounded-xl transition-all disabled:opacity-50"
-                          >
-                            {disconnectGCal.isPending ? 'Desconectando...' : 'Desconectar'}
-                          </button>
+                          />
                         </div>
                       </>
                     ) : (

@@ -23,6 +23,9 @@ import { getEffectiveOfensiva } from '@/lib/utils/scoring'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { SharedHistoryBar, PeriodFilter, DateRange } from '@/components/dashboard/SharedHistoryBar'
 import { getDateRangeFromPeriod } from '@/lib/utils/dateFilters'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { resolveViewState } from '@/lib/utils/viewState'
 
 
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
@@ -191,7 +194,8 @@ export default function HabitsPage() {
     end: format(addDays(weekStart, 6), 'yyyy-MM-dd'),
   }), [weekStart])
 
-  const { data: habits, isLoading } = useHabits()
+  const { data: habits, isLoading, isError: habitsError, refetch: refetchHabits } = useHabits()
+  const habitsView = resolveViewState({ isLoading, isError: habitsError, count: habits?.length ?? 0 })
   const deleteHabit = useDeleteHabit()
   const logHabit = useLogHabit()
   // As grades também pintam as falhas; a lista continua só com o que foi cumprido.
@@ -333,13 +337,25 @@ export default function HabitsPage() {
                 <div key={i} className="h-48 rounded-[40px] bg-white/[0.02] border border-white/10 animate-pulse" />
               ))}
             </div>
+          ) : habitsView === 'error' ? (
+            <div key="habits-error"><ErrorState title="Não foi possível carregar seus hábitos" onRetry={() => refetchHabits()} /></div>
+          ) : habitsView === 'empty' ? (
+            <div key="habits-empty">
+              <EmptyState
+                icon={<Zap size={28} />}
+                title="Crie seu primeiro hábito"
+                description="Escolha algo pequeno para fazer todo dia. Você marca como feito e acompanha sua sequência aqui."
+                actionLabel="Novo hábito"
+                onAction={() => setShowAddModal(true)}
+              />
+            </div>
           ) : groupedHabits.map((group, groupIdx) => (
             <motion.div key={group.categoryId} layout className="space-y-6">
               <div className="flex items-center gap-3 px-2">
                 <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" 
                    style={{ backgroundColor: group.category?.color || '#FFFFFF', color: group.category?.color || '#FFFFFF' }} 
                 />
-                <h2 className="text-sm font-black tracking-widest text-white/50 uppercase">{group.category?.name || 'Sem Categoria'}</h2>
+                <h2 className="text-sm font-black tracking-widest text-[var(--text-muted)] uppercase">{group.category?.name || 'Sem Categoria'}</h2>
                 <span className="text-[var(--text-muted)] text-xs font-black uppercase tracking-widest">{group.items.length} {group.items.length === 1 ? 'Hábito' : 'Hábitos'}</span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">

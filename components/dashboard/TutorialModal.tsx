@@ -135,7 +135,7 @@ export function TutorialModal({ isOpen, onClose }: TutorialModalProps) {
         initial={{ opacity: 0 }} 
         animate={{ opacity: 1 }} 
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/80 backdrop-blur-xl"
+        className="fixed inset-0 bg-black/80 md:backdrop-blur-xl"
         onClick={() => {}} // Bloqueia o clique fora (onboardng obriga interagir)
       />
       
