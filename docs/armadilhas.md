@@ -33,3 +33,6 @@ Pegadinhas que já custaram tempo. Antes de investigar algo estranho, procure aq
 
 26. **`/v1/performance`: `days` inválido ou <= 0 vira o padrão (7); `from`>`to` e intervalo > 366 dias dão 400** (`resolveRange` em `lib/server/validate.ts`). Compatível com o MCP.
 27. **`request.resource` não existe em read/delete nas regras do Firestore.** Acessá-lo (mesmo em `request.resource == null`) dá erro = negado, e derrubou todas as leituras em produção em 2026-10-23. Use `request.resource` só em `create`/`update`, e `get()` ou `'x' in map` quando a chave for opcional. `firebase deploy --dry-run` só compila: não detecta isso. Sem emulador (Java 8 aqui), teste regras à mão no dev antes de publicar em prod.
+28. **`'use client'` tem de ser a primeira linha do arquivo** (acima de imports). Em 2026-10-23 a linha estava deslocada em `EmojiPicker` e `CustomDateTimePicker` (commit 2dc93ac). O `tsc` não avisa; confira ao criar componente de cliente.
+29. **ESC em camadas: todo overlay usa `useModalLayer`** (`components/ui/useModalLayer.ts`). Sheet, mini-modal ou seletor fora da pilha faz ESC fechar também o modal de baixo e descartar o formulário (commit b3800cd).
+30. **Altura de tela: `dvh`, nunca `vh` ou `h-screen`.** No iOS a barra de endereço muda o `vh` e corta o rodapé do modal. Sem fallback `vh` no código [verificar se Safari antigo precisa].

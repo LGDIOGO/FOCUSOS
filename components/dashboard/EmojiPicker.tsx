@@ -1,6 +1,9 @@
 'use client'
+import { useModalLayer } from '@/components/ui/useModalLayer'
 
-import { useState, useEffect } from 'react'
+import { isFinePointer } from '@/lib/utils/pointer'
+import { useState, useEffect, useRef } from 'react'
+import { fitToVisualViewport } from '@/lib/utils/visualViewport'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils/cn'
@@ -275,6 +278,15 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
 
   useEffect(() => { setIsMounted(true) }, [])
   useEffect(() => { if (!isOpen) setSearch('') }, [isOpen])
+  useModalLayer(isOpen, () => setIsOpen(false))
+  const pickerLayerRef = useRef<HTMLDivElement>(null)
+
+  // ESC fecha só o seletor (capture, antes do modal por baixo); teclado virtual não cobre a busca
+  useEffect(() => {
+    if (!isOpen) return
+    const stopFit = fitToVisualViewport(pickerLayerRef.current)
+    return () => { stopFit() }
+  }, [isOpen])
 
   const filteredEmojis = search
     ? EMOJI_CATEGORIES.flatMap(c => c.emojis).filter(emoji =>
@@ -318,7 +330,7 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
               />
 
               {/* Picker wrapper — centered */}
-              <div className="fixed inset-0 z-[29999] flex items-center justify-center pointer-events-none">
+              <div ref={pickerLayerRef} className="fixed inset-0 z-[29999] flex items-end sm:items-center justify-center pointer-events-none">
                 <motion.div
                   key="emoji-picker"
                   initial={{ opacity: 0, scale: 0.88, y: 20 }}
@@ -326,10 +338,10 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
                   exit={{ opacity: 0, scale: 0.92, y: 12 }}
                   transition={{ type: 'spring', damping: 28, stiffness: 380 }}
                   onClick={(e) => e.stopPropagation()}
-                  className="pointer-events-auto bg-[#1A1A1A] border border-white/10 rounded-[32px] overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.7)] w-[340px] max-w-[92vw]"
+                  className="pointer-events-auto bg-[#1A1A1A] border border-white/10 rounded-t-[28px] sm:rounded-[32px] overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.7)] w-full sm:w-[340px] sm:max-w-[92vw] max-h-[70dvh] sm:max-h-[90dvh] flex flex-col"
                 >
                 {/* Category tabs */}
-                <div className="flex bg-white/[0.02] p-2 gap-1 overflow-x-auto border-b border-white/5 no-scrollbar">
+                <div className="shrink-0 flex bg-white/[0.02] p-2 gap-1 overflow-x-auto border-b border-white/5 no-scrollbar">
                   {EMOJI_CATEGORIES.map(cat => (
                     <button
                       key={cat.id}
@@ -347,16 +359,16 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
                   ))}
                 </div>
 
-                <div className="p-4">
+                <div className="p-4 flex flex-col min-h-0 flex-1">
                   {/* Search */}
-                  <div className="mb-3 relative">
+                  <div className="mb-3 relative shrink-0">
                     <input
                       type="text"
                       value={search}
                       onChange={e => setSearch(e.target.value)}
                       placeholder="Buscar emoji... (ex: fogo, meta, treino)"
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-red-500/50 transition-all placeholder:text-white/20"
-                      autoFocus
+                      autoFocus={isFinePointer()}
                     />
                     {search && (
                       <button
@@ -370,7 +382,7 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
                   </div>
 
                   {/* Header row */}
-                  <div className="flex justify-between items-center mb-3 px-0.5">
+                  <div className="flex justify-between items-center mb-3 px-0.5 shrink-0">
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 truncate max-w-[160px]">
                       {currentCategoryLabel}
                     </span>
@@ -378,14 +390,14 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
                       <button
                         type="button"
                         onClick={() => { onChange(''); setIsOpen(false) }}
-                        className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors bg-white/5 px-2.5 py-1 rounded-lg"
+                        className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors bg-white/5 px-3 min-h-[44px] rounded-lg"
                       >
                         Nenhum
                       </button>
                       <button
                         type="button"
                         onClick={() => setIsOpen(false)}
-                        className="text-[10px] font-black uppercase tracking-widest text-red-400/80 hover:text-red-300 transition-colors"
+                        className="text-[10px] font-black uppercase tracking-widest text-red-400/80 hover:text-red-300 transition-colors px-2 min-h-[44px]"
                       >
                         Fechar
                       </button>
@@ -393,7 +405,7 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
                   </div>
 
                   {/* Emoji grid */}
-                  <div className="grid grid-cols-6 gap-0.5 max-h-[230px] overflow-y-auto pr-0.5 custom-scrollbar">
+                  <div className="grid grid-cols-6 gap-0.5 flex-1 min-h-0 sm:flex-none sm:max-h-[230px] overflow-y-auto overscroll-contain pr-0.5 custom-scrollbar content-start">
                     {filteredEmojis.map((emoji, idx) => (
                       <button
                         key={`${emoji}-${idx}`}
@@ -420,7 +432,7 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
                 </div>
 
                 {/* Category indicator dots */}
-                <div className="flex justify-center gap-1.5 pb-3">
+                <div className="shrink-0 flex justify-center gap-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                   {EMOJI_CATEGORIES.map(cat => (
                     <div
                       key={cat.id}

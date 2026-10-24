@@ -41,11 +41,13 @@ Legenda: ✅ coberto por teste · ⚠️ corrigido mas **sem teste** (dívida: a
 | Bug | Causa | Blindagem |
 |---|---|---|
 | Modais de hábito/agenda/metas mostravam categorias de trabalho | Coleção compartilhada sem filtro por escopo | ⚠️ `useCategories('escopo')` |
+| Categorias criadas em outra área (ou sem `type`) não apareciam no seletor de hábito/compromisso (2026-10-23) | Filtro estrito `type === escopo` (commit 7156516) escondia categorias criadas em Configurações (que gravam o escopo escolhido lá) e docs antigos sem `type`. Causa exata não confirmada com dados reais | ✅ `lib/utils/__tests__/categories.test.ts` › `categoriesForScope` (REGRESSÃO: pessoais compartilham, legado visível, Trabalho isolado) |
 
 ## Interface
 
 | Bug | Causa | Blindagem |
 |---|---|---|
+| ESC com sheet, mini-modal ou seletor aberto também fechava o modal de baixo e descartava o formulário | Cada overlay tratava ESC por conta própria, sem pilha | ✅ `lib/utils/__tests__/modalLogic.test.ts` › `createLayerStack` (REGRESSÃO: só o topo) |
 | Banner "Nenhum dado encontrado para seu usuário" para toda conta nova, sobreposto ao relógio e sem como fechar | `FirestoreDiagnostic` tratava coleção de hábitos vazia como erro | ✅ `firestoreDiagnostic.test.ts` (`diagnoseProbe`) |
 
 ## Próximos testes a escrever (dívida priorizada)
@@ -66,3 +68,4 @@ Legenda: ✅ coberto por teste · ⚠️ corrigido mas **sem teste** (dívida: a
 | Usuário se dava `is_paid` / reiniciava o teste grátis; reatribuía doc a outro uid | `firestore.rules`: `write` livre em `profiles`; `update` sem travar `user_id` | ⚠️ regras compilam (`--dry-run`), **sem teste automatizado** (não há emulador); verificar à mão com a conta de teste |
 | Rota `admin/fix-rules` pública sobrescrevia as regras | Rota de manutenção sem auth | removida (e o `FirestoreDiagnostic` parou de chamá-la) |
 | Leituras do Firestore negadas em produção (`permission-denied` em tudo) | Regra `isOwnerByField` usava `request.resource` em read/delete, onde ele não existe | ⚠️ sem teste (sem emulador); corrigido separando `update` (`userIdUnchanged`) das demais operações; armadilha 27 |
+

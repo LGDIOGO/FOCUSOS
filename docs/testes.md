@@ -36,10 +36,13 @@ npx tsc --noEmit    # tipos (o build da Vercel NÃO checa)
 | `lib/server/__tests__/rateLimit.test.ts` | Rate limit em memória: limite, janela, chaves independentes |
 | `app/api/v1/__tests__/auth.test.ts` | `authWithFirebaseToken`: JWT forjado = 401 (REGRESSÃO); uid só vem do Admin SDK |
 | `lib/utils/__tests__/firestoreDiagnostic.test.ts` | Diagnóstico do Firestore: conta nova sem dados não é erro (REGRESSÃO) |
+| `lib/utils/__tests__/navItems.test.ts` | Barra inferior (4 destinos fixos), "Mais" sem repetir nem perder destino, rota ativa em subrota, `/dashboard` não casa com prefixo (REGRESSÃO); ordem igual na Sidebar |
+| `lib/utils/__tests__/modalLogic.test.ts` | Modal: fechar pelo fundo só com pressionar e soltar no fundo (REGRESSÃO: arrastar não fecha); Tab cíclico; pilha de ESC só fecha o topo (REGRESSÃO) |
+| `lib/utils/__tests__/categories.test.ts` | Categorias: escopos pessoais compartilhados, legado sem `type` visível, Trabalho isolado (REGRESSÃO); nome duplicado (REGRESSÃO); ordenação sem `order`, mover e seleção após excluir (REGRESSÃO) |
 
 ## Onde a suíte NÃO chega (honestidade)
 
-- **Telas e interação** (clicar, modais, PWA): sem teste. Hoje só lógica pura é testada.
+- **Telas e interação** (clicar, modais, PWA): sem teste. Hoje só lógica pura é testada. Isso inclui `Modal`, `MobileNav`, `CategoryPicker` e o hook `useReorderCategories` (gravação em lote, sem mock de Firestore). A verificação de F1-F3 em celular e iPad é manual (backlog item 3).
 - **Firestore real**: sem teste (precisaria do emulador). Lógica que mistura leitura/gravação com regra de negócio deve ser **extraída para função pura** antes de ser testada.
 - **Google Calendar real**: RRULE e alocação são testados como lógica; o envio à API não.
 - **Carry-over (arraste) de pendências do Trabalho**: a lógica ainda mora dentro de componente; extrair para função pura é o próximo passo para testá-la.

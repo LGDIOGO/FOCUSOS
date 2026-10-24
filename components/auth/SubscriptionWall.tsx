@@ -52,11 +52,11 @@ export function SubscriptionWall() {
   }
 
   return (
-    <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-black p-6 overflow-y-auto custom-scrollbar">
+    <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-start bg-black px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain custom-scrollbar">
       {/* Background Decor */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-red-500/[0.03] blur-[120px] rounded-full pointer-events-none" />
       
-      <div className="relative w-full max-w-6xl space-y-16 py-12">
+      <div className="relative w-full max-w-6xl space-y-16 py-6 sm:py-12 sm:my-auto">
         {/* Header */}
         <div className="text-center space-y-6 max-w-3xl mx-auto">
           <motion.div 

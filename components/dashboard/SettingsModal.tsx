@@ -15,6 +15,7 @@ import {
 } from '@/lib/hooks/useGoogleCalendar'
 import { TutorialModal } from '@/components/dashboard/TutorialModal'
 import { AccountDataSection } from '@/components/dashboard/AccountDataSection'
+import { findDuplicateCategory, DUPLICATE_CATEGORY_MESSAGE } from '@/lib/utils/categories'
 import { useCategories, useAddCategory, useDeleteCategory, CATEGORY_SCOPES, categoryScopeLabel } from '@/lib/hooks/useCategories'
 import { useSettings, useUpdateSettings } from '@/lib/hooks/useSettings'
 import { useProfile, useUpdateProfile } from '@/lib/hooks/useProfile'
@@ -52,6 +53,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const [newCat, setNewCat] = useState({ name: '', icon: '🏷️', color: '#0A84FF', type: 'habits' as any })
   const [showAddForm, setShowAddForm] = useState(false)
+  const [confirmDeleteCat, setConfirmDeleteCat] = useState<string | null>(null)
+  const [catError, setCatError] = useState<string | null>(null)
   const [isUpgrading, setIsUpgrading] = useState(false)
 
   // API tab state
@@ -154,7 +157,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   }, [activeTab, loadApiKeys])
 
   const handleAddCategory = () => {
-    if (!newCat.name) return
+    if (!newCat.name.trim()) return
+    if (findDuplicateCategory(categories || [], newCat.name, newCat.type)) { setCatError(DUPLICATE_CATEGORY_MESSAGE); return }
+    setCatError(null)
     addCategory.mutate(newCat, {
       onSuccess: () => {
         setNewCat({ name: '', icon: '🏷️', color: '#0A84FF', type: newCat.type })
@@ -177,18 +182,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-4xl bg-[var(--bg-workspace)] border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[85vh] max-h-[800px]"
+        className="relative w-full max-w-4xl bg-[var(--bg-workspace)] border border-[var(--border-subtle)] rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[90dvh] max-h-[800px]"
       >
-        {/* Sidebar Tabs */}
-        <div className="w-full md:w-64 border-r border-white/5 bg-white/[0.02] p-6 flex flex-col gap-8">
-          <div className="flex items-center gap-3 px-2">
+        {/* Sidebar Tabs (mobile: abas em linha rolável no topo) */}
+        <div className="w-full md:w-64 shrink-0 border-b md:border-b-0 md:border-r border-white/5 bg-white/[0.02] p-3 md:p-6 flex flex-col gap-3 md:gap-8">
+          <div className="hidden md:flex items-center gap-3 px-2">
             <div className="w-10 h-10 bg-[var(--bg-overlay)] rounded-xl flex items-center justify-center border border-[var(--border-subtle)]">
               <Settings className="text-[var(--text-primary)] w-5 h-5" />
             </div>
             <h2 className="text-xl font-black tracking-tightest text-[var(--text-primary)]">Ajustes</h2>
           </div>
 
-          <nav className="flex flex-col gap-1.5">
+          <nav aria-label="Seções de configurações" className="flex flex-row md:flex-col gap-1.5 overflow-x-auto md:overflow-visible pb-1 md:pb-0">
             {[
               { id: 'categories', label: 'Categorias', icon: Tag },
               { id: 'notifications', label: 'Notificações', icon: Bell },
@@ -202,7 +207,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-bold text-sm",
+                  "flex items-center gap-2 md:gap-3 px-4 py-3 min-h-[44px] shrink-0 whitespace-nowrap rounded-2xl transition-all font-bold text-sm",
                   activeTab === tab.id 
                     ? "bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-lg" 
                     : "text-[var(--text-secondary)] hover:bg-[var(--bg-overlay)] hover:text-[var(--text-primary)]"
@@ -214,7 +219,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             ))}
           </nav>
 
-          <div className="mt-auto p-4 bg-white/5 rounded-[24px] border border-white/5 transition-all">
+          <div className="hidden md:block mt-auto p-4 bg-white/5 rounded-[24px] border border-white/5 transition-all">
              <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-2">Seu Plano</p>
              <div className={cn(
                "flex items-center gap-2",
@@ -242,7 +247,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               {activeTab === 'api' && 'API & Integrações'}
               {activeTab === 'integrations' && 'Google Calendar'}
             </h3>
-            <button onClick={onClose} className="p-2 hover:bg-[var(--bg-overlay)] rounded-xl transition-all">
+            <button onClick={onClose} aria-label="Fechar configurações" className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-[var(--bg-overlay)] rounded-xl transition-all">
               <X className="text-[var(--text-muted)]" size={20} />
             </button>
           </div>
@@ -326,7 +331,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </div>
                         </div>
 
-                         <button 
+                        {catError && <p className="text-xs font-bold text-red-400">{catError}</p>}
+                         <button
                           onClick={handleAddCategory}
                           className="w-full bg-red-600 text-white font-black py-4 rounded-2xl hover:bg-red-500 transition-all active:scale-95 shadow-xl shadow-red-500/10"
                         >
@@ -361,14 +367,31 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           {categoryScopeLabel(cat.type)}
                         </p>
                       </div>
-                      <button 
-                        onClick={() => {
-                          if (confirm('Excluir esta categoria?')) deleteCategory.mutate(cat.id)
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-3 text-white/20 hover:text-red-400 transition-all"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {confirmDeleteCat === cat.id ? (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setConfirmDeleteCat(null)}
+                            className="min-h-[44px] px-3 rounded-xl border border-white/10 text-white/50 text-[10px] font-black uppercase tracking-widest"
+                          >
+                            Manter
+                          </button>
+                          <button
+                            onClick={() => deleteCategory.mutate(cat.id, { onSettled: () => setConfirmDeleteCat(null) })}
+                            disabled={deleteCategory.isPending}
+                            className="min-h-[44px] px-3 rounded-xl bg-red-600 text-white text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteCat(cat.id)}
+                          aria-label={`Excluir ${cat.name}`}
+                          className="md:opacity-0 md:group-hover:opacity-100 w-11 h-11 flex items-center justify-center text-white/30 hover:text-red-400 transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -635,15 +658,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                 <AccountDataSection />
 
-                <div className="p-8 bg-red-400/5 border border-red-400/10 rounded-[32px] flex items-center justify-between">
-                  <div>
-                    <h4 className="font-black text-lg text-red-400">Zona de Perigo</h4>
-                    <p className="text-sm text-white/30 font-medium">Limpar todo o histórico e reiniciar o seu FocusOS.</p>
-                  </div>
-                  <button className="px-6 py-3 bg-red-400 text-white font-black rounded-2xl hover:bg-red-500 transition-all text-xs">
-                    Resetar Sistema
-                  </button>
-                </div>
               </div>
             )}
 

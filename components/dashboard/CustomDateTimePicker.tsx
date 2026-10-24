@@ -1,4 +1,5 @@
 'use client'
+import { useModalLayer } from '@/components/ui/useModalLayer'
 
 import { useState, useRef, useLayoutEffect } from 'react'
 import { Calendar, Clock } from 'lucide-react'
@@ -111,6 +112,7 @@ function PickerPortal({
   direction: 'up' | 'down'
 }) {
   const [style, setStyle] = useState<React.CSSProperties>({ opacity: 0, position: 'fixed', zIndex: 99999 })
+  useModalLayer(true, onClose)
 
   useLayoutEffect(() => {
     if (anchorRef.current) {

@@ -60,11 +60,11 @@ export function CpfOnboarding() {
   }
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/90 backdrop-blur-xl p-6">
+    <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-start bg-black/90 backdrop-blur-xl px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain">
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md bg-[#161616] border border-white/10 rounded-[32px] p-10 space-y-8 shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+        className="w-full max-w-md sm:my-auto bg-[#161616] border border-white/10 rounded-[32px] p-6 sm:p-10 space-y-6 sm:space-y-8 shadow-[0_0_50px_rgba(0,0,0,0.5)]"
       >
         <div className="text-center space-y-4">
           <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center mx-auto border border-white/10 mb-2">
@@ -78,16 +78,19 @@ export function CpfOnboarding() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-[11px] uppercase tracking-widest font-black text-white/30 px-1 ml-1 flex items-center gap-2">
+            <label htmlFor="cpf-input" className="text-[11px] uppercase tracking-widest font-black text-white/30 px-1 ml-1 flex items-center gap-2">
               <ShieldCheck size={12} />
               CPF (Apenas Um Por Conta)
             </label>
             <input 
+              id="cpf-input"
               type="text"
+              inputMode="numeric"
+              autoComplete="off"
               value={cpf}
               onChange={handleCpfChange}
               placeholder="000.000.000-00"
-              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-6 py-5 text-xl font-bold tracking-tight text-white focus:outline-none focus:border-white/20 transition-all placeholder:text-white/10"
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-6 py-4 text-xl font-bold tracking-tight text-white focus:outline-none focus:border-white/20 transition-all placeholder:text-white/10"
               required
             />
           </div>

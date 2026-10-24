@@ -33,7 +33,7 @@ Ver [testes.md](testes.md). Objetivo: eliminar o "um passo à frente, dois para 
 Barato, rápido e estável. UI e Firestore real ficam de fora até valer o custo (emulador, Playwright). Preferir extrair regra de negócio para `lib/utils/`.
 
 ## Segurança: falhar fechado, servidor decide
-Auditoria de 2026-10-21. Auth por token sem fallback; preço/plano/uid de pagamento vêm do servidor; regras travam assinatura e `user_id`. **CSP em modo `Report-Only`** (não bloqueia): não dá para testar as telas logadas aqui, e uma CSP errada quebraria o login. Promover a `Content-Security-Policy` depois de ver o console do preview sem violações. Rate limit em memória (simples) em vez de Redis/Upstash: suficiente para o volume atual; trocar se houver abuso real. Descartado: remover agora os fallbacks de `apiKey`/`projectId` de produção em `lib/firebase/config.ts` (não dá para confirmar que as `NEXT_PUBLIC_*` estão no escopo Production da Vercel; remover às cegas poderia derrubar produção).
+Auditoria de 2026-10-21. Auth por token sem fallback; preço/plano/uid de pagamento vêm do servidor; regras travam assinatura e `user_id`. **CSP em modo `Report-Only`** (não bloqueia; reafirmado em 2026-10-23 pelo `next.config.js`): não dá para testar as telas logadas aqui, e uma CSP errada quebraria o login. Promover a `Content-Security-Policy` depois de ver o console do preview sem violações. Rate limit em memória (simples) em vez de Redis/Upstash: suficiente para o volume atual; trocar se houver abuso real. Descartado: remover agora os fallbacks de `apiKey`/`projectId` de produção em `lib/firebase/config.ts` (não dá para confirmar que as `NEXT_PUBLIC_*` estão no escopo Production da Vercel; remover às cegas poderia derrubar produção).
 
 ## Exclusão de conta mantém `mp_payments`
 Ao apagar a conta, `mp_payments` (id do pagamento, plano, data, `user_id`) é exportada mas **não** apagada: é o marcador de idempotência do webhook e base de retenção fiscal. Sem dado sensível. Lista explícita em `RETAINED_COLLECTIONS` (`lib/server/userData.ts`); a política de privacidade já cita a retenção. Texto final: revisão jurídica.
@@ -46,3 +46,12 @@ O fallback de `projectId` em `admin.ts` e os fallbacks de `config.ts` continuam:
 
 ## Erros de rotas: genérico para o cliente, detalhe no log do servidor
 Rotas de `app/api/**` não devolvem `err.message` nem títulos de itens do usuário. Detalhe vai para `console.error` (só `error.message`, nunca o objeto inteiro). Validação de entrada em funções puras (`lib/server/validate.ts`).
+
+## Categorias pessoais compartilhadas; Trabalho isolado
+Hábitos, Compromissos e Metas usam o mesmo conjunto de categorias (escopos `habits | agenda | goals`). Motivo: o filtro estrito por `type` escondia categorias criadas em outra área ou sem `type`. Trade-off: uma categoria de Hábito aparece em Metas, aceito. Trabalho continua separado, porque tipo e categoria de Trabalho têm outro significado. Ver [modulos.md](modulos.md#categorias).
+
+## Barra inferior com 4 destinos + "Mais"
+Resumo, Agenda, Hábitos e Trabalho ficam na barra; o resto vai para o sheet "Mais", junto de Configurações, Modo Foco e Sair. Motivo: alvos de 44px e rótulos legíveis em 390px. Trade-off: Configurações, Sair e Modo Foco ficam a 2 toques, não 1. Ver [modulos.md](modulos.md#navegação).
+
+## `forceDark` temporário em GoalModal e WorkItemModal
+Estes dois modais têm tokens fixos escuros (`DARK_TOKENS` em `components/ui/Modal.tsx`) e passam `forceDark` ao `CategoryPicker` e ao sheet de categorias, que seguem o tema por padrão. Trade-off: no tema claro esses modais não seguem o tema. Provisório: sai com a migração para tokens na F4 (backlog item 13). Não copiar o padrão para modal novo.

@@ -1,3 +1,6 @@
+import { CategoryPicker } from './CategoryPicker'
+import { Modal } from '@/components/ui/Modal'
+import { useModalLayer } from '@/components/ui/useModalLayer'
 import { authFetch } from '@/lib/utils/authFetch'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -6,7 +9,7 @@ import { format, getDay, parseISO, getDate } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { EmojiPicker } from './EmojiPicker'
 import { CustomDateTimePicker } from './CustomDateTimePicker'
-import { useCategories, useAddCategory } from '@/lib/hooks/useCategories'
+import { useCategories } from '@/lib/hooks/useCategories'
 import { useAddEvent, useUpdateEvent } from '@/lib/hooks/useEvents'
 import { CalendarEvent, EventType, RecurrenceFreq, RecurrenceRule } from '@/types'
 import { cn } from '@/lib/utils/cn'
@@ -24,10 +27,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
   const { data: categories } = useCategories('agenda')
   const addEvent = useAddEvent()
   const updateEvent = useUpdateEvent()
-  const addCategory = useAddCategory()
 
-  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false)
-  const [newCategory, setNewCategory] = useState({ name: '', icon: '📅', color: '#e02020' })
   const [isParsing, setIsParsing] = useState(false)
   const [parseError, setParseError] = useState<string | null>(null)
 
@@ -195,36 +195,28 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
     })
   }
 
+
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-end pb-safe md:pb-0 md:items-center md:justify-center md:p-6 text-left">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="fixed inset-0 bg-black/60 backdrop-blur-xl"
-      />
-
-      <motion.div
-        initial={{ y: '100%', opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: '100%', opacity: 0 }}
-        transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-        className="relative w-full md:max-w-lg bg-[var(--bg-primary)] border text-left border-[var(--border-subtle)] rounded-t-[32px] md:rounded-[48px] p-5 md:p-7 overflow-y-auto max-h-[85svh] md:max-h-[90vh] shadow-2xl z-[10001] transition-colors duration-300"
-      >
-        {/* Drag handle — mobile only */}
-        <div className="w-10 h-1 bg-[var(--border-subtle)] rounded-full mx-auto mb-4 md:hidden" />
-
-        <div className="flex justify-between items-center mb-6 md:mb-10">
-          <h2 className="text-2xl md:text-4xl font-black tracking-tightest text-[var(--text-primary)] transition-colors">{eventToEdit ? 'Editar Compromisso' : 'Novo Compromisso'}</h2>
-          <button onClick={onClose} className="p-2.5 md:p-3 hover:bg-[var(--bg-overlay)] rounded-2xl transition-all">
-            <X size={20} className="text-[var(--text-muted)]" />
-          </button>
-        </div>
-
-        <form onSubmit={handleAddEvent} className="space-y-3">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={eventToEdit ? 'Editar Compromisso' : 'Novo Compromisso'}
+      onSubmit={handleAddEvent}
+      footer={
+        <>
+            <button 
+              type="submit"
+              disabled={addEvent.isPending || updateEvent.isPending}
+              className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black py-5 rounded-[24px] hover:opacity-90 transition-all active:scale-95 text-lg shadow-2xl"
+            >
+              {addEvent.isPending || updateEvent.isPending ? 'Salvando...' : (eventToEdit ? 'Salvar Alterações' : 'Criar Compromisso')}
+            </button>
+        </>
+      }
+    >
+      <div className="space-y-3 pt-1">
           <div className="space-y-2 relative">
             <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Nome</label>
             <div className="relative group/input">
@@ -266,52 +258,11 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
             )}
           </div>
 
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between px-1">
-              <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-[var(--text-muted)]">Categoria</label>
-              <button 
-                type="button" 
-                onClick={() => setShowAddCategoryModal(true)}
-                className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors"
-              >
-                + Nova
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setNewEvent({ ...newEvent, category_id: '' })}
-                className={cn(
-                  "px-4 py-3 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all",
-                  !newEvent.category_id ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-sm" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"
-                )}
-              >
-                Nenhuma
-              </button>
-              {categories?.map(cat => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => {
-                    setNewEvent({ 
-                      ...newEvent, 
-                      category_id: cat.id,
-                      emoji: cat.icon || newEvent.emoji,
-                      color: cat.color || newEvent.color
-                    })
-                  }}
-                  className={cn(
-                    "px-4 py-3 rounded-xl border whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                    newEvent.category_id === cat.id ? "border-[var(--text-primary)] bg-[var(--bg-overlay)] text-[var(--text-primary)]" : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)]"
-                  )}
-                  style={newEvent.category_id === cat.id ? { borderColor: cat.color } : {}}
-                >
-                  {cat.icon && <span>{cat.icon}</span>}
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-          </div>
+          <CategoryPicker
+            scope="agenda"
+            value={newEvent.category_id}
+            onChange={(id, cat) => setNewEvent(e => ({ ...e, category_id: id || '', ...(cat ? { emoji: cat.icon || e.emoji, color: cat.color || e.color } : {}) }))}
+          />
 
           <div className="space-y-1.5">
             <label className="text-[13px] md:text-[14px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Personalização</label>
@@ -457,42 +408,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
             />
           </div>
 
-          <div className="pb-6 pt-2">
-            <button 
-              type="submit"
-              disabled={addEvent.isPending || updateEvent.isPending}
-              className="w-full bg-[var(--text-primary)] text-[var(--bg-primary)] font-black py-5 rounded-[24px] hover:opacity-90 transition-all active:scale-95 text-lg shadow-2xl"
-            >
-              {addEvent.isPending || updateEvent.isPending ? 'Salvando...' : (eventToEdit ? 'Salvar Alterações' : 'Criar Compromisso')}
-            </button>
-          </div>
-        </form>
-
-        <AnimatePresence>
-          {showAddCategoryModal && (
-            <div className="absolute inset-0 z-[1000] rounded-[48px] bg-[var(--bg-primary)]/60 backdrop-blur-md flex items-center justify-center p-4">
-               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-2xl relative">
-                 <div className="flex justify-between items-center mb-6">
-                   <h3 className="text-xl font-bold text-[var(--text-primary)]">Nova Categoria</h3>
-                   <button type="button" onClick={() => setShowAddCategoryModal(false)}><X size={20} className="text-[var(--text-muted)]"/></button>
-                 </div>
-                 <div className="space-y-4 text-[var(--text-primary)]">
-                   <input value={newCategory.name} onChange={e => setNewCategory({ ...newCategory, name: e.target.value })} className="w-full bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-red-500/50" placeholder="Nome da categoria" />
-                   <div className="flex gap-4 items-center">
-                     <EmojiPicker value={newCategory.icon} onChange={icon => setNewCategory({ ...newCategory, icon })} />
-                     <div className="flex gap-2 flex-wrap flex-1">
-                       {['#FF453A', '#32D74B', '#FF9F0A', '#BF5AF2', '#8E8E93', '#FFFFFF'].map(color => (
-                         <button key={color} type="button" onClick={() => setNewCategory({ ...newCategory, color })} className={cn("w-6 h-6 rounded-full border-2 transition-all", newCategory.color === color ? "border-[var(--text-primary)] scale-110" : "border-transparent opacity-40")} style={{ backgroundColor: color }} />
-                       ))}
-                     </div>
-                   </div>
-                   <button type="button" onClick={() => { if(!newCategory.name) return; addCategory.mutate({...newCategory, type: 'agenda'}, { onSuccess: () => setShowAddCategoryModal(false) })}} disabled={addCategory.isPending || !newCategory.name} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl mt-4 hover:bg-red-700 transition-colors">Salvar Categoria</button>
-                 </div>
-               </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    </div>
+      </div>
+    </Modal>
   )
 }

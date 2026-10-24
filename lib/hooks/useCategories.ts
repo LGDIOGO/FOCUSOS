@@ -8,9 +8,11 @@ import {
   addDoc,
   deleteDoc,
   doc,
-  updateDoc
+  updateDoc,
+  writeBatch
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
+import { categoriesForScope, sortCategories } from '../utils/categories'
 
 /**
  * Onde a etiqueta é aplicada. O módulo Trabalho usa dois escopos próprios —
@@ -44,6 +46,9 @@ export interface Category {
   icon: string
   color: string
   type: CategoryScope
+  /** Posição manual; ausente em docs antigos e nos recém-criados (vão para o fim). */
+  order?: number
+  created_at?: string
 }
 
 /**
@@ -72,7 +77,7 @@ export function useCategories(scope?: CategoryScope | CategoryScope[]) {
       const snap = await getDocs(q)
       return snap.docs.map(d => ({ id: d.id, ...d.data() })) as Category[]
     },
-    select: (all: Category[]) => (scopes ? all.filter(c => scopes.includes(c.type)) : all),
+    select: (all: Category[]) => sortCategories(categoriesForScope(all, scopes)),
     enabled: !!user,
     staleTime: 5_000,
   })
@@ -83,7 +88,7 @@ export function useAddCategory() {
   const user = useCurrentUser()
 
   return useMutation({
-    mutationFn: async (category: Omit<Category, 'id' | 'user_id'>) => {
+    mutationFn: async (category: Omit<Category, 'id' | 'user_id' | 'order' | 'created_at'>) => {
       if (!user) throw new Error('Not authenticated')
       const docRef = await addDoc(collection(db, 'categories'), {
         ...category,
@@ -91,6 +96,19 @@ export function useAddCategory() {
         created_at: new Date().toISOString()
       })
       return { id: docRef.id, ...category }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categories'] })
+    }
+  })
+}
+
+export function useUpdateCategory() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, ...patch }: { id: string; name: string; icon: string; color: string }) => {
+      await updateDoc(doc(db, 'categories', id), patch)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['categories'] })
@@ -107,6 +125,23 @@ export function useDeleteCategory() {
     },
     onSuccess: () => {
        qc.invalidateQueries({ queryKey: ['categories'] })
+    }
+  })
+}
+
+/** Grava a nova ordem (lote atômico). Recebe só os ids que mudaram. */
+export function useReorderCategories() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (patches: Array<{ id: string; order: number }>) => {
+      if (patches.length === 0) return
+      const batch = writeBatch(db)
+      patches.forEach(p => batch.update(doc(db, 'categories', p.id), { order: p.order }))
+      await batch.commit()
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categories'] })
     }
   })
 }
