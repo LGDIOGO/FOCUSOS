@@ -333,6 +333,7 @@ export default function AcompanhamentoPage() {
   const { startYM, cfg, mounted, init, reset } = useLocalState()
   const { data: entries = [], isLoading } = useTrackingEntries()
   const { mutate: upsert } = useUpsertTracking()
+  const [confirmReset, setConfirmReset] = useState(false)
 
   const todayYM = nowYM()
 
@@ -421,14 +422,43 @@ export default function AcompanhamentoPage() {
           <h1 className="text-xl font-bold text-[var(--text-primary)] leading-tight">Acompanhamento</h1>
           <p className="text-sm text-[var(--text-muted)]">Desde {fmtYM(startYM)}</p>
         </div>
-        <button
-          onClick={() => { if (window.confirm('Resetar histórico de acompanhamento?')) reset() }}
-          className="p-2 rounded-xl text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 transition-all"
-          title="Resetar"
-        >
-          <XCircle size={16} />
-        </button>
+        {!confirmReset && (
+          <button
+            onClick={() => setConfirmReset(true)}
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 transition-all"
+            title="Resetar"
+            aria-label="Resetar histórico de acompanhamento"
+          >
+            <XCircle size={16} />
+          </button>
+        )}
       </div>
+
+      {confirmReset && (
+        <div role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 space-y-2">
+          <p className="text-sm font-medium text-[var(--text-primary)]">
+            Apagar o histórico de acompanhamento? Isso remove todo o histórico e não dá para desfazer.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              autoFocus
+              type="button"
+              onClick={() => { setConfirmReset(false); reset() }}
+              className="min-h-[44px] px-4 rounded-xl bg-red-500 text-white text-xs font-bold"
+            >
+              Sim, apagar histórico
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmReset(false)}
+              className="min-h-[44px] px-4 rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] text-xs font-bold"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
 
       {/* Level card */}
       <LevelCard

@@ -1081,7 +1081,7 @@ function ReserveCard({ reserve }: { reserve: Reserve }) {
   }
 
   function confirmDelete() {
-    if (window.confirm(`Excluir "${reserve.name}"? Todas as movimentações serão apagadas.`)) deleteReserve(reserve.id)
+    deleteReserve(reserve.id)
   }
 
   return (
@@ -1103,7 +1103,7 @@ function ReserveCard({ reserve }: { reserve: Reserve }) {
               <p className="text-sm font-bold text-white truncate">{reserve.name}</p>
               <div className="flex items-center gap-1 shrink-0">
                 <button onClick={() => setEditing(true)} className="p-1 rounded-lg text-white/25 hover:text-white hover:bg-white/[0.06] transition-all"><Pencil size={11} /></button>
-                <button onClick={confirmDelete} className="p-1 rounded-lg text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-all"><Trash2 size={11} /></button>
+                <DeleteButton label={`Excluir reserva ${reserve.name}`} iconSize={11} onConfirm={confirmDelete} className="rounded-lg text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-all" />
               </div>
             </div>
             <div className="flex items-baseline gap-1 mt-1">

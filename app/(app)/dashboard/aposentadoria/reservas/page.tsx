@@ -8,6 +8,7 @@ import {
   Wallet, Target, Clock, X, Check,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { DeleteButton } from '@/components/ui/DeleteButton'
 import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
 import {
   useReserves, useReserveTxs, useCreateReserve,
@@ -308,9 +309,7 @@ function ReserveCard({ reserve }: { reserve: Reserve }) {
   const isGoalMet = pct !== null && pct >= 100
 
   function confirmDelete() {
-    if (window.confirm(`Excluir "${reserve.name}"? Todas as movimentações serão apagadas.`)) {
-      deleteReserve(reserve.id)
-    }
+    deleteReserve(reserve.id)
   }
 
   const RING_SIZE = 72
@@ -358,13 +357,14 @@ function ReserveCard({ reserve }: { reserve: Reserve }) {
                 >
                   <Pencil size={12} />
                 </button>
-                <button
-                  onClick={confirmDelete}
-                  disabled={deleting}
-                  className="p-1.5 rounded-lg text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-all"
-                >
-                  <Trash2 size={12} />
-                </button>
+                {!deleting && (
+                  <DeleteButton
+                    label={`Excluir reserva ${reserve.name}`}
+                    iconSize={12}
+                    onConfirm={confirmDelete}
+                    className="rounded-lg text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                  />
+                )}
               </div>
             </div>
 
