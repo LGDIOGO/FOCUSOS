@@ -84,7 +84,7 @@ export function AppleDatePicker({ value, onChange, onClose, direction = 'down' }
           <button 
             type="button"
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            className="p-2 hover:bg-white/5 rounded-full text-white/40 hover:text-white"
+            className="p-2 hover:bg-white/5 rounded-full text-[var(--text-muted)] hover:text-white"
           >
             <ChevronRight size={18} />
           </button>
@@ -93,7 +93,7 @@ export function AppleDatePicker({ value, onChange, onClose, direction = 'down' }
 
       <div className="grid grid-cols-7 gap-1 mb-2">
         {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
-          <div key={i} className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-[9px] sm:text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">
+          <div key={i} className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-xs font-black text-[var(--text-muted)] uppercase tracking-widest">
             {day}
           </div>
         ))}

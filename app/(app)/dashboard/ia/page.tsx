@@ -173,13 +173,13 @@ function formatContent(content: string) {
       s.split(/\*\*(.*?)\*\*/).map((p, j) =>
         j % 2 === 1 ? <strong key={j} className="text-white font-black">{p}</strong> : p
       )
-    if (t.startsWith('### ')) return <h3 key={i} className="text-[10px] font-black text-white/40 uppercase tracking-widest mt-5 mb-2">{bold(t.slice(4))}</h3>
+    if (t.startsWith('### ')) return <h3 key={i} className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mt-5 mb-2">{bold(t.slice(4))}</h3>
     if (t.startsWith('## ')) return <h2 key={i} className="text-xs font-black text-white/60 uppercase tracking-widest mt-5 mb-2">{bold(t.slice(3))}</h2>
     if (t.startsWith('# ')) return <h1 key={i} className="text-sm font-black text-white mt-5 mb-2">{bold(t.slice(2))}</h1>
     if (t.startsWith('* ') || t.startsWith('- '))
       return (
         <div key={i} className="flex gap-2 mb-1.5 pl-1">
-          <span className="text-white/30 mt-1.5 text-xs">•</span>
+          <span className="text-[var(--text-muted)] mt-1.5 text-xs">•</span>
           <p className="flex-1 opacity-80 leading-relaxed text-sm">{bold(t.slice(2))}</p>
         </div>
       )
@@ -195,12 +195,12 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 px-1 mt-4 mb-1">
-      <p className="text-[9px] font-black uppercase tracking-widest text-white/30">{label}</p>
+      <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">{label}</p>
       {pending > 1 && (
         <button
           onClick={onApplyAll}
           disabled={busy}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 hover:border-white/25 hover:bg-white/10 transition-all text-[9px] font-black uppercase tracking-wider text-white/50 hover:text-white disabled:opacity-40"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 hover:border-white/25 hover:bg-white/10 transition-all text-xs font-black uppercase tracking-wider text-white/50 hover:text-white disabled:opacity-40"
         >
           {busy ? <Loader2 size={10} className="animate-spin" /> : <Plus size={10} />}
           Adicionar todos ({pending})
@@ -514,12 +514,12 @@ export default function IAPage() {
           </div>
           <div>
             <h1 className="text-base font-black tracking-tight">FocusOS IA</h1>
-            <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">Assistente Pessoal</p>
+            <p className="text-xs text-[var(--text-muted)] font-bold uppercase tracking-widest">Assistente Pessoal</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           {/* Context stats */}
-          <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold text-white/30 uppercase tracking-wider">
+          <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
             <span>{userData.habits.length} hábitos</span>
             <span className="text-white/10">•</span>
             <span>{userData.goals.length} metas</span>
@@ -532,7 +532,7 @@ export default function IAPage() {
                 setMessages([])
                 setRemovedSuggestions([])
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-white/30 hover:text-white/60 hover:bg-white/5 transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider text-[var(--text-muted)] hover:text-white/60 hover:bg-white/5 transition-all"
             >
               <RotateCcw size={12} />
               Limpar
@@ -556,7 +556,7 @@ export default function IAPage() {
               </div>
               <div>
                 <h2 className="text-2xl font-black tracking-tight">FocusOS IA</h2>
-                <p className="text-white/40 text-sm mt-1 font-medium">
+                <p className="text-[var(--text-muted)] text-sm mt-1 font-medium">
                   Seu assistente de produtividade pessoal
                 </p>
               </div>
@@ -576,7 +576,7 @@ export default function IAPage() {
               ].map(s => (
                 <div key={s.label} className="bg-white/[0.03] border border-white/[0.07] rounded-2xl px-5 py-3">
                   <p className="text-xl font-black">{s.value}</p>
-                  <p className="text-[10px] text-white/30 font-bold uppercase tracking-wider">{s.label}</p>
+                  <p className="text-xs text-[var(--text-muted)] font-bold uppercase tracking-wider">{s.label}</p>
                 </div>
               ))}
             </motion.div>
@@ -596,7 +596,7 @@ export default function IAPage() {
                 >
                   <span className="text-lg">{p.emoji}</span>
                   <span className="text-xs font-bold text-white/60 group-hover:text-white/90 transition-colors flex-1">{p.label}</span>
-                  <ChevronRight size={12} className="text-white/20 group-hover:text-white/50 transition-colors" />
+                  <ChevronRight size={12} className="text-[var(--text-muted)] group-hover:text-white/50 transition-colors" />
                 </button>
               ))}
             </motion.div>
@@ -624,7 +624,7 @@ export default function IAPage() {
                   {/* Actions card */}
                   {msg.actions && ((msg.actions.modify?.length ?? 0) + (msg.actions.delete?.length ?? 0)) > 0 && (
                     <div className="w-full max-w-[85%] bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-3">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-400/80">
+                      <p className="text-xs font-black uppercase tracking-widest text-amber-400/80">
                         Ações Propostas pela IA
                       </p>
                       {(msg.actions.modify || []).map((a, idx) => (
@@ -683,19 +683,19 @@ export default function IAPage() {
                                         <div className="flex items-center gap-1.5 flex-wrap">
                                           <p className="font-bold text-sm text-white truncate">{h.name}</p>
                                           {h.type === 'negative' && (
-                                            <span className="text-[8px] font-black bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full uppercase shrink-0">Evitar</span>
+                                            <span className="text-xs font-black bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full uppercase shrink-0">Evitar</span>
                                           )}
                                         </div>
-                                        <p className="text-[10px] text-white/30 truncate">{h.time} · {h.description}</p>
+                                        <p className="text-xs text-[var(--text-muted)] truncate">{h.time} · {h.description}</p>
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-1.5 shrink-0 ml-2">
                                       {!applied && (
                                         <>
-                                          <button onClick={() => setEditingItem({ msgIndex: i, itemIndex: idx, type: 'habit', data: h })} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/30 hover:text-white">
+                                          <button onClick={() => setEditingItem({ msgIndex: i, itemIndex: idx, type: 'habit', data: h })} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-[var(--text-muted)] hover:text-white">
                                             <Pencil size={13} />
                                           </button>
-                                          <button onClick={() => setRemovedSuggestions(p => [...p, key])} className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors text-white/30 hover:text-red-400">
+                                          <button onClick={() => setRemovedSuggestions(p => [...p, key])} className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors text-[var(--text-muted)] hover:text-red-400">
                                             <Trash2 size={13} />
                                           </button>
                                         </>
@@ -741,30 +741,30 @@ export default function IAPage() {
                                     <div className="min-w-0">
                                       <p className="font-bold text-sm text-white truncate">{e.title}</p>
                                       <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                                        <span className="text-[9px] font-black uppercase tracking-wider text-white/50 bg-white/[0.07] px-1.5 py-0.5 rounded-md shrink-0">
+                                        <span className="text-xs font-black uppercase tracking-wider text-white/50 bg-white/[0.07] px-1.5 py-0.5 rounded-md shrink-0">
                                           {dateLabel(e.date)}{e.time ? ` · ${e.time}` : ''}
                                         </span>
                                         {recurrenceLabel(e.recurrence) && (
-                                          <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-violet-300 bg-violet-500/15 px-1.5 py-0.5 rounded-md shrink-0">
+                                          <span className="flex items-center gap-1 text-xs font-black uppercase tracking-wider text-violet-300 bg-violet-500/15 px-1.5 py-0.5 rounded-md shrink-0">
                                             <Repeat size={8} />{recurrenceLabel(e.recurrence)}
                                           </span>
                                         )}
                                         {e.end_date && (
-                                          <span className="text-[9px] font-bold text-white/30 shrink-0">até {dateLabel(e.end_date)}</span>
+                                          <span className="text-xs font-bold text-[var(--text-muted)] shrink-0">até {dateLabel(e.end_date)}</span>
                                         )}
                                       </div>
                                       {e.description && (
-                                        <p className="text-[10px] text-white/30 truncate mt-0.5">{e.description}</p>
+                                        <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">{e.description}</p>
                                       )}
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-1.5 shrink-0 ml-2">
                                     {!applied && (
                                       <>
-                                        <button onClick={() => setEditingItem({ msgIndex: i, itemIndex: idx, type: 'event', data: e })} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/30 hover:text-white">
+                                        <button onClick={() => setEditingItem({ msgIndex: i, itemIndex: idx, type: 'event', data: e })} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-[var(--text-muted)] hover:text-white">
                                           <Pencil size={13} />
                                         </button>
-                                        <button onClick={() => setRemovedSuggestions(p => [...p, key])} className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors text-white/30 hover:text-red-400">
+                                        <button onClick={() => setRemovedSuggestions(p => [...p, key])} className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors text-[var(--text-muted)] hover:text-red-400">
                                           <Trash2 size={13} />
                                         </button>
                                       </>
@@ -808,7 +808,7 @@ export default function IAPage() {
                                     <span className="text-xl shrink-0">{g.emoji}</span>
                                     <div className="min-w-0">
                                       <p className="font-bold text-sm text-white truncate">{g.title}</p>
-                                      <p className="text-[10px] text-white/30 truncate">Meta: {g.target_value} {g.unit} · {g.description}</p>
+                                      <p className="text-xs text-[var(--text-muted)] truncate">Meta: {g.target_value} {g.unit} · {g.description}</p>
                                     </div>
                                   </div>
                                   <button
@@ -833,7 +833,7 @@ export default function IAPage() {
             </AnimatePresence>
 
             {loading && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-white/30 text-xs px-1">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-[var(--text-muted)] text-xs px-1">
                 <Loader2 className="animate-spin w-3.5 h-3.5" />
                 <span>FocusOS IA está pensando...</span>
               </motion.div>
@@ -851,7 +851,7 @@ export default function IAPage() {
                 key={p.label}
                 onClick={() => sendMessage(p.label)}
                 disabled={loading}
-                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.07] hover:border-white/20 hover:bg-white/[0.07] transition-all text-xs font-bold text-white/40 hover:text-white/80 disabled:opacity-40"
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.07] hover:border-white/20 hover:bg-white/[0.07] transition-all text-xs font-bold text-[var(--text-muted)] hover:text-white/80 disabled:opacity-40"
               >
                 <span>{p.emoji}</span>
                 <span className="hidden sm:block">{p.label}</span>
@@ -883,7 +883,7 @@ export default function IAPage() {
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
           </button>
         </div>
-        <p className="text-center text-[9px] text-white/15 mt-2 font-bold uppercase tracking-wider max-w-3xl mx-auto">
+        <p className="text-center text-xs text-white/15 mt-2 font-bold uppercase tracking-wider max-w-3xl mx-auto">
           Enter para enviar · Shift+Enter para nova linha
         </p>
       </div>
@@ -900,7 +900,7 @@ export default function IAPage() {
           >
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
-                <button onClick={() => setEditingItem(null)} className="p-1.5 hover:bg-white/10 rounded-xl text-white/40 hover:text-white transition-all">
+                <button onClick={() => setEditingItem(null)} className="p-1.5 hover:bg-white/10 rounded-xl text-[var(--text-muted)] hover:text-white transition-all">
                   <ArrowLeft size={18} />
                 </button>
                 <h3 className="font-black text-base">Personalizar Sugestão</h3>
@@ -915,7 +915,7 @@ export default function IAPage() {
 
             <div className="space-y-5">
               <div>
-                <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Nome</p>
+                <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">Nome</p>
                 <input
                   value={editingItem.type === 'habit' ? editingItem.data.name : editingItem.data.title}
                   onChange={e => handleUpdateEditItem(editingItem.type === 'habit' ? 'name' : 'title', e.target.value)}
@@ -925,11 +925,11 @@ export default function IAPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Emoji</p>
+                  <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">Emoji</p>
                   <EmojiPicker value={editingItem.data.emoji || ''} onChange={e => handleUpdateEditItem('emoji', e)} />
                 </div>
                 <div>
-                  <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Horário</p>
+                  <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">Horário</p>
                   <CustomDateTimePicker
                     label="Horário"
                     type="time"
@@ -943,7 +943,7 @@ export default function IAPage() {
               {editingItem.type === 'event' && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">
+                    <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">
                       {editingItem.data.recurrence?.frequency ? 'Começa em' : 'Data'}
                     </p>
                     <CustomDateTimePicker
@@ -956,7 +956,7 @@ export default function IAPage() {
                   </div>
                   {editingItem.data.recurrence?.frequency && (
                     <div>
-                      <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Termina em</p>
+                      <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">Termina em</p>
                       <CustomDateTimePicker
                         label="Fim"
                         type="date"
@@ -971,7 +971,7 @@ export default function IAPage() {
               )}
 
               <div>
-                <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Repetição</p>
+                <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">Repetição</p>
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     ...(editingItem.type === 'event' ? [{ id: 'none', label: 'Não repete' }] : []),
@@ -997,8 +997,8 @@ export default function IAPage() {
                           }
                         )}
                         className={cn(
-                          'py-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all',
-                          current === f.id ? 'bg-white text-black border-white' : 'bg-white/5 text-white/40 border-white/5 hover:border-white/20'
+                          'py-2.5 rounded-xl text-xs font-black uppercase tracking-wider border transition-all',
+                          current === f.id ? 'bg-white text-black border-white' : 'bg-white/5 text-[var(--text-muted)] border-white/5 hover:border-white/20'
                         )}
                       >
                         {f.label}
@@ -1015,7 +1015,7 @@ export default function IAPage() {
                         onClick={() => toggleDay(idx)}
                         className={cn(
                           'w-9 h-9 rounded-xl font-black text-sm transition-all',
-                          editingItem.data.recurrence?.days_of_week?.includes(idx) ? 'bg-white text-black' : 'text-white/20 border border-white/5 hover:bg-white/5'
+                          editingItem.data.recurrence?.days_of_week?.includes(idx) ? 'bg-white text-black' : 'text-[var(--text-muted)] border border-white/5 hover:bg-white/5'
                         )}
                       >
                         {d}
@@ -1027,20 +1027,20 @@ export default function IAPage() {
                 {/* A cada N: "dia sim dia não", "quinzenal", etc. */}
                 {['daily', 'weekly', 'monthly'].includes(editingItem.data.recurrence?.frequency) && (
                   <div className="flex items-center gap-2 mt-3">
-                    <span className="text-[10px] font-bold text-white/40">A cada</span>
+                    <span className="text-xs font-bold text-[var(--text-muted)]">A cada</span>
                     {[1, 2, 3, 4].map(n => (
                       <button
                         key={n}
                         onClick={() => handleUpdateEditItem('recurrence', { ...editingItem.data.recurrence, interval: n })}
                         className={cn(
                           'w-9 h-8 rounded-lg text-xs font-black transition-all',
-                          (editingItem.data.recurrence?.interval || 1) === n ? 'bg-white text-black' : 'text-white/30 border border-white/10 hover:bg-white/5'
+                          (editingItem.data.recurrence?.interval || 1) === n ? 'bg-white text-black' : 'text-[var(--text-muted)] border border-white/10 hover:bg-white/5'
                         )}
                       >
                         {n}
                       </button>
                     ))}
-                    <span className="text-[10px] font-bold text-white/40">
+                    <span className="text-xs font-bold text-[var(--text-muted)]">
                       {editingItem.data.recurrence?.frequency === 'daily' ? 'dia(s)'
                         : editingItem.data.recurrence?.frequency === 'weekly' ? 'semana(s)' : 'mês(es)'}
                     </span>
@@ -1049,7 +1049,7 @@ export default function IAPage() {
               </div>
 
               <div>
-                <p className="text-[9px] uppercase tracking-widest font-black text-white/30 mb-2">Descrição</p>
+                <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">Descrição</p>
                 <textarea
                   value={editingItem.data.description || ''}
                   onChange={e => handleUpdateEditItem('description', e.target.value)}

@@ -349,7 +349,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
 
       // Headers
       if (trimmedLine.startsWith('### ')) {
-        return <h3 key={i} className="text-sm font-black text-white/40 uppercase tracking-widest mt-6 mb-3 first:mt-0">{processBold(trimmedLine.substring(4))}</h3>
+        return <h3 key={i} className="text-sm font-black text-[var(--text-muted)] uppercase tracking-widest mt-6 mb-3 first:mt-0">{processBold(trimmedLine.substring(4))}</h3>
       }
       if (trimmedLine.startsWith('## ')) {
         return <h2 key={i} className="text-base font-black text-white/60 uppercase tracking-widest mt-6 mb-3 first:mt-0">{processBold(trimmedLine.substring(3))}</h2>
@@ -362,7 +362,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
       if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) {
         return (
           <div key={i} className="flex gap-2 mb-2 pl-2 group">
-            <span className="text-white/40 mt-1.5 group-hover:text-white/60 transition-colors">•</span>
+            <span className="text-[var(--text-muted)] mt-1.5 group-hover:text-white/60 transition-colors">•</span>
             <p className="flex-1 opacity-80 group-hover:opacity-100 transition-opacity leading-relaxed">{processBold(trimmedLine.substring(2))}</p>
           </div>
         )
@@ -395,11 +395,11 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
             </div>
             <div>
               <h2 className="font-black text-lg tracking-tightest">FocusOS Concierge</h2>
-              <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Onboarding Inteligente</p>
+              <p className="text-xs text-[var(--text-muted)] uppercase tracking-widest font-bold">Onboarding Inteligente</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-all">
-            <X className="text-white/40" />
+            <X className="text-[var(--text-muted)]" />
           </button>
         </div>
 
@@ -418,7 +418,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
                 <div className="w-full space-y-3 mt-2">
                   {msg.suggestions.habits && msg.suggestions.habits.length > 0 && (
                     <>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-white/40 px-2 mt-4">Hábitos Recomendados:</p>
+                      <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-2 mt-4">Hábitos Recomendados:</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {msg.suggestions.habits.map((h, idx) => {
                           const id = `${i}-habit-${idx}`
@@ -437,10 +437,10 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
                                     <div className="flex items-center gap-2">
                                       <p className="font-bold text-sm text-white">{h.name}</p>
                                       {h.type === 'negative' && (
-                                        <span className="text-[8px] font-black bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">Evitar</span>
+                                        <span className="text-xs font-black bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">Evitar</span>
                                       )}
                                     </div>
-                                    <p className="text-[10px] text-white/40">{h.time} • {h.description}</p>
+                                    <p className="text-xs text-[var(--text-muted)]">{h.time} • {h.description}</p>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -448,13 +448,13 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
                                     <>
                                       <button 
                                         onClick={() => setEditingItem({ msgIndex: i, itemIndex: idx, type: 'habit', data: h })}
-                                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-white"
+                                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-[var(--text-muted)] hover:text-white"
                                       >
                                         <Pencil size={14} />
                                       </button>
                                       <button 
                                         onClick={() => handleRemoveSuggestion('habit', i, idx)}
-                                        className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors text-white/40 hover:text-red-400"
+                                        className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors text-[var(--text-muted)] hover:text-red-400"
                                       >
                                         <Trash2 size={14} />
                                       </button>
@@ -480,7 +480,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
 
                   {msg.suggestions.events && msg.suggestions.events.length > 0 && (
                     <>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-white/40 px-2 mt-6">Compromissos da Agenda:</p>
+                      <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-2 mt-6">Compromissos da Agenda:</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {msg.suggestions.events.map((e, idx) => {
                           const id = `${i}-event-${idx}`
@@ -494,7 +494,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
                                   <span className="text-xl">{e.emoji}</span>
                                   <div>
                                     <p className="font-bold text-sm text-white">{e.title}</p>
-                                    <p className="text-[10px] text-white/40">{e.time} • {e.description}</p>
+                                    <p className="text-xs text-[var(--text-muted)]">{e.time} • {e.description}</p>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -502,13 +502,13 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
                                     <>
                                       <button 
                                         onClick={() => setEditingItem({ msgIndex: i, itemIndex: idx, type: 'event', data: e })}
-                                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-white"
+                                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-[var(--text-muted)] hover:text-white"
                                       >
                                         <Pencil size={14} />
                                       </button>
                                       <button 
                                         onClick={() => handleRemoveSuggestion('event', i, idx)}
-                                        className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors text-white/40 hover:text-red-400"
+                                        className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors text-[var(--text-muted)] hover:text-red-400"
                                       >
                                         <Trash2 size={14} />
                                       </button>
@@ -534,7 +534,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
 
                   {msg.suggestions.goals && msg.suggestions.goals.length > 0 && (
                     <>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-white/40 px-2 mt-6">Metas Estratégicas Sugeridas:</p>
+                      <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-2 mt-6">Metas Estratégicas Sugeridas:</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {msg.suggestions.goals.map((g, idx) => {
                           const id = `${i}-goal-${idx}`
@@ -548,7 +548,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
                                   <span className="text-xl">{g.emoji}</span>
                                   <div>
                                     <p className="font-bold text-sm text-white">{g.title}</p>
-                                    <p className="text-[10px] text-white/40">Alvo: {g.target_value} {g.unit} • {g.description}</p>
+                                    <p className="text-xs text-[var(--text-muted)]">Alvo: {g.target_value} {g.unit} • {g.description}</p>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -574,7 +574,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
             </div>
           ))}
           {loading && (
-            <div className="flex items-center gap-2 text-white/40 text-xs px-2">
+            <div className="flex items-center gap-2 text-[var(--text-muted)] text-xs px-2">
               <Loader2 className="animate-spin w-3 h-3" /> FocusOS está pensando...
             </div>
           )}
@@ -591,12 +591,12 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <ArrowLeft onClick={() => setEditingItem(null)} className="w-5 h-5 text-white/40 cursor-pointer hover:text-white" />
+                  <ArrowLeft onClick={() => setEditingItem(null)} className="w-5 h-5 text-[var(--text-muted)] cursor-pointer hover:text-white" />
                   <h3 className="text-white font-bold">Personalizar Sugestão</h3>
                 </div>
                 <button 
                   onClick={saveEditedItem}
-                  className="bg-white text-black px-4 py-1.5 rounded-full text-[10px] font-black hover:bg-neutral-200 transition-all uppercase tracking-tighter"
+                  className="bg-white text-black px-4 py-1.5 rounded-full text-xs font-black hover:bg-neutral-200 transition-all uppercase tracking-tighter"
                 >
                   Confirmar e Adicionar
                 </button>
@@ -605,7 +605,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
               <div className="space-y-6 overflow-y-auto max-h-[60vh] pr-2 custom-scrollbar">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <p className="text-[10px] uppercase tracking-widest font-black text-white/30 px-1">Nome / Título</p>
+                    <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] px-1">Nome / Título</p>
                     <input 
                       value={editingItem.type === 'habit' ? editingItem.data.name : editingItem.data.title}
                       onChange={(e) => handleUpdateItem(editingItem.type === 'habit' ? 'name' : 'title', e.target.value)}
@@ -615,7 +615,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
                   </div>
                   
                   <div className="space-y-2">
-                    <p className="text-[10px] uppercase tracking-widest font-black text-white/30 px-1">Personalização</p>
+                    <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] px-1">Personalização</p>
                     <div className="flex items-center gap-4">
                       <EmojiPicker 
                         value={editingItem.data.emoji || ''} 
@@ -635,7 +635,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
                 </div>
 
                 <div className="space-y-3">
-                  <p className="text-[10px] uppercase tracking-widest font-black text-white/30 px-1">Frequência</p>
+                  <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] px-1">Frequência</p>
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { id: 'daily', label: 'Diário' },
@@ -652,7 +652,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
                           days_of_week: freq.id === 'specific_days' ? (editingItem.data.recurrence?.days_of_week?.length > 0 ? editingItem.data.recurrence.days_of_week : [1,2,3,4,5]) : [0,1,2,3,4,5,6]
                         })}
                         className={cn(
-                          "py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all",
+                          "py-3 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all",
                           editingItem.data.recurrence?.frequency === freq.id
                             ? "bg-white text-black border-white shadow-lg" 
                             : "bg-white/5 text-white/60 border-white/5 hover:border-white/20"
@@ -679,7 +679,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
                               "w-10 h-10 rounded-xl font-black text-base transition-all flex items-center justify-center",
                               editingItem.data.recurrence?.days_of_week?.includes(i) 
                                 ? "bg-white text-black shadow-lg" 
-                                : "text-white/20 hover:bg-white/5 border border-white/5"
+                                : "text-[var(--text-muted)] hover:bg-white/5 border border-white/5"
                             )}
                           >
                             {day}
@@ -691,7 +691,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-[10px] uppercase tracking-widest font-black text-white/30 px-1">Descrição</p>
+                  <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] px-1">Descrição</p>
                   <textarea 
                     value={editingItem.data.description}
                     onChange={(e) => handleUpdateItem('description', e.target.value)}

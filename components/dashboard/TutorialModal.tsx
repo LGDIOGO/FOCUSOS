@@ -88,7 +88,7 @@ const SLIDES = [
          <div className="w-full h-full bg-gradient-to-tr from-red-900/10 to-transparent rounded-xl border border-red-500/20 p-4 relative overflow-hidden flex flex-col items-start gap-4">
              <div className="flex items-center gap-2 text-red-400">
                <Brain size={16} />
-               <span className="text-[10px] font-bold uppercase tracking-widest">FocusOS Insight</span>
+               <span className="text-xs font-bold uppercase tracking-widest">FocusOS Insight</span>
              </div>
              <div className="space-y-2 w-full">
                <div className="h-3 w-3/4 bg-white/80 rounded-sm" />
@@ -149,7 +149,7 @@ export function TutorialModal({ isOpen, onClose }: TutorialModalProps) {
           onClick={onClose} 
           className="absolute top-6 right-6 p-2 bg-white/5 hover:bg-white/10 rounded-full transition-all z-20"
         >
-          <X className="text-white/40" size={16} />
+          <X className="text-[var(--text-muted)]" size={16} />
         </button>
 
         {/* Cima: Visual */}

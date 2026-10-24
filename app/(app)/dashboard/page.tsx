@@ -170,14 +170,14 @@ export default function DashboardPage() {
     { id: 'done', label: 'CONCLUÍDO', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
     { id: 'partial', label: 'PARCIAL', icon: Minus, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
     { id: 'failed', label: 'FALHOU', icon: X, color: 'text-[#e02020]', bg: 'hover:bg-[#e02020]/10' },
-    { id: 'none', label: 'LIMPAR', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' }
+    { id: 'none', label: 'LIMPAR', icon: Circle, color: 'text-[var(--text-muted)]', bg: 'hover:bg-white/5' }
   ];
 
   const AGENDA_OPTIONS = [
     { id: 'done', label: 'CONCLUÍDO', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
     { id: 'partial', label: 'PARCIAL', icon: Minus, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
     { id: 'failed', label: 'FALHOU', icon: X, color: 'text-red-500', bg: 'hover:bg-red-500/10' },
-    { id: 'todo', label: 'LIMPAR', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' },
+    { id: 'todo', label: 'LIMPAR', icon: Circle, color: 'text-[var(--text-muted)]', bg: 'hover:bg-white/5' },
     { id: 'reschedule', label: 'REMARCAR', icon: RefreshCcw, color: 'text-red-400', bg: 'hover:bg-red-500/10' }
   ];
 
@@ -185,7 +185,7 @@ export default function DashboardPage() {
     { id: 'done', label: 'CONCLUÍDO', icon: Check, color: 'text-green-400', bg: 'hover:bg-green-500/10' },
     { id: 'partial', label: 'PARCIAL', icon: Minus, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
     { id: 'failed', label: 'FALHOU', icon: X, color: 'text-red-500', bg: 'hover:bg-red-500/10' },
-    { id: 'todo', label: 'LIMPAR', icon: Circle, color: 'text-white/20', bg: 'hover:bg-white/5' }
+    { id: 'todo', label: 'LIMPAR', icon: Circle, color: 'text-[var(--text-muted)]', bg: 'hover:bg-white/5' }
   ];
 
   const toggleSelection = (id: string, type: 'habit' | 'task' | 'event') => {
@@ -472,7 +472,7 @@ export default function DashboardPage() {
       >
         {/* Left: greeting */}
         <div className="min-w-0">
-          <p className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] mb-0.5">FocusOS Dashboard</p>
+          <p className="text-xs md:text-[12px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] mb-0.5">FocusOS Dashboard</p>
           <h1 className="text-2xl md:text-4xl font-black tracking-tighter text-[var(--text-primary)] truncate">
             Olá, {profile?.full_name?.split(' ')[0] || 'Usuário'}
           </h1>
@@ -512,11 +512,11 @@ export default function DashboardPage() {
               <span className="text-lg">📅</span>
               <div className="flex-1">
                 <p className="text-sm font-bold text-blue-300">Registrando para ONTEM</p>
-                <p className="text-[11px] text-blue-400/70">O status de hoje não é afetado — cada dia tem seu próprio registro.</p>
+                <p className="text-xs text-blue-400/70">O status de hoje não é afetado — cada dia tem seu próprio registro.</p>
               </div>
               <button
                 onClick={() => setSelectedDate(new Date())}
-                className="text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 hover:bg-blue-500/20 transition-all active:scale-95 flex-shrink-0"
+                className="text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 hover:bg-blue-500/20 transition-all active:scale-95 flex-shrink-0"
               >
                 Voltar a Hoje
               </button>
@@ -534,19 +534,19 @@ export default function DashboardPage() {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setWeekOffset(prev => prev - 1)}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-white touch-manipulation active:scale-90"
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors text-[var(--text-muted)] hover:text-white touch-manipulation active:scale-90"
                 >
                   <ArrowLeft size={12} />
                 </button>
                 <button
                   onClick={() => setWeekOffset(0)}
-                  className="px-2 py-0.5 hover:bg-white/10 rounded-lg transition-colors text-[10px] font-bold text-white/40 hover:text-white uppercase"
+                  className="px-2 py-0.5 hover:bg-white/10 rounded-lg transition-colors text-xs font-bold text-[var(--text-muted)] hover:text-white uppercase"
                 >
                   Hoje
                 </button>
                 <button
                   onClick={() => setWeekOffset(prev => prev + 1)}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-white touch-manipulation active:scale-90"
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors text-[var(--text-muted)] hover:text-white touch-manipulation active:scale-90"
                 >
                   <ChevronRight size={12} className="rotate-0" />
                 </button>
@@ -558,7 +558,7 @@ export default function DashboardPage() {
                   setSelectedDate(new Date())
                   setWeekOffset(0)
                 }}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white text-white hover:text-black text-[11px] font-black uppercase tracking-widest transition-all"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white text-white hover:text-black text-xs font-black uppercase tracking-widest transition-all"
               >
                 <ArrowLeft size={10} /> Voltar para Hoje
               </button>
@@ -657,7 +657,7 @@ export default function DashboardPage() {
                 />
               ))}
               {todayEvents.length === 0 && !loadingEvents && (
-                <p className="text-sm text-white/30 italic px-4 py-2">Nenhum compromisso para {getDateLabel(selectedDate).toLowerCase()}.</p>
+                <p className="text-sm text-[var(--text-muted)] italic px-4 py-2">Nenhum compromisso para {getDateLabel(selectedDate).toLowerCase()}.</p>
               )}
             </div>
           </section>
@@ -679,7 +679,7 @@ export default function DashboardPage() {
                   </div>
                   <button
                     onClick={() => setSelectedDate(subDays(new Date(), 1))}
-                    className="text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-400 hover:bg-amber-400/20 transition-all active:scale-95"
+                    className="text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-400 hover:bg-amber-400/20 transition-all active:scale-95"
                   >
                     📅 Ir para ONTEM
                   </button>
@@ -697,9 +697,9 @@ export default function DashboardPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-white/80 truncate">{h.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[11px] font-black text-amber-400">🔥 {h.streak}</span>
+                            <span className="text-xs font-black text-amber-400">🔥 {h.streak}</span>
                             <span className={cn(
-                              'text-[10px] font-black px-1.5 py-0.5 rounded-md border',
+                              'text-xs font-black px-1.5 py-0.5 rounded-md border',
                               shield.hoursRemaining <= 6
                                 ? 'text-red-400 bg-red-400/10 border-red-400/20'
                                 : 'text-blue-400 bg-blue-400/10 border-blue-400/20'
@@ -808,7 +808,7 @@ export default function DashboardPage() {
                   placeholder="Adicionar tarefa rápida..."
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-white/20 focus:bg-white/[0.05] transition-all placeholder:text-white/20 pr-12 group-hover:border-white/10"
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-white/20 focus:bg-white/[0.05] transition-all placeholder:text-[var(--text-muted)] pr-12 group-hover:border-white/10"
                 />
                 <button
                   type="submit"
@@ -900,7 +900,7 @@ export default function DashboardPage() {
               {/* Count */}
               <div className="flex flex-col items-center justify-center min-w-[48px] md:min-w-[60px]">
                 <span className="text-xl md:text-2xl font-black text-[var(--text-primary)] leading-none">{selectedItems.length}</span>
-                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-0.5">
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-0.5">
                   {selectedItems.length === 1 ? 'Item' : 'Itens'}
                 </span>
               </div>
@@ -923,7 +923,7 @@ export default function DashboardPage() {
                     <div className="w-10 h-10 rounded-2xl bg-[var(--bg-overlay)] flex items-center justify-center border border-[var(--border-subtle)] group-hover/sel:bg-[var(--text-primary)] group-hover/sel:text-[var(--bg-primary)] text-[var(--text-muted)] group-hover/sel:border-transparent transition-all duration-200">
                       <btn.icon size={16} />
                     </div>
-                    <span className="text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] group-hover/sel:text-[var(--text-primary)] transition-colors hidden md:block whitespace-nowrap">
+                    <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] group-hover/sel:text-[var(--text-primary)] transition-colors hidden md:block whitespace-nowrap">
                       {btn.label}
                     </span>
                   </button>
@@ -942,12 +942,12 @@ export default function DashboardPage() {
                   <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white text-red-500 transition-all duration-200">
                     {loading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Trash2 size={16} />}
                   </div>
-                  <span className="text-[8px] font-black uppercase tracking-widest text-red-400/60 hidden md:block whitespace-nowrap">Excluir</span>
+                  <span className="text-xs font-black uppercase tracking-widest text-red-400/60 hidden md:block whitespace-nowrap">Excluir</span>
                 </button>
 
                 <button
                   onClick={() => { setIsSelectionMode(false); setSelectedItems([]) }}
-                  className="h-10 px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-[0.12em] text-[9px] md:text-[10px] transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
+                  className="h-10 px-3 sm:px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-wide sm:tracking-[0.12em] text-xs transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
                 >
                   Cancelar
                 </button>
@@ -1009,7 +1009,7 @@ export default function DashboardPage() {
               <h3 className="text-2xl font-black text-white text-center mb-3 tracking-tightest">
                 Excluir {selectedItems.length} {selectedItems.length === 1 ? 'item' : 'itens'}?
               </h3>
-              <p className="text-sm font-medium text-white/30 text-center mb-10 leading-relaxed px-4">
+              <p className="text-sm font-medium text-[var(--text-muted)] text-center mb-10 leading-relaxed px-4">
                 Essa ação é definitiva. Todos os dados serão apagados para sempre do seu FocusOS.
               </p>
               <div className="flex flex-col gap-3">

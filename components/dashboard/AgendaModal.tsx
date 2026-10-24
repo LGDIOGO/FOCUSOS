@@ -238,7 +238,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                     ? "bg-[var(--bg-overlay)] animate-pulse text-red-500"
                     : newEvent.title
                     ? "text-red-500 hover:bg-[var(--bg-overlay)]"
-                    : "text-[var(--text-muted)]/40 hover:bg-[var(--bg-overlay)] hover:text-[var(--text-muted)]"
+                    : "text-[var(--text-muted)] hover:bg-[var(--bg-overlay)] hover:text-[var(--text-muted)]"
                 )}
               >
                 {isParsing
@@ -251,7 +251,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="text-[11px] font-bold text-red-400 px-2 mt-1"
+                className="text-xs font-bold text-red-400 px-2 mt-1"
               >
                 {parseError}
               </motion.p>
@@ -320,7 +320,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                       }
                     }}
                     className={cn(
-                      "py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all",
+                      "py-3 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all",
                       isActive
                         ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)] shadow-lg"
                         : "bg-[var(--bg-overlay)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--text-primary)]/20"
@@ -339,7 +339,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] p-6 rounded-[32px] mt-3"
               >
-                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Dias da semana</p>
+                <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Dias da semana</p>
                 <div className="flex justify-between gap-1">
                   {DAYS.map((day, i) => (
                     <button
@@ -358,7 +358,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                   ))}
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
-                  <span className="text-[11px] font-black uppercase text-[var(--text-muted)] tracking-widest">Frequência</span>
+                  <span className="text-xs font-black uppercase text-[var(--text-muted)] tracking-widest">Frequência</span>
                   <div className="flex gap-2">
                     {[{ v: 1, label: 'Toda semana' }, { v: 2, label: 'Quinzenal' }].map(({ v, label }) => (
                       <button
@@ -366,7 +366,7 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
                         type="button"
                         onClick={() => setNewEvent({ ...newEvent, recurrence: { ...newEvent.recurrence, interval: v } })}
                         className={cn(
-                          "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all",
+                          "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border transition-all",
                           newEvent.recurrence.interval === v ? "bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]" : "text-[var(--text-muted)] border-[var(--border-subtle)] hover:bg-[var(--bg-overlay)]"
                         )}
                       >
@@ -380,14 +380,14 @@ export function AgendaModal({ isOpen, onClose, eventToEdit }: { isOpen: boolean,
 
             {/* Monthly helper */}
             {newEvent.recurrence.frequency === 'monthly' && (
-              <p className="text-[11px] font-bold text-[var(--text-muted)] px-2 mt-2">
+              <p className="text-xs font-bold text-[var(--text-muted)] px-2 mt-2">
                 Repete todo dia <span className="text-[var(--text-primary)]">{getDate(parseISO(newEvent.date || format(new Date(), 'yyyy-MM-dd')))}</span> de cada mês
               </p>
             )}
 
             {/* Yearly helper */}
             {newEvent.recurrence.frequency === 'yearly' && (
-              <p className="text-[11px] font-bold text-[var(--text-muted)] px-2 mt-2">
+              <p className="text-xs font-bold text-[var(--text-muted)] px-2 mt-2">
                 Repete todo ano em <span className="text-[var(--text-primary)]">{format(parseISO(newEvent.date || format(new Date(), 'yyyy-MM-dd')), "d 'de' MMMM", { locale: ptBR })}</span>
               </p>
             )}

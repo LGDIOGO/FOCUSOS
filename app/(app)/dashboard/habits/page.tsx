@@ -16,6 +16,7 @@ import { Check, Minus, X, Circle } from 'lucide-react'
 import { useCategories } from '@/lib/hooks/useCategories'
 import { Habit } from '@/types'
 import { cn } from '@/lib/utils/cn'
+import { DeleteButton } from '@/components/ui/DeleteButton'
 import { format, isToday, parseISO, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, addWeeks, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { getEffectiveOfensiva } from '@/lib/utils/scoring'
@@ -105,20 +106,12 @@ function HabitGridItem({
           </div>
         </div>
         {!isSelectionMode && (
-          <button 
-            onClick={(e) => {
-              e.stopPropagation()
-              onDelete(habit.id)
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onMouseUp={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
-            className="p-2 text-white/5 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-          >
-            <Trash2 size={18} />
-          </button>
+          <DeleteButton
+            label="Excluir hábito"
+            iconSize={18}
+            onConfirm={() => onDelete(habit.id)}
+            className="text-[var(--text-muted)] hover:text-red-400 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-[var(--text-primary)]"
+          />
         )}
       </div>
 
@@ -133,7 +126,7 @@ function HabitGridItem({
                 <div
                   key={i}
                   className={cn(
-                    "w-4 h-4 md:w-5 md:h-5 rounded flex items-center justify-center text-[8px] md:text-[9px] font-black border transition-all",
+                    "w-6 h-6 rounded flex items-center justify-center text-xs font-black border transition-all",
                     isActive ? "bg-white/10 border-white/20 text-white" : "bg-transparent border-white/5 text-white/5"
                   )}
                 >
@@ -142,7 +135,7 @@ function HabitGridItem({
               )
             })}
           </div>
-          <p className="text-[9px] md:text-[12px] uppercase tracking-widest font-black text-white/20">
+          <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)]">
             {habit.recurrence?.frequency === 'specific_days' ? 'Custom' :
              habit.recurrence?.frequency === 'weekly' ? 'Semanal' :
              habit.recurrence?.frequency === 'monthly' ? 'Mensal' :
@@ -151,7 +144,7 @@ function HabitGridItem({
         </div>
 
         <div className="flex flex-col items-end">
-          <span className="text-[9px] md:text-sm font-black uppercase text-[var(--text-muted)] tracking-widest mb-0.5">Ofensiva</span>
+          <span className="text-xs md:text-sm font-black uppercase text-[var(--text-muted)] tracking-widest mb-0.5">Ofensiva</span>
           <div className="flex items-center gap-1 md:gap-2">
             <span className="text-base md:text-xl">🔥</span>
             <span className="text-xl md:text-2xl font-black italic text-[var(--text-primary)]">{activeOfensiva}</span>
@@ -347,7 +340,7 @@ export default function HabitsPage() {
                    style={{ backgroundColor: group.category?.color || '#FFFFFF', color: group.category?.color || '#FFFFFF' }} 
                 />
                 <h2 className="text-sm font-black tracking-widest text-white/50 uppercase">{group.category?.name || 'Sem Categoria'}</h2>
-                <span className="text-white/20 text-xs font-black uppercase tracking-widest">{group.items.length} {group.items.length === 1 ? 'Hábito' : 'Hábitos'}</span>
+                <span className="text-[var(--text-muted)] text-xs font-black uppercase tracking-widest">{group.items.length} {group.items.length === 1 ? 'Hábito' : 'Hábitos'}</span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
                 {group.items.map((habit: Habit, idx: number) => (
@@ -394,7 +387,7 @@ export default function HabitsPage() {
               <button
                 key={v.id}
                 onClick={() => setHistoryView(v.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
                   historyView === v.id
                     ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
@@ -439,7 +432,7 @@ export default function HabitsPage() {
                         <div className="absolute -left-12 top-1.5 w-3 h-3 rounded-full bg-[var(--border-subtle)] border-2 border-[var(--bg-primary)] z-10" />
                         <div className="absolute -left-10.5 top-3 w-px h-full bg-[var(--border-subtle)] -translate-x-[5px]" />
                         
-                        <h4 className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
                           {format(parseISO(group.date), "EEEE, dd 'de' MMMM", { locale: ptBR })}
                         </h4>
                         
@@ -461,7 +454,7 @@ export default function HabitsPage() {
                                  </div>
                                  <div>
                                    <span className="text-sm font-bold text-[var(--text-primary)]">{item.habit.name}</span>
-                                   {item.note && <span className="text-[10px] text-[var(--text-muted)] ml-2 italic">&quot;{item.note}&quot;</span>}
+                                   {item.note && <span className="text-xs text-[var(--text-muted)] ml-2 italic">&quot;{item.note}&quot;</span>}
                                  </div>
                                </button>
                              )
@@ -492,7 +485,7 @@ export default function HabitsPage() {
             { id: 'done',    label: 'Concluído', icon: Check,  color: 'text-green-400', bg: 'hover:bg-green-500/10' },
             { id: 'partial', label: 'Parcial',   icon: Minus,  color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
             { id: 'failed',  label: 'Falhou',    icon: X,      color: 'text-red-500',   bg: 'hover:bg-red-500/10' },
-            { id: 'none',    label: 'Limpar',    icon: Circle, color: 'text-white/20',  bg: 'hover:bg-white/5' },
+            { id: 'none',    label: 'Limpar',    icon: Circle, color: 'text-[var(--text-muted)]',  bg: 'hover:bg-white/5' },
           ]}
           position={activeBubble.position}
           onSelect={(status) => {
@@ -516,7 +509,7 @@ export default function HabitsPage() {
               {/* Count */}
               <div className="flex flex-col items-center justify-center min-w-[48px] md:min-w-[60px]">
                 <span className="text-xl md:text-2xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>
-                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-0.5">Itens</span>
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-0.5">Itens</span>
               </div>
 
               <div className="h-8 w-px bg-[var(--border-subtle)] flex-shrink-0" />
@@ -536,7 +529,7 @@ export default function HabitsPage() {
                     <div className="w-10 h-10 rounded-2xl bg-[var(--bg-overlay)] flex items-center justify-center border border-[var(--border-subtle)] group-hover/sel:bg-[var(--text-primary)] group-hover/sel:text-[var(--bg-primary)] text-[var(--text-muted)] group-hover/sel:border-transparent transition-all duration-200">
                       <btn.icon size={16} />
                     </div>
-                    <span className="text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] group-hover/sel:text-[var(--text-primary)] transition-colors hidden md:block whitespace-nowrap">
+                    <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] group-hover/sel:text-[var(--text-primary)] transition-colors hidden md:block whitespace-nowrap">
                       {btn.label}
                     </span>
                   </button>
@@ -555,12 +548,12 @@ export default function HabitsPage() {
                   <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white text-red-500 transition-all duration-200">
                     <Trash2 size={16} />
                   </div>
-                  <span className="text-[8px] font-black uppercase tracking-widest text-red-400/60 hidden md:block whitespace-nowrap">Excluir</span>
+                  <span className="text-xs font-black uppercase tracking-widest text-red-400/60 hidden md:block whitespace-nowrap">Excluir</span>
                 </button>
 
                 <button
                   onClick={() => { setIsSelectionMode(false); setSelectedIds([]) }}
-                  className="h-10 px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-[0.12em] text-[9px] md:text-[10px] transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
+                  className="h-10 px-3 sm:px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-wide sm:tracking-[0.12em] text-xs transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
                 >
                   Cancelar
                 </button>

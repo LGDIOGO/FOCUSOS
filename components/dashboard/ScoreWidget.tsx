@@ -31,9 +31,9 @@ export default function ScoreWidget({ score, selectedDate = new Date() }: { scor
         animate={{ opacity: 1, scale: 1 }}
         className="col-span-1 bg-[var(--text-primary)] rounded-2xl p-2.5 md:p-4 flex flex-col gap-0.5 md:gap-1 transition-colors duration-300 shadow-xl"
       >
-        <span className="text-[9px] md:text-[12px] font-bold uppercase tracking-widest text-black/40">SCORE</span>
+        <span className="text-xs md:text-[12px] font-bold uppercase tracking-widest text-black/40">SCORE</span>
         <span className="text-xl md:text-3xl font-black tracking-tighter text-black">{combined}%</span>
-        <span className="text-[10px] md:text-[13px] font-medium text-black/60 leading-tight">
+        <span className="text-xs md:text-[13px] font-medium text-black/60 leading-tight">
           {combined >= threshold ? 'Excelente!' : combined >= 50 ? 'Bom progresso' : 'Continue!'}
         </span>
         <div className="h-1 bg-black/10 rounded-full mt-1.5 overflow-hidden">
@@ -53,9 +53,9 @@ export default function ScoreWidget({ score, selectedDate = new Date() }: { scor
         transition={{ delay: 0.05 }}
         className="col-span-1 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl p-2.5 md:p-4 flex flex-col gap-0.5 md:gap-1 transition-colors duration-300"
       >
-        <span className="text-[9px] md:text-[12px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Compromissos</span>
+        <span className="text-xs md:text-[12px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Compromissos</span>
         <span className="text-xl md:text-2xl font-extrabold tracking-tighter text-[var(--text-primary)]">{eventsDone}/{eventsTotal}</span>
-        <span className="text-[10px] md:text-[13px] text-[var(--text-muted)] uppercase">hoje</span>
+        <span className="text-xs md:text-[13px] text-[var(--text-muted)] uppercase">hoje</span>
         <div className="h-0.5 bg-[var(--bg-overlay)]/40 rounded-full mt-1 overflow-hidden">
           <motion.div
             className="h-full bg-red-600 rounded-full"
@@ -73,9 +73,9 @@ export default function ScoreWidget({ score, selectedDate = new Date() }: { scor
         transition={{ delay: 0.1 }}
         className="col-span-1 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl p-2.5 md:p-4 flex flex-col gap-0.5 md:gap-1 transition-colors duration-300"
       >
-        <span className="text-[9px] md:text-[12px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Hábitos</span>
+        <span className="text-xs md:text-[12px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Hábitos</span>
         <span className="text-xl md:text-2xl font-extrabold tracking-tighter text-[var(--text-primary)]">{done}/{total}</span>
-        <span className="text-[10px] md:text-[13px] text-[var(--text-muted)]">+{partial} parciais</span>
+        <span className="text-xs md:text-[13px] text-[var(--text-muted)]">+{partial} parciais</span>
         <div className="h-0.5 bg-[var(--bg-overlay)]/40 rounded-full mt-1 overflow-hidden">
           <motion.div
             className="h-full bg-[var(--text-muted)]/40 rounded-full"

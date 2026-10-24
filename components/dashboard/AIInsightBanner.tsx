@@ -95,7 +95,7 @@ export default function AIInsightBanner({ habits, tasks, goals = [], events = []
             <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center">
               <Icon className="w-4 h-4 text-red-500" />
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/60 transition-colors">FocusOS Insight</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-red-500/60 transition-colors">FocusOS Insight</span>
           </div>
           <button 
             onClick={() => fetchInsight(true)}
@@ -135,7 +135,7 @@ export default function AIInsightBanner({ habits, tasks, goals = [], events = []
           )}
         </AnimatePresence>
 
-        <div className="mt-4 flex items-center gap-1.5 text-[11px] font-bold text-red-500/60 group-hover:text-red-500 transition-colors cursor-pointer">
+        <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-red-500/60 group-hover:text-red-500 transition-colors cursor-pointer">
           Ver análise detalhada <ArrowRight className="w-3 h-3" />
         </div>
       </div>

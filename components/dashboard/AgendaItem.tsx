@@ -145,7 +145,7 @@ function AgendaItem({
           {event.time && (
             <span
               className={cn(
-                'flex items-center gap-1 text-[11px] font-semibold uppercase tracking-widest',
+                'flex items-center gap-1 text-xs font-semibold uppercase tracking-widest',
                 timeStatus.passed && status !== 'done'
                   ? 'text-red-400 font-black'
                   : timeStatus.approaching
@@ -159,21 +159,21 @@ function AgendaItem({
           )}
           {category && (
             <span
-              className="flex items-center gap-0.5 text-[9px] font-black uppercase tracking-widest opacity-50"
+              className="flex items-center gap-0.5 text-xs font-black uppercase tracking-widest opacity-50"
               style={{ color: category.color || undefined }}
             >
-              {category.icon && <span className="text-[10px] leading-none">{category.icon}</span>}
+              {category.icon && <span className="text-xs leading-none">{category.icon}</span>}
               {category.name}
             </span>
           )}
           {event.isOverdue && status !== 'done' && (
-            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-red-500/10 border border-red-500/20 rounded-md text-red-400 text-[9px] font-black uppercase tracking-widest">
+            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-red-500/10 border border-red-500/20 rounded-md text-red-400 text-xs font-black uppercase tracking-widest">
               <AlertCircle size={9} />
               NÃO REALIZADO
             </span>
           )}
           {event.description && !event.isOverdue && !category && (
-            <span className="text-[11px] text-white/25 truncate font-normal italic lowercase">
+            <span className="text-xs text-white/25 truncate font-normal italic lowercase">
               {event.description}
             </span>
           )}
@@ -196,7 +196,7 @@ function AgendaItem({
             onPointerUp={(eventData) => eventData.stopPropagation()}
             onTouchStart={(eventData) => eventData.stopPropagation()}
             onTouchEnd={(eventData) => eventData.stopPropagation()}
-            className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white/30 hover:text-white hover:bg-white/10 transition-all active:scale-90 action-btn"
+            className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[var(--text-muted)] hover:text-white hover:bg-white/10 transition-all active:scale-90 action-btn"
             title="Editar"
           >
             <Pencil size={13} />
@@ -208,7 +208,7 @@ function AgendaItem({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             className={cn(
-              'px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border flex-shrink-0',
+              'px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border flex-shrink-0',
               status === 'done' && 'text-green-400 border-green-400/20 bg-green-400/5',
               status === 'partial' && 'text-amber-400 border-amber-400/20 bg-amber-400/5',
               status === 'failed' && 'text-red-400 border-red-400/20 bg-red-400/5'

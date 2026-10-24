@@ -27,9 +27,9 @@ export default function SeedData() {
             <div>
               <h3 className="text-xl md:text-2xl font-black tracking-tightest flex items-center gap-2">
                 Dados Iniciais
-                <span className="px-2 py-0.5 bg-white/10 rounded-full text-[10px] uppercase tracking-widest text-white/60 border border-white/10">Alpha</span>
+                <span className="px-2 py-0.5 bg-white/10 rounded-full text-xs uppercase tracking-widest text-white/60 border border-white/10">Alpha</span>
               </h3>
-              <p className="text-sm md:text-base text-white/40 font-medium mt-1">
+              <p className="text-sm md:text-base text-[var(--text-muted)] font-medium mt-1">
                 Personalize sua experiência com ajuda do <span className="text-white/80 font-bold">FocusOS AI</span>.
               </p>
             </div>

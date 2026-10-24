@@ -100,7 +100,7 @@ export function HabitsMatrix({
   return (
     <div className="space-y-3">
       {/* Legenda */}
-      <div className="flex items-center gap-4 flex-wrap text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+      <div className="flex items-center gap-4 flex-wrap text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
         {[
           { cls: STATUS_STYLE.done, label: 'Feito' },
           { cls: STATUS_STYLE.partial, label: 'Parcial' },
@@ -128,12 +128,12 @@ export function HabitsMatrix({
               return (
                 <div key={iso} className="w-5 shrink-0 flex flex-col items-center">
                   <span className={cn(
-                    'text-[8px] font-black uppercase tracking-wider whitespace-nowrap h-3',
+                    'text-[10px] font-black uppercase tracking-wider whitespace-nowrap h-3',
                     startsMonth ? 'text-[var(--text-muted)]' : 'text-transparent'
                   )}>
                     {startsMonth ? format(date, 'MMM', { locale: ptBR }) : '·'}
                   </span>
-                  <span className="text-[8px] font-bold text-[var(--text-muted)]/50 tabular-nums">
+                  <span className="text-[10px] font-bold text-[var(--text-muted)] tabular-nums">
                     {format(date, 'd')}
                   </span>
                 </div>
@@ -201,7 +201,7 @@ export function HabitsMatrix({
       </div>
 
       {days.length === MAX_DAYS && (
-        <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]/60">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
           Mostrando os últimos {MAX_DAYS} dias do período
         </p>
       )}

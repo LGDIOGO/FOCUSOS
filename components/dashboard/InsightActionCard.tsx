@@ -68,7 +68,7 @@ export function InsightActionCard({ type, title, body, action, onAction, onDiscu
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-lg tracking-tight">{title}</h3>
             <div className="min-w-[120px] h-8 flex items-center justify-center rounded-xl bg-white/[0.02] border border-white/[0.05] group-hover:bg-white/[0.08] group-hover:border-white/10 transition-all duration-300">
-              <span className="text-[10px] uppercase tracking-[0.2em] font-black opacity-30 group-hover:opacity-60 transition-opacity">
+              <span className="text-xs uppercase tracking-[0.2em] font-black opacity-30 group-hover:opacity-60 transition-opacity">
                 {getLabel()}
               </span>
             </div>

@@ -151,7 +151,7 @@ export default function SignupPage() {
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
-            <div className="relative flex justify-center text-[12px] uppercase tracking-widest font-black"><span className="bg-black px-4 text-white/20">ou e-mail</span></div>
+            <div className="relative flex justify-center text-[12px] uppercase tracking-widest font-black"><span className="bg-black px-4 text-white/60">ou e-mail</span></div>
           </div>
 
           <form onSubmit={handleSignup} className="space-y-6">
@@ -235,7 +235,7 @@ export default function SignupPage() {
           </form>
         </div>
 
-        <p className="text-center text-[15px] text-white/40 font-medium">
+        <p className="text-center text-[15px] text-white/60 font-medium">
           Já tem conta?
           <Link href="/login" className="ml-2 text-white hover:underline font-bold">
             Página de login

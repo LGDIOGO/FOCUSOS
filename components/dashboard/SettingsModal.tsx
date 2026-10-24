@@ -220,10 +220,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </nav>
 
           <div className="hidden md:block mt-auto p-4 bg-white/5 rounded-[24px] border border-white/5 transition-all">
-             <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-2">Seu Plano</p>
+             <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Seu Plano</p>
              <div className={cn(
                "flex items-center gap-2",
-               profile?.is_paid ? "text-red-500" : "text-white/30"
+               profile?.is_paid ? "text-red-500" : "text-[var(--text-muted)]"
              )}>
                <Shield size={14} />
                <span className="text-xs font-bold uppercase tracking-tight">
@@ -279,7 +279,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <div className="bg-white/5 border border-white/10 rounded-[28px] p-6 space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Nome</label>
+                            <label className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Nome</label>
                             <input 
                               value={newCat.name}
                               onChange={e => setNewCat({ ...newCat, name: e.target.value })}
@@ -288,7 +288,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Tipo de Aplicação</label>
+                            <label className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Tipo de Aplicação</label>
                             {/* Cinco escopos não cabem lado a lado num celular. */}
                             <div className="grid grid-cols-3 gap-2">
                               {CATEGORY_SCOPES.map((scope) => (
@@ -297,8 +297,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                   onClick={() => setNewCat({ ...newCat, type: scope.id as any })}
                                   title={scope.label}
                                   className={cn(
-                                    "py-3 px-1 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all",
-                                    newCat.type === scope.id ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/5 hover:border-white/20"
+                                    "py-3 px-1 rounded-xl text-xs font-black uppercase tracking-wider border transition-all",
+                                    newCat.type === scope.id ? "bg-white text-black border-white" : "bg-white/5 text-[var(--text-muted)] border-white/5 hover:border-white/20"
                                   )}
                                 >
                                   {scope.short}
@@ -310,11 +310,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                         <div className="flex items-center gap-6">
                           <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Ícone</label>
+                            <label className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Ícone</label>
                             <EmojiPicker value={newCat.icon} onChange={icon => setNewCat({ ...newCat, icon })} />
                           </div>
                           <div className="flex-1 space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Cor de Destaque</label>
+                            <label className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Cor de Destaque</label>
                             <div className="flex gap-3">
                               {['#0A84FF', '#32D74B', '#FFD60A', '#FF9F0A', '#FF453A', '#BF5AF2'].map(color => (
                                 <button
@@ -348,7 +348,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     [1, 2, 3, 4].map(i => <div key={i} className="h-20 bg-white/5 rounded-3xl animate-pulse" />)
                   ) : categories?.length === 0 ? (
                     <div className="col-span-full py-12 text-center bg-white/[0.02] border border-dashed border-white/10 rounded-[32px]">
-                      <p className="text-white/20 font-bold">Nenhuma categoria criada ainda.</p>
+                      <p className="text-[var(--text-muted)] font-bold">Nenhuma categoria criada ainda.</p>
                     </div>
                   ) : categories?.map(cat => (
                     <div 
@@ -363,7 +363,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </div>
                       <div className="flex-1">
                         <h4 className="font-bold text-white">{cat.name}</h4>
-                        <p className="text-[9px] font-black uppercase tracking-widest text-white/20">
+                        <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
                           {categoryScopeLabel(cat.type)}
                         </p>
                       </div>
@@ -371,14 +371,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => setConfirmDeleteCat(null)}
-                            className="min-h-[44px] px-3 rounded-xl border border-white/10 text-white/50 text-[10px] font-black uppercase tracking-widest"
+                            className="min-h-[44px] px-3 rounded-xl border border-white/10 text-white/50 text-xs font-black uppercase tracking-widest"
                           >
                             Manter
                           </button>
                           <button
                             onClick={() => deleteCategory.mutate(cat.id, { onSettled: () => setConfirmDeleteCat(null) })}
                             disabled={deleteCategory.isPending}
-                            className="min-h-[44px] px-3 rounded-xl bg-red-600 text-white text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
+                            className="min-h-[44px] px-3 rounded-xl bg-red-600 text-white text-xs font-black uppercase tracking-widest disabled:opacity-50"
                           >
                             Excluir
                           </button>
@@ -387,7 +387,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         <button
                           onClick={() => setConfirmDeleteCat(cat.id)}
                           aria-label={`Excluir ${cat.name}`}
-                          className="md:opacity-0 md:group-hover:opacity-100 w-11 h-11 flex items-center justify-center text-white/30 hover:text-red-400 transition-all"
+                          className="md:opacity-0 md:group-hover:opacity-100 w-11 h-11 flex items-center justify-center text-[var(--text-muted)] hover:text-red-400 transition-all"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -404,7 +404,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <div className="p-8 border-b border-white/5 flex items-center justify-between">
                     <div>
                       <h4 className="text-xl font-bold">Ativar Notificações</h4>
-                      <p className="text-sm text-white/40 font-medium">Receber avisos sonoros e visuais no FocusOS.</p>
+                      <p className="text-sm text-[var(--text-muted)] font-medium">Receber avisos sonoros e visuais no FocusOS.</p>
                     </div>
                       <button 
                         onClick={() => updateSettings.mutate({ 
@@ -446,13 +446,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         >
                           <div className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center",
-                            (settings?.notifications as any)?.[item.id] ? "bg-red-600/20 text-red-500" : "bg-white/5 text-white/20"
+                            (settings?.notifications as any)?.[item.id] ? "bg-red-600/20 text-red-500" : "bg-white/5 text-[var(--text-muted)]"
                           )}>
                              <Check size={14} className={cn("transition-opacity", (settings?.notifications as any)?.[item.id] ? "opacity-100" : "opacity-0")} />
                           </div>
                           <div>
                             <p className="font-bold text-sm">{item.label}</p>
-                            <p className="text-[10px] text-white/40 uppercase tracking-widest font-black leading-tight">{item.sub}</p>
+                            <p className="text-xs text-[var(--text-muted)] uppercase tracking-widest font-black leading-tight">{item.sub}</p>
                           </div>
                         </button>
                       ))}
@@ -462,7 +462,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                        <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Antecedência Padrão</label>
+                          <label className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Antecedência Padrão</label>
                           <div className="flex gap-2">
                              {[5, 15, 30].map((min) => (
                                <button
@@ -474,7 +474,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                    "flex-1 py-3 rounded-xl border font-bold text-sm transition-all",
                                    settings?.notifications?.leadTimeMinutes === min 
                                      ? "bg-white text-black border-white" 
-                                     : "bg-white/5 text-white/40 border-white/5"
+                                     : "bg-white/5 text-[var(--text-muted)] border-white/5"
                                  )}
                                >
                                  {min} min
@@ -483,7 +483,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </div>
                        </div>
                        <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Som de Alerta</label>
+                          <label className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Som de Alerta</label>
                           <div className="flex gap-2 relative">
                              {['focus', 'none'].map((s) => (
                                <button
@@ -495,7 +495,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                    "flex-1 h-12 rounded-xl border font-bold text-xs flex items-center justify-center transition-all capitalize",
                                    settings?.notifications?.sound === s 
                                      ? "bg-white text-black border-white" 
-                                     : "bg-white/5 text-white/40 border-white/5"
+                                     : "bg-white/5 text-[var(--text-muted)] border-white/5"
                                  )}
                                >
                                  {s === 'focus' ? (
@@ -552,14 +552,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </div>
                   <div>
                     <h4 className="text-xl font-bold">{profile?.full_name || 'Usuário Focus'}</h4>
-                    <p className="text-sm text-white/40 font-medium">{profile?.email || 'focus@example.com'}</p>
-                    <button className="mt-2 text-[10px] font-black uppercase tracking-widest text-blue-400">Alterar Foto</button>
+                    <p className="text-sm text-[var(--text-muted)] font-medium">{profile?.email || 'focus@example.com'}</p>
+                    <button className="mt-2 text-xs font-black uppercase tracking-widest text-blue-400">Alterar Foto</button>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Fuso Horário</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Fuso Horário</label>
                     <select 
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-red-500/50 transition-all appearance-none cursor-pointer"
                       value={profile?.timezone || 'Brasília (GMT-3)'}
@@ -572,7 +572,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Meta Diária Padrão</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Meta Diária Padrão</label>
                     <div className="flex items-center gap-4">
                       <input 
                         type="range" min="50" max="95" step="5"
@@ -585,7 +585,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Idioma</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Idioma</label>
                     <select 
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-red-500/50 transition-all appearance-none cursor-pointer"
                       value={profile?.language || 'Português'}
@@ -600,7 +600,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <div className="h-px bg-white/5 my-6" />
 
                   <div className="space-y-4">
-                    <h5 className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1">Gerenciar Assinatura</h5>
+                    <h5 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Gerenciar Assinatura</h5>
                     <div className="grid grid-cols-1 gap-3">
                       {profile?.is_paid && (
                         <button 
@@ -636,7 +636,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <p className="text-sm text-[var(--text-secondary)] font-medium">Modo claro disponível em breve.</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] border border-[var(--border-subtle)] px-2 py-1 rounded-lg opacity-70">Em Breve</span>
+                      <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] border border-[var(--border-subtle)] px-2 py-1 rounded-lg opacity-70">Em Breve</span>
                       <div className="w-14 h-8 rounded-full bg-red-600 p-1 relative opacity-50 cursor-not-allowed">
                         <div className="w-6 h-6 bg-white rounded-full shadow-lg translate-x-6" />
                       </div>
@@ -676,7 +676,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <div className="flex-1">
                         <p className="text-xs font-bold text-red-400">{apiError}</p>
                       </div>
-                      <button onClick={() => setApiError(null)} className="text-white/30 hover:text-white/60">
+                      <button onClick={() => setApiError(null)} className="text-[var(--text-muted)] hover:text-white/60">
                         <X size={14} />
                       </button>
                     </motion.div>
@@ -708,7 +708,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           {copiedKey ? <Check size={16} /> : <Copy size={16} />}
                         </button>
                       </div>
-                      <button onClick={() => setGeneratedKey(null)} className="text-[10px] text-white/30 hover:text-white/50 font-bold uppercase tracking-widest">
+                      <button onClick={() => setGeneratedKey(null)} className="text-xs text-[var(--text-muted)] hover:text-white/50 font-bold uppercase tracking-widest">
                         Já copiei, fechar
                       </button>
                     </motion.div>
@@ -719,7 +719,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="space-y-4">
                   <div>
                     <h4 className="text-sm font-black text-white/80 mb-1">Criar nova chave de API</h4>
-                    <p className="text-xs text-white/40 font-medium">Use para conectar Claude Cowork, Obsidian ou qualquer ferramenta externa.</p>
+                    <p className="text-xs text-[var(--text-muted)] font-medium">Use para conectar Claude Cowork, Obsidian ou qualquer ferramenta externa.</p>
                   </div>
                   <div className="flex gap-3">
                     <input
@@ -727,7 +727,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       onChange={e => setNewKeyName(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && createApiKey()}
                       placeholder='Ex: "Claude Cowork" ou "Obsidian"'
-                      className="flex-1 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/30"
+                      className="flex-1 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:border-white/30"
                     />
                     <button
                       onClick={createApiKey}
@@ -744,7 +744,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-black text-white/80">Suas chaves</h4>
-                    <button onClick={loadApiKeys} className="text-white/30 hover:text-white/60 transition-colors">
+                    <button onClick={loadApiKeys} className="text-[var(--text-muted)] hover:text-white/60 transition-colors">
                       <RefreshCw size={14} className={loadingApiKeys ? 'animate-spin' : ''} />
                     </button>
                   </div>
@@ -754,18 +754,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </div>
                   ) : apiKeys.length === 0 ? (
                     <div className="py-8 text-center border border-dashed border-white/10 rounded-2xl">
-                      <Key size={24} className="mx-auto text-white/20 mb-2" />
-                      <p className="text-xs text-white/30 font-medium">Nenhuma chave criada ainda</p>
+                      <Key size={24} className="mx-auto text-[var(--text-muted)] mb-2" />
+                      <p className="text-xs text-[var(--text-muted)] font-medium">Nenhuma chave criada ainda</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
                       {apiKeys.map(k => (
                         <div key={k.id} className="flex items-center gap-4 p-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-xl">
-                          <Key size={16} className="text-white/30 shrink-0" />
+                          <Key size={16} className="text-[var(--text-muted)] shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-white truncate">{k.name}</p>
-                            <p className="text-[10px] font-mono text-white/30 mt-0.5">{k.key_preview}</p>
-                            <p className="text-[9px] text-white/20 mt-0.5">
+                            <p className="text-xs font-mono text-[var(--text-muted)] mt-0.5">{k.key_preview}</p>
+                            <p className="text-xs text-[var(--text-muted)] mt-0.5">
                               Criada {new Date(k.created_at).toLocaleDateString('pt-BR')}
                               {k.last_used_at && ` · Usada ${new Date(k.last_used_at).toLocaleDateString('pt-BR')}`}
                             </p>
@@ -773,7 +773,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           <button
                             onClick={() => revokeApiKey(k.id)}
                             disabled={revokingId === k.id}
-                            className="p-2 text-white/20 hover:text-red-400 transition-colors disabled:opacity-30"
+                            className="p-2 text-[var(--text-muted)] hover:text-red-400 transition-colors disabled:opacity-30"
                           >
                             {revokingId === k.id ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
                           </button>
@@ -809,7 +809,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                           <div>
                             <p className="text-white/50 font-bold mb-2 font-sans">1. Copie sua chave de API (gerada acima)</p>
-                            <p className="text-white/30 font-sans">Formato: <code className="text-white/50">fos_live_...</code></p>
+                            <p className="text-[var(--text-muted)] font-sans">Formato: <code className="text-white/50">fos_live_...</code></p>
                           </div>
 
                           <div>
@@ -834,7 +834,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                 {/* Endpoints reference */}
                 <div className="space-y-2 border-t border-white/5 pt-6">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-3">Referência rápida de endpoints</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">Referência rápida de endpoints</p>
                   {[
                     { method: 'GET', path: '/api/v1/summary', desc: 'Resumo completo do dashboard' },
                     { method: 'GET', path: '/api/v1/performance', desc: 'Desempenho diário (últimos 7d)' },
@@ -849,17 +849,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   ].map(ep => (
                     <div key={ep.path + ep.method} className="flex items-center gap-3 py-2 border-b border-white/[0.04] last:border-0">
                       <span className={cn(
-                        'text-[9px] font-black w-10 text-center py-0.5 rounded',
+                        'text-xs font-black w-10 text-center py-0.5 rounded',
                         ep.method === 'GET' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'
                       )}>
                         {ep.method}
                       </span>
-                      <code className="text-[11px] text-white/50 font-mono flex-1">{ep.path}</code>
-                      <span className="text-[10px] text-white/30">{ep.desc}</span>
+                      <code className="text-xs text-white/50 font-mono flex-1">{ep.path}</code>
+                      <span className="text-xs text-[var(--text-muted)]">{ep.desc}</span>
                     </div>
                   ))}
-                  <p className="text-[10px] text-white/20 pt-2 font-medium">
-                    Header: <code className="text-white/40">Authorization: Bearer fos_live_...</code>
+                  <p className="text-xs text-[var(--text-muted)] pt-2 font-medium">
+                    Header: <code className="text-[var(--text-muted)]">Authorization: Bearer fos_live_...</code>
                   </p>
                 </div>
               </div>
@@ -881,10 +881,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </p>
                     </div>
                     <div className={cn(
-                      'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider',
+                      'px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider',
                       gcalStatus.data?.connected
                         ? 'bg-green-500/15 text-green-400 border border-green-500/20'
-                        : 'bg-white/5 text-white/30 border border-white/10'
+                        : 'bg-white/5 text-[var(--text-muted)] border border-white/10'
                     )}>
                       {gcalStatus.isLoading ? '...' : gcalStatus.data?.connected ? 'Conectado' : 'Não conectado'}
                     </div>
@@ -892,7 +892,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                   <div className="p-6 space-y-5">
                     {gcalStatus.isLoading ? (
-                      <div className="flex items-center gap-2 text-white/30 text-sm">
+                      <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm">
                         <Loader2 size={14} className="animate-spin" /> Verificando conexão...
                       </div>
                     ) : gcalStatus.data?.connected ? (
@@ -903,7 +903,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           <div>
                             <p className="text-sm font-bold text-green-400">Calendário vinculado</p>
                             {gcalStatus.data.email && (
-                              <p className="text-xs text-white/40 mt-0.5">{gcalStatus.data.email}</p>
+                              <p className="text-xs text-[var(--text-muted)] mt-0.5">{gcalStatus.data.email}</p>
                             )}
                           </div>
                         </div>
@@ -976,16 +976,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         </button>
 
                         <div className="p-4 bg-amber-500/5 border border-amber-500/15 rounded-2xl space-y-2">
-                          <p className="text-[10px] font-black text-amber-400 uppercase tracking-wider">Configuração necessária</p>
-                          <p className="text-xs text-white/40 leading-relaxed">
+                          <p className="text-xs font-black text-amber-400 uppercase tracking-wider">Configuração necessária</p>
+                          <p className="text-xs text-[var(--text-muted)] leading-relaxed">
                             Adicione as variáveis de ambiente no servidor para ativar esta integração:
                           </p>
-                          <div className="bg-black/40 rounded-lg p-3 font-mono text-[11px] text-amber-300/80 space-y-1">
+                          <div className="bg-black/40 rounded-lg p-3 font-mono text-xs text-amber-300/80 space-y-1">
                             <p>GOOGLE_CALENDAR_CLIENT_ID=...</p>
                             <p>GOOGLE_CALENDAR_CLIENT_SECRET=...</p>
                             <p>GOOGLE_CALENDAR_REDIRECT_URI=...</p>
                           </div>
-                          <p className="text-[10px] text-white/30">
+                          <p className="text-xs text-[var(--text-muted)]">
                             Crie as credenciais em{' '}
                             <span className="text-blue-400">console.cloud.google.com</span>
                             {' '}→ APIs & Serviços → Credenciais → OAuth 2.0.
@@ -998,7 +998,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                 {/* What gets synced */}
                 <div className="p-5 bg-white/[0.02] border border-white/[0.06] rounded-[24px] space-y-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-white/30">O que é sincronizado</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">O que é sincronizado</p>
                   {[
                     { emoji: '📅', text: 'Todos os compromissos e eventos da agenda' },
                     { emoji: '🕐', text: 'Horários exatos ou eventos de dia inteiro' },
@@ -1023,7 +1023,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     >
                        <div className="h-40 w-full bg-white/5 relative flex items-center justify-center overflow-hidden">
                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(255,0,0,0.1),rgba(0,0,0,0))]" />
-                           <BookOpen size={48} className="text-white/20 group-hover:text-white/40 transition-colors" />
+                           <BookOpen size={48} className="text-[var(--text-muted)] group-hover:text-[var(--text-muted)] transition-colors" />
                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
                               <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-2xl pl-1">
                                 <Play size={20} className="fill-current" />
@@ -1032,15 +1032,15 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                        </div>
                        <div className="p-6">
                           <h4 className="text-lg font-black text-white group-hover:text-red-400 transition-colors">Guia Rápido: Onboarding</h4>
-                          <p className="text-sm font-medium text-white/40 mt-1">Relembre as funcionalidades essenciais, arraste, status e modo de seleção do FocusOS.</p>
+                          <p className="text-sm font-medium text-[var(--text-muted)] mt-1">Relembre as funcionalidades essenciais, arraste, status e modo de seleção do FocusOS.</p>
                        </div>
                     </div>
                     <div className="flex-1 border border-dashed border-white/10 rounded-[32px] flex flex-col items-center justify-center p-8 text-center bg-white/[0.01]">
-                       <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/20 mb-4">
+                       <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-[var(--text-muted)] mb-4">
                          <Sparkles size={20} />
                        </div>
                        <h4 className="text-md font-bold text-white/60">Em Breve</h4>
-                       <p className="text-xs text-white/30 font-medium mt-1">Mais guias e truques avançados estão sendo produzidos.</p>
+                       <p className="text-xs text-[var(--text-muted)] font-medium mt-1">Mais guias e truques avançados estão sendo produzidos.</p>
                     </div>
                  </div>
               </div>
@@ -1048,7 +1048,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </div>
 
           <div className="p-6 bg-white/[0.01] border-t border-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/20">
+            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
                <Info size={12} />
                FocusOS Build 2026.04.01
             </div>

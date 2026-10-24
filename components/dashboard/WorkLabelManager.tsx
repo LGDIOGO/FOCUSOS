@@ -105,13 +105,13 @@ function ScopeSection({ scope, items }: { scope: LabelScope; items: WorkItem[] }
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] uppercase tracking-widest font-black text-white/50">{meta.title}</p>
-          <p className="text-[11px] text-white/30 mt-0.5">{meta.hint}</p>
+          <p className="text-xs uppercase tracking-widest font-black text-white/50">{meta.title}</p>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">{meta.hint}</p>
         </div>
         <button
           onClick={openAdd}
           disabled={busy}
-          className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 hover:border-white/30 text-[9px] font-black uppercase tracking-wider text-white/60 hover:text-white transition-all"
+          className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 hover:border-white/30 text-xs font-black uppercase tracking-wider text-white/60 hover:text-white transition-all"
         >
           <Plus size={11} /> Novo
         </button>
@@ -123,7 +123,7 @@ function ScopeSection({ scope, items }: { scope: LabelScope; items: WorkItem[] }
           <button
             onClick={() => seed.mutate({ scope, names: meta.defaults })}
             disabled={busy}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/10 hover:border-white/30 text-[10px] font-black uppercase tracking-wider text-white/60 hover:text-white transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/10 hover:border-white/30 text-xs font-black uppercase tracking-wider text-white/60 hover:text-white transition-all"
           >
             <Sparkles size={11} /> Usar conjunto padrão
           </button>
@@ -138,7 +138,7 @@ function ScopeSection({ scope, items }: { scope: LabelScope; items: WorkItem[] }
                 })),
               })}
               disabled={busy}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/10 hover:border-white/30 text-[10px] font-black uppercase tracking-wider text-white/60 hover:text-white transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/10 hover:border-white/30 text-xs font-black uppercase tracking-wider text-white/60 hover:text-white transition-all"
             >
               <Check size={11} /> Cadastrar os {implicit.length} em uso
             </button>
@@ -162,24 +162,24 @@ function ScopeSection({ scope, items }: { scope: LabelScope; items: WorkItem[] }
                 onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') close() }}
                 placeholder={scope === 'work_type' ? 'Ex: Chamado, Visita, Estudo' : 'Ex: Cliente X, Marketing, Pessoal'}
                 autoFocus
-                className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm font-bold focus:outline-none focus:border-white/30 transition-all placeholder:text-white/20"
+                className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm font-bold focus:outline-none focus:border-white/30 transition-all placeholder:text-[var(--text-muted)]"
               />
               <ColorPicker value={color} onChange={setColor} />
               <div className="flex items-center gap-2">
                 <span
-                  className="px-2 py-1 rounded-md text-[10px] font-black"
+                  className="px-2 py-1 rounded-md text-xs font-black"
                   style={{ backgroundColor: color, color: labelTextColor(color) }}
                 >
                   {name.trim() || 'Prévia'}
                 </span>
                 <div className="flex-1" />
-                <button onClick={close} className="px-3 py-2 rounded-xl border border-white/10 text-white/50 hover:text-white text-[10px] font-black uppercase tracking-wider transition-all">
+                <button onClick={close} className="px-3 py-2 rounded-xl border border-white/10 text-white/50 hover:text-white text-xs font-black uppercase tracking-wider transition-all">
                   Cancelar
                 </button>
                 <button
                   onClick={save}
                   disabled={busy || !name.trim()}
-                  className="px-4 py-2 rounded-xl bg-white text-black text-[10px] font-black uppercase tracking-wider hover:bg-neutral-200 transition-all disabled:opacity-40 flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-white text-black text-xs font-black uppercase tracking-wider hover:bg-neutral-200 transition-all disabled:opacity-40 flex items-center gap-1.5"
                 >
                   {busy && <Loader2 size={11} className="animate-spin" />} Salvar
                 </button>
@@ -189,11 +189,11 @@ function ScopeSection({ scope, items }: { scope: LabelScope; items: WorkItem[] }
         )}
       </AnimatePresence>
 
-      {error && <p className="text-red-400 text-[11px] font-bold">{error}</p>}
+      {error && <p className="text-red-400 text-xs font-bold">{error}</p>}
 
       {/* Lista */}
       {labels.length === 0 ? (
-        <p className="text-white/20 text-[11px] font-bold">Nenhum {meta.title.toLowerCase().slice(0, -1)} ainda.</p>
+        <p className="text-[var(--text-muted)] text-xs font-bold">Nenhum {meta.title.toLowerCase().slice(0, -1)} ainda.</p>
       ) : (
         <div className="space-y-1.5">
           {labels.map(l => (
@@ -202,13 +202,13 @@ function ScopeSection({ scope, items }: { scope: LabelScope; items: WorkItem[] }
               className="flex items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2"
             >
               <span
-                className="px-2 py-0.5 rounded-md text-[10px] font-black shrink-0"
+                className="px-2 py-0.5 rounded-md text-xs font-black shrink-0"
                 style={{ backgroundColor: l.color, color: labelTextColor(l.color) }}
               >
                 {scope === 'work_type' ? kindLabel(l.name) : l.name}
               </span>
               {l.implicit && (
-                <span className="text-[8px] font-black uppercase tracking-wider text-white/25 shrink-0">
+                <span className="text-xs font-black uppercase tracking-wider text-white/25 shrink-0">
                   em uso · sem cor
                 </span>
               )}
@@ -216,11 +216,11 @@ function ScopeSection({ scope, items }: { scope: LabelScope; items: WorkItem[] }
 
               {confirmDel === l.name ? (
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[9px] font-bold text-white/40">Itens perdem a marcação.</span>
-                  <button onClick={() => setConfirmDel(null)} className="text-[9px] font-black uppercase text-white/40 hover:text-white px-1">
+                  <span className="text-xs font-bold text-[var(--text-muted)]">Itens perdem a marcação.</span>
+                  <button onClick={() => setConfirmDel(null)} className="text-xs font-black uppercase text-[var(--text-muted)] hover:text-white px-1">
                     não
                   </button>
-                  <button onClick={() => del(l)} disabled={busy} className="text-[9px] font-black uppercase text-red-400 hover:text-red-300 px-1">
+                  <button onClick={() => del(l)} disabled={busy} className="text-xs font-black uppercase text-red-400 hover:text-red-300 px-1">
                     excluir
                   </button>
                 </div>
@@ -278,9 +278,9 @@ export function WorkLabelManager({
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="text-base font-black text-white">Tipos e categorias</h2>
-                <p className="text-[11px] text-white/35 mt-0.5">Monte a organização do seu jeito.</p>
+                <p className="text-xs text-white/35 mt-0.5">Monte a organização do seu jeito.</p>
               </div>
-              <button onClick={onClose} className="p-1.5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-all">
+              <button onClick={onClose} className="p-1.5 rounded-xl text-[var(--text-muted)] hover:text-white hover:bg-white/10 transition-all">
                 <X size={18} />
               </button>
             </div>

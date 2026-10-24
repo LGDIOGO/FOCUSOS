@@ -123,8 +123,8 @@ function MockDashboard() {
       {/* Score */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-[10px] uppercase font-black tracking-widest text-white/20 mb-1">Performance Hoje</p>
-          <p className="text-4xl font-black text-white leading-none tracking-tighter">87<span className="text-xl text-white/20 ml-0.5">%</span></p>
+          <p className="text-xs uppercase font-black tracking-widest text-white/60 mb-1">Performance Hoje</p>
+          <p className="text-4xl font-black text-white leading-none tracking-tighter">87<span className="text-xl text-white/60 ml-0.5">%</span></p>
         </div>
         <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
           <Flame size={22} className="text-amber-500" />
@@ -134,12 +134,12 @@ function MockDashboard() {
       <div className="space-y-4">
         {/* Habits */}
         <div className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Hábitos</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-white/60">Hábitos</p>
           <div className="space-y-2">
             {habits.map((h, i) => (
               <div key={i} className="flex items-center gap-3 py-2.5 px-3 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
                 <span className="text-sm">{h.emoji}</span>
-                <span className="flex-1 text-[11px] font-bold text-white/70 truncate">{h.name}</span>
+                <span className="flex-1 text-xs font-bold text-white/70 truncate">{h.name}</span>
                 <div className={cn(
                   "w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0",
                   h.status === 'done' ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]" : "border border-white/10"
@@ -155,13 +155,13 @@ function MockDashboard() {
         <div className="space-y-2">
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-red-600" />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-red-600">A Evitar</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-red-600">A Evitar</p>
           </div>
           <div className="space-y-2">
             {avoid.map((h, i) => (
               <div key={i} className="flex items-center gap-3 py-2.5 px-3 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
                 <span className="text-sm">{h.emoji}</span>
-                <span className="flex-1 text-[11px] font-bold text-white/70 truncate">{h.name}</span>
+                <span className="flex-1 text-xs font-bold text-white/70 truncate">{h.name}</span>
                 <div className="w-5 h-5 rounded-full bg-red-600 shadow-[0_0_10px_rgba(224,32,32,0.3)] flex items-center justify-center flex-shrink-0">
                   <X size={10} strokeWidth={4} className="text-white" />
                 </div>
@@ -184,8 +184,8 @@ function MockAgenda() {
   return (
     <div className="bg-[#0F0F0F] border border-white/5 rounded-[24px] p-5 space-y-4 text-white w-full shadow-2xl">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Compromissos</p>
-        <span className="text-[10px] font-black text-red-500 px-2 py-0.5 bg-red-500/10 rounded-full">Hoje</span>
+        <p className="text-xs font-bold uppercase tracking-widest text-white/60">Compromissos</p>
+        <span className="text-xs font-black text-red-500 px-2 py-0.5 bg-red-500/10 rounded-full">Hoje</span>
       </div>
       <div className="space-y-2.5">
         {events.map((e, i) => (
@@ -201,11 +201,11 @@ function MockAgenda() {
             </div>
             <div className="flex-1 min-w-0">
               <p className={cn(
-                "text-[11px] font-bold truncate",
-                e.status === 'done' ? "text-white/30 line-through" : "text-white/90"
+                "text-xs font-bold truncate",
+                e.status === 'done' ? "text-white/60 line-through" : "text-white/90"
               )}>{e.title}</p>
             </div>
-            <span className="text-[10px] font-black tracking-tighter text-white/20">{e.time}</span>
+            <span className="text-xs font-black tracking-tighter text-white/60">{e.time}</span>
           </div>
         ))}
       </div>
@@ -221,7 +221,7 @@ function MockGoals() {
   return (
     <div className="bg-[#0F0F0F] border border-white/5 rounded-[24px] p-5 space-y-5 text-white w-full shadow-2xl">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Metas Estratégicas</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-white/60">Metas Estratégicas</p>
         <Sparkles size={14} className="text-blue-400" />
       </div>
       {goals.map((g, i) => (
@@ -231,9 +231,9 @@ function MockGoals() {
               <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center border border-white/5">
                 <g.icon size={12} style={{ color: g.color }} />
               </div>
-              <span className="text-[11px] font-bold text-white/90">{g.title}</span>
+              <span className="text-xs font-bold text-white/90">{g.title}</span>
             </div>
-            <span className="text-[11px] font-black tracking-tighter" style={{ color: g.color }}>{g.pct}%</span>
+            <span className="text-xs font-black tracking-tighter" style={{ color: g.color }}>{g.pct}%</span>
           </div>
           <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
             <motion.div
@@ -256,7 +256,7 @@ function MockGoals() {
 // ─── Section Heading ──────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-block px-3 py-1 rounded-full border border-white/10 bg-white/[0.03] text-[11px] font-black tracking-widest uppercase text-white/40 mb-5">
+    <span className="inline-block px-3 py-1 rounded-full border border-white/10 bg-white/[0.03] text-xs font-black tracking-widest uppercase text-white/60 mb-5">
       {children}
     </span>
   )
@@ -276,7 +276,7 @@ function FeatureCard({ icon: Icon, title, desc, color, mock }: any) {
       </div>
       <div>
         <h3 className="text-xl font-bold mb-2 tracking-tight">{title}</h3>
-        <p className="text-white/40 text-sm leading-relaxed">{desc}</p>
+        <p className="text-white/60 text-sm leading-relaxed">{desc}</p>
       </div>
       {mock && <div className="mt-2 opacity-80 group-hover:opacity-100 transition-opacity">{mock}</div>}
     </motion.div>
@@ -295,7 +295,7 @@ function Testimonial({ name, role, text, stars = 5 }: any) {
       <p className="text-white/60 text-sm leading-relaxed italic">&ldquo;{text}&rdquo;</p>
       <div className="mt-auto">
         <p className="font-bold text-sm text-white">{name}</p>
-        <p className="text-white/30 text-xs">{role}</p>
+        <p className="text-white/60 text-xs">{role}</p>
       </div>
     </div>
   )
@@ -374,7 +374,7 @@ export default function LandingPage() {
               </span>
             </h1>
 
-            <p className="text-lg md:text-xl text-white/40 max-w-xl mx-auto mb-12 font-medium leading-relaxed">
+            <p className="text-lg md:text-xl text-white/60 max-w-xl mx-auto mb-12 font-medium leading-relaxed">
               Combine agenda inteligente, rastreamento de hábitos e metas estratégicas em uma interface que foi projetada para quem não aceita mediocridade.
             </p>
 
@@ -412,7 +412,7 @@ export default function LandingPage() {
                 <p className="text-3xl font-black text-white">
                   <Counter end={s.value} suffix={s.suffix} />
                 </p>
-                <p className="text-xs text-white/30 font-medium mt-1">{s.label}</p>
+                <p className="text-xs text-white/60 font-medium mt-1">{s.label}</p>
               </div>
             ))}
           </motion.div>
@@ -426,9 +426,9 @@ export default function LandingPage() {
             <SectionLabel>O Produto</SectionLabel>
             <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
               Tudo que você precisa,<br/>
-              <span className="text-white/30">nada que você não precisa.</span>
+              <span className="text-white/60">nada que você não precisa.</span>
             </h2>
-            <p className="text-white/40 max-w-lg mx-auto text-base">
+            <p className="text-white/60 max-w-lg mx-auto text-base">
               Três telas. Toda a sua vida produtiva organizada em tempo real.
             </p>
           </div>
@@ -446,7 +446,7 @@ export default function LandingPage() {
                 <div className="w-7 h-7 rounded-xl bg-amber-400/10 flex items-center justify-center">
                   <BarChart3 size={14} className="text-amber-400" />
                 </div>
-                <span className="text-[11px] font-black uppercase tracking-widest text-white/40">Painel Diário</span>
+                <span className="text-xs font-black uppercase tracking-widest text-white/60">Painel Diário</span>
               </div>
               <MockDashboard />
             </motion.div>
@@ -462,7 +462,7 @@ export default function LandingPage() {
                 <div className="w-7 h-7 rounded-xl bg-red-400/10 flex items-center justify-center">
                   <Calendar size={14} className="text-red-400" />
                 </div>
-                <span className="text-[11px] font-black uppercase tracking-widest text-white/40">Agenda</span>
+                <span className="text-xs font-black uppercase tracking-widest text-white/60">Agenda</span>
               </div>
               <MockAgenda />
             </motion.div>
@@ -478,7 +478,7 @@ export default function LandingPage() {
                 <div className="w-7 h-7 rounded-xl bg-blue-400/10 flex items-center justify-center">
                   <Target size={14} className="text-blue-400" />
                 </div>
-                <span className="text-[11px] font-black uppercase tracking-widest text-white/40">Metas</span>
+                <span className="text-xs font-black uppercase tracking-widest text-white/60">Metas</span>
               </div>
               <MockGoals />
             </motion.div>
@@ -493,7 +493,7 @@ export default function LandingPage() {
             <SectionLabel>Recursos</SectionLabel>
             <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
               Construído para<br/>
-              <span className="text-white/30">quem leva sério.</span>
+              <span className="text-white/60">quem leva sério.</span>
             </h2>
           </div>
 
@@ -545,7 +545,7 @@ export default function LandingPage() {
             <SectionLabel>Como funciona</SectionLabel>
             <h2 className="text-4xl md:text-5xl font-black tracking-tight">
               Simples de começar.<br/>
-              <span className="text-white/30">Poderoso para crescer.</span>
+              <span className="text-white/60">Poderoso para crescer.</span>
             </h2>
           </div>
 
@@ -566,9 +566,9 @@ export default function LandingPage() {
                 <div className="w-16 h-16 rounded-3xl mb-5 flex items-center justify-center" style={{ backgroundColor: `${step.color}15`, border: `1px solid ${step.color}30` }}>
                   <step.icon size={28} style={{ color: step.color }} />
                 </div>
-                <span className="text-[10px] font-black tracking-[0.3em] text-white/20 uppercase mb-2">Passo {step.step}</span>
+                <span className="text-xs font-black tracking-[0.3em] text-white/60 uppercase mb-2">Passo {step.step}</span>
                 <h3 className="text-xl font-bold mb-3 tracking-tight">{step.title}</h3>
-                <p className="text-white/40 text-sm leading-relaxed max-w-xs">{step.desc}</p>
+                <p className="text-white/60 text-sm leading-relaxed max-w-xs">{step.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -616,7 +616,7 @@ export default function LandingPage() {
             <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
               Invista no seu potencial.
             </h2>
-            <p className="text-white/40 max-w-md mx-auto text-base mb-8">
+            <p className="text-white/60 max-w-md mx-auto text-base mb-8">
               Primeiro mês completamente grátis, sem precisar de cartão de crédito. Depois, escolha o plano que faz mais sentido.
             </p>
           </div>
@@ -633,7 +633,7 @@ export default function LandingPage() {
             </div>
             <div className="flex-1">
               <p className="font-black text-white text-sm">🎁 Seu primeiro mês é 100% grátis</p>
-              <p className="text-white/40 text-xs mt-0.5">
+              <p className="text-white/60 text-xs mt-0.5">
                 Sem cartão de crédito. Vinculado ao seu CPF e dispositivo para garantir uma experiência exclusiva por usuário.
               </p>
             </div>
@@ -656,7 +656,7 @@ export default function LandingPage() {
               >
                 {plan.label}
                 {plan.badge && (
-                  <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-black rounded-full">
+                  <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-red-500 text-white text-xs font-black rounded-full">
                     {plan.badge}
                   </span>
                 )}
@@ -679,7 +679,7 @@ export default function LandingPage() {
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-2xl font-black text-white">{selectedPlan.label}</h3>
                     {selectedPlan.savings && (
-                      <span className="px-2.5 py-1 bg-green-500/15 border border-green-500/30 text-green-400 text-[10px] font-black rounded-full uppercase tracking-widest">
+                      <span className="px-2.5 py-1 bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-black rounded-full uppercase tracking-widest">
                         Economize {selectedPlan.savings}%
                       </span>
                     )}
@@ -688,9 +688,9 @@ export default function LandingPage() {
                     <span className="text-5xl font-black text-white">
                       R$ {selectedPlan.price.toFixed(2).replace('.', ',')}
                     </span>
-                    <span className="text-white/40 text-sm font-medium">/mês</span>
+                    <span className="text-white/60 text-sm font-medium">/mês</span>
                   </div>
-                  <p className="text-white/30 text-xs">{selectedPlan.billedAs}</p>
+                  <p className="text-white/60 text-xs">{selectedPlan.billedAs}</p>
                 </div>
 
                 <div className="flex flex-col gap-3 min-w-[220px]">
@@ -701,7 +701,7 @@ export default function LandingPage() {
                     Começar grátis por 30 dias
                     <ChevronRight size={18} />
                   </Link>
-                  <p className="text-white/20 text-[10px] text-center font-medium">
+                  <p className="text-white/60 text-xs text-center font-medium">
                     Cancele a qualquer momento · Sem fidelidade
                   </p>
                 </div>
@@ -734,13 +734,13 @@ export default function LandingPage() {
                     : 'border-white/[0.06] bg-white/[0.02] hover:border-white/15'
                 }`}
               >
-                <p className="text-[11px] font-black uppercase tracking-widest text-white/30 mb-1">{plan.label}</p>
+                <p className="text-xs font-black uppercase tracking-widest text-white/60 mb-1">{plan.label}</p>
                 <p className="text-xl font-black text-white">
                   R$ {plan.price.toFixed(2).replace('.', ',')}
-                  <span className="text-xs text-white/30 font-medium">/mês</span>
+                  <span className="text-xs text-white/60 font-medium">/mês</span>
                 </p>
                 {plan.savings && (
-                  <p className="text-[10px] text-green-400 font-bold mt-0.5">Economize {plan.savings}%</p>
+                  <p className="text-xs text-green-400 font-bold mt-0.5">Economize {plan.savings}%</p>
                 )}
               </motion.button>
             ))}
@@ -765,7 +765,7 @@ export default function LandingPage() {
                 Pronto para<br/>parar de procrastinar?
               </span>
             </h2>
-            <p className="text-white/40 text-lg mb-10 max-w-md mx-auto">
+            <p className="text-white/60 text-lg mb-10 max-w-md mx-auto">
               Mais de 2.800 pessoas já transformaram sua rotina. Seu primeiro mês é por nossa conta.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -777,7 +777,7 @@ export default function LandingPage() {
                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
-            <p className="text-white/20 text-xs mt-6">
+            <p className="text-white/60 text-xs mt-6">
               Gratuito por 30 dias · Sem cartão · Cancele quando quiser
             </p>
           </motion.div>
@@ -791,12 +791,12 @@ export default function LandingPage() {
             <FocusOSLogo size={28} />
             <span className="font-bold text-white/80">FocusOS</span>
           </div>
-          <nav className="flex items-center gap-6 text-sm text-white/30">
+          <nav className="flex items-center gap-6 text-sm text-white/60">
             <Link href="/login" className="hover:text-white transition-colors">Entrar</Link>
             <Link href="/signup" className="hover:text-white transition-colors">Criar conta</Link>
             <a href="mailto:suporte@focusos.app" className="hover:text-white transition-colors">Suporte</a>
           </nav>
-          <p className="text-white/20 text-xs text-center">
+          <p className="text-white/60 text-xs text-center">
             © 2026 FocusOS. Todos os direitos reservados.
           </p>
         </div>

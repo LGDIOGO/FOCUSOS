@@ -466,7 +466,7 @@ export default function AposentadoriaPage() {
                 >
                   <span className="text-base">{p.emoji}</span>
                   <span className={cn("text-xs font-bold", activePreset === i ? "text-amber-400" : "text-[var(--text-primary)]")}>{p.label}</span>
-                  <span className="text-[9px] text-[var(--text-muted)] leading-tight px-1">{p.desc}</span>
+                  <span className="text-xs text-[var(--text-muted)] leading-tight px-1">{p.desc}</span>
                 </button>
               ))}
             </div>
@@ -710,7 +710,7 @@ export default function AposentadoriaPage() {
                 <PiggyBank size={16} className="text-amber-400 shrink-0" />
                 <div className="text-left min-w-0">
                   <p className="text-xs font-semibold leading-tight">Acompanhar</p>
-                  <p className="text-[10px] text-amber-400/70 leading-tight">plano mês a mês</p>
+                  <p className="text-xs text-amber-400/70 leading-tight">plano mês a mês</p>
                 </div>
               </div>
               <ArrowRight size={14} className="text-amber-400/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
@@ -723,7 +723,7 @@ export default function AposentadoriaPage() {
                 <Wallet size={16} className="text-blue-400 shrink-0" />
                 <div className="text-left min-w-0">
                   <p className="text-xs font-semibold leading-tight">Reservas</p>
-                  <p className="text-[10px] text-blue-400/70 leading-tight">fundos separados</p>
+                  <p className="text-xs text-blue-400/70 leading-tight">fundos separados</p>
                 </div>
               </div>
               <ArrowRight size={14} className="text-blue-400/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
@@ -872,7 +872,7 @@ export default function AposentadoriaPage() {
                             >
                               <td className="px-3 py-2 text-[var(--text-muted)] tabular-nums">
                                 {r.year}
-                                {isGoalRow && <span className="ml-1 text-emerald-400 text-[10px]">★</span>}
+                                {isGoalRow && <span className="ml-1 text-emerald-400 text-xs">★</span>}
                               </td>
                               <td className="px-3 py-2 font-semibold text-[var(--text-primary)] tabular-nums">
                                 {r.age}a

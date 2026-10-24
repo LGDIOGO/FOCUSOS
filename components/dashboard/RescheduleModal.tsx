@@ -72,7 +72,7 @@ export function RescheduleModal({ onClose, onConfirm, event }: RescheduleModalPr
               </div>
               <div>
                 <h2 className="text-xl font-black tracking-tightest leading-none text-[var(--text-primary)]">Remarcar</h2>
-                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-black mt-0.5">Reagendar Compromisso</p>
+                <p className="text-xs text-[var(--text-muted)] uppercase tracking-widest font-black mt-0.5">Reagendar Compromisso</p>
               </div>
             </div>
             <button

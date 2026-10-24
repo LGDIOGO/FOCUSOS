@@ -55,12 +55,12 @@ export function SharedHistoryBar({
         
         <div className="flex flex-col items-start text-left flex-1 min-w-0 pr-2">
           <span className="text-lg md:text-xl font-black text-[var(--text-primary)] truncate w-full">{title}</span>
-          <span className="text-[9px] md:text-[10px] uppercase font-black tracking-widest text-[var(--text-muted)] group-hover:text-white/50 transition-colors line-clamp-1">{subtitle}</span>
+          <span className="text-xs uppercase font-black tracking-widest text-[var(--text-muted)] group-hover:text-white/50 transition-colors line-clamp-1">{subtitle}</span>
         </div>
         
         <div className="flex flex-shrink-0 items-center gap-3">
           {badgeText && (
-             <span className="hidden sm:inline-flex text-[10px] uppercase font-black text-[var(--text-primary)]/80 bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg whitespace-nowrap">
+             <span className="hidden sm:inline-flex text-xs uppercase font-black text-[var(--text-primary)]/80 bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg whitespace-nowrap">
                {badgeText}
              </span>
           )}

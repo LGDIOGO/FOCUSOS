@@ -160,12 +160,12 @@ export function NotificationSystem() {
             <div className="flex-1 min-w-0 pr-6">
               <h4 className="font-bold text-sm text-white truncate">{notif.title}</h4>
               <p className="text-xs text-white/50 line-clamp-2 mt-0.5">{notif.body}</p>
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/20 mt-2 block italic">{notif.time}</span>
+              <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] mt-2 block italic">{notif.time}</span>
             </div>
 
             <button 
               onClick={() => setActiveNotifications(prev => prev.filter(n => n.id !== notif.id))}
-              className="absolute top-4 right-4 text-white/20 hover:text-white transition-colors"
+              className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white transition-colors"
             >
               <X size={14} />
             </button>

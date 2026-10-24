@@ -58,7 +58,7 @@ function FilterChip({
       onClick={onClick}
       style={style}
       className={cn(
-        'shrink-0 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all',
+        'shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider border transition-all',
         color
           ? 'hover:brightness-125'
           : active
@@ -115,7 +115,7 @@ function OccurrenceCard({
             </span>
             {occ.priority && occ.priority !== 'medium' && (
               <span className={cn(
-                'text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border',
+                'text-xs font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border',
                 PRIORITY_META[occ.priority].color
               )}>
                 {PRIORITY_META[occ.priority].label}
@@ -123,20 +123,20 @@ function OccurrenceCard({
             )}
             {carriedFrom ? (
               <span
-                className="flex items-center gap-1 text-[8px] font-black uppercase tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/25 px-1.5 py-0.5 rounded-md"
+                className="flex items-center gap-1 text-xs font-black uppercase tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/25 px-1.5 py-0.5 rounded-md"
                 title={`Era para ${format(parseISO(`${carriedFrom}T12:00:00`), 'dd/MM')} e segue em aberto`}
               >
                 <AlertTriangle size={9} />
                 {lateDays === 1 ? '1 dia atrás' : `${lateDays} dias atrás`}
               </span>
             ) : missed && (
-              <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-wider text-amber-400">
+              <span className="flex items-center gap-1 text-xs font-black uppercase tracking-wider text-amber-400">
                 <AlertTriangle size={9} /> sem registro
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap mt-1 text-[10px] font-bold text-white/35">
+          <div className="flex items-center gap-2 flex-wrap mt-1 text-xs font-bold text-white/35">
             <span
               className="px-1.5 py-0.5 rounded-md font-black"
               style={{ backgroundColor: `${tipoCor}22`, color: tipoCor }}
@@ -162,7 +162,7 @@ function OccurrenceCard({
           </div>
 
           {occ.description && (
-            <p className="text-[11px] text-white/30 mt-1.5 line-clamp-2">{occ.description}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1.5 line-clamp-2">{occ.description}</p>
           )}
         </div>
 
@@ -181,8 +181,8 @@ function OccurrenceCard({
             key={b.id}
             onClick={() => onSetStatus(occ.status === b.id ? 'none' : b.id)}
             className={cn(
-              'flex-1 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all',
-              occ.status === b.id ? b.on : 'border-white/8 text-white/30 hover:border-white/25 hover:text-white/70'
+              'flex-1 py-1.5 rounded-lg border text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all',
+              occ.status === b.id ? b.on : 'border-white/8 text-[var(--text-muted)] hover:border-white/25 hover:text-white/70'
             )}
           >
             <b.icon size={11} strokeWidth={3} />
@@ -530,7 +530,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">Trabalho</h1>
-          <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mt-0.5">
+          <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] mt-0.5">
             Suas demandas e compromissos
           </p>
         </div>
@@ -545,7 +545,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
           onClick={() => setLabelsOpen(true)}
           aria-label="Gerenciar tipos e categorias"
           title="Tipos e categorias"
-          className="w-10 h-10 shrink-0 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:border-white/30 transition-all"
+          className="w-10 h-10 shrink-0 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-[var(--text-muted)] hover:text-white hover:border-white/30 transition-all"
         >
           <Settings2 size={16} />
         </button>
@@ -566,8 +566,8 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
             key={t.id}
             onClick={() => setView(t.id)}
             className={cn(
-              'flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shrink-0',
-              view === t.id ? 'bg-white text-black' : 'text-white/40 hover:text-white'
+              'flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0',
+              view === t.id ? 'bg-white text-black' : 'text-[var(--text-muted)] hover:text-white'
             )}
           >
             <t.icon size={12} /> {t.label}
@@ -582,7 +582,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
           <button
             onClick={() => setDayOffset(d => d - 1)}
             aria-label="Dia anterior"
-            className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/40 hover:text-white hover:border-white/25 transition-all"
+            className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-[var(--text-muted)] hover:text-white hover:border-white/25 transition-all"
           >
             <ChevronLeft size={16} />
           </button>
@@ -594,8 +594,8 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
             <button
               onClick={() => setDayOffset(0)}
               className={cn(
-                'text-[9px] font-black uppercase tracking-widest transition-colors mt-0.5',
-                dayOffset === 0 ? 'text-white/30 pointer-events-none' : 'text-white/40 hover:text-white'
+                'text-xs font-black uppercase tracking-widest transition-colors mt-0.5',
+                dayOffset === 0 ? 'text-[var(--text-muted)] pointer-events-none' : 'text-[var(--text-muted)] hover:text-white'
               )}
             >
               {dayOffset === 0
@@ -606,7 +606,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
           <button
             onClick={() => setDayOffset(d => d + 1)}
             aria-label="Próximo dia"
-            className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/40 hover:text-white hover:border-white/25 transition-all"
+            className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-[var(--text-muted)] hover:text-white hover:border-white/25 transition-all"
           >
             <ChevronRight size={16} />
           </button>
@@ -619,7 +619,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
         <button
           onClick={() => setWeekOffset(w => w - 1)}
           aria-label="Semana anterior"
-          className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/40 hover:text-white hover:border-white/25 transition-all"
+          className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-[var(--text-muted)] hover:text-white hover:border-white/25 transition-all"
         >
           <ChevronLeft size={16} />
         </button>
@@ -630,8 +630,8 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
           <button
             onClick={() => setWeekOffset(0)}
             className={cn(
-              'text-[9px] font-black uppercase tracking-widest transition-colors mt-0.5',
-              weekOffset === 0 ? 'text-white/30 pointer-events-none' : 'text-white/40 hover:text-white'
+              'text-xs font-black uppercase tracking-widest transition-colors mt-0.5',
+              weekOffset === 0 ? 'text-[var(--text-muted)] pointer-events-none' : 'text-[var(--text-muted)] hover:text-white'
             )}
           >
             {weekOffset === 0 ? weekLabel : 'Voltar para hoje'}
@@ -640,7 +640,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
         <button
           onClick={() => setWeekOffset(w => w + 1)}
           aria-label="Próxima semana"
-          className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/40 hover:text-white hover:border-white/25 transition-all"
+          className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-[var(--text-muted)] hover:text-white hover:border-white/25 transition-all"
         >
           <ChevronRight size={16} />
         </button>
@@ -652,7 +652,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
         <div className="space-y-2 mb-5">
           {usedChannels.length > 1 && (
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
-              <span className="text-[9px] font-black uppercase tracking-widest text-white/25 shrink-0 pr-1">Categoria</span>
+              <span className="text-xs font-black uppercase tracking-widest text-white/25 shrink-0 pr-1">Categoria</span>
               <FilterChip active={!channelFilter} onClick={() => setChannelFilter('')} label="Todos" />
               {usedChannels.map(c => (
                 <FilterChip
@@ -667,7 +667,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
           )}
           {usedKinds.length > 1 && (
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
-              <span className="text-[9px] font-black uppercase tracking-widest text-white/25 shrink-0 pr-1">Tipo</span>
+              <span className="text-xs font-black uppercase tracking-widest text-white/25 shrink-0 pr-1">Tipo</span>
               <FilterChip active={!kindFilter} onClick={() => setKindFilter('')} label="Todos" />
               {usedKinds.map(k => (
                 <FilterChip key={k} active={kindFilter === k} onClick={() => setKindFilter(k)} label={kindLabel(k)} color={typeColor(k)} />
@@ -678,7 +678,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
       )}
 
       {isLoading ? (
-        <div className="text-white/30 text-sm font-medium py-10 text-center">Carregando...</div>
+        <div className="text-[var(--text-muted)] text-sm font-medium py-10 text-center">Carregando...</div>
       ) : items.length === 0 ? (
         <div className="text-center py-16">
           <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mx-auto mb-4">
@@ -703,12 +703,12 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
             <motion.div key="hoje" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
               {dayOccurrences.length === 0 && carriedOver.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/[0.08] py-12 text-center">
-                  <p className="text-white/40 text-sm font-bold">
+                  <p className="text-[var(--text-muted)] text-sm font-bold">
                     {dayOffset === 0 ? 'Nada marcado para hoje.' : 'Nada marcado para este dia.'}
                   </p>
                   <button
                     onClick={() => openNew(selectedDayStr)}
-                    className="mt-4 px-4 py-2 rounded-xl bg-white/[0.06] border border-white/10 hover:border-white/25 text-[10px] font-black uppercase tracking-wider text-white/60 hover:text-white transition-all"
+                    className="mt-4 px-4 py-2 rounded-xl bg-white/[0.06] border border-white/10 hover:border-white/25 text-xs font-black uppercase tracking-wider text-white/60 hover:text-white transition-all"
                   >
                     Adicionar neste dia
                   </button>
@@ -720,13 +720,13 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                     <div className="shrink-0">
                       <p className={cn(
                         'text-3xl font-black tabular-nums leading-none',
-                        dayStats.rate === null ? 'text-white/30'
+                        dayStats.rate === null ? 'text-[var(--text-muted)]'
                           : dayStats.rate >= 80 ? 'text-emerald-400'
                           : dayStats.rate >= 50 ? 'text-amber-400' : 'text-red-400'
                       )}>
                         {dayStats.rate === null ? '—' : `${dayStats.rate}%`}
                       </p>
-                      <p className="text-[8px] font-black uppercase tracking-widest text-white/25 mt-1">do dia</p>
+                      <p className="text-xs font-black uppercase tracking-widest text-white/25 mt-1">do dia</p>
                     </div>
                     <div className="h-10 w-px bg-white/[0.08]" />
                     <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -738,7 +738,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                       ].map(s => (
                         <div key={s.label}>
                           <p className={cn('text-lg font-black tabular-nums leading-none', s.c)}>{s.v}</p>
-                          <p className="text-[8px] font-black uppercase tracking-widest text-white/25 mt-1">{s.label}</p>
+                          <p className="text-xs font-black uppercase tracking-widest text-white/25 mt-1">{s.label}</p>
                         </div>
                       ))}
                     </div>
@@ -749,7 +749,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <AlertTriangle size={11} className="text-amber-400 shrink-0" />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+                        <p className="text-xs font-black uppercase tracking-widest text-amber-400">
                           Vieram de dias anteriores · {carriedOver.length}
                         </p>
                       </div>
@@ -775,7 +775,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                     { label: 'Já respondidos', list: dayOccurrences.filter(o => o.status !== 'none'), tone: 'text-white/35' },
                   ] as const).map(sec => sec.list.length > 0 && (
                     <div key={sec.label}>
-                      <p className={cn('text-[10px] font-black uppercase tracking-widest mb-2', sec.tone)}>
+                      <p className={cn('text-xs font-black uppercase tracking-widest mb-2', sec.tone)}>
                         {sec.label} · {sec.list.length}
                       </p>
                       <div className="space-y-2">
@@ -795,7 +795,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
 
                   <button
                     onClick={() => openNew(selectedDayStr)}
-                    className="w-full py-3 rounded-2xl border border-dashed border-white/[0.1] text-[10px] font-black uppercase tracking-wider text-white/30 hover:text-white hover:border-white/30 transition-all"
+                    className="w-full py-3 rounded-2xl border border-dashed border-white/[0.1] text-xs font-black uppercase tracking-wider text-[var(--text-muted)] hover:text-white hover:border-white/30 transition-all"
                   >
                     + Adicionar neste dia
                   </button>
@@ -815,13 +815,13 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <span className={cn(
-                          'text-[11px] font-black uppercase tracking-widest capitalize',
+                          'text-xs font-black uppercase tracking-widest capitalize',
                           isToday ? 'text-white' : 'text-white/35'
                         )}>
                           {format(date, 'EEEE', { locale: ptBR })}
                         </span>
                         <span className={cn(
-                          'text-[10px] font-black tabular-nums px-1.5 py-0.5 rounded-md',
+                          'text-xs font-black tabular-nums px-1.5 py-0.5 rounded-md',
                           isToday ? 'bg-white text-black' : 'text-white/25'
                         )}>
                           {format(date, 'dd/MM')}
@@ -829,7 +829,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                       </div>
                       <button
                         onClick={() => openNew(iso)}
-                        className="text-white/20 hover:text-white transition-colors p-1"
+                        className="text-[var(--text-muted)] hover:text-white transition-colors p-1"
                         aria-label={`Adicionar em ${format(date, 'dd/MM')}`}
                       >
                         <Plus size={14} />
@@ -838,8 +838,8 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
 
                     {dayItems.length === 0 ? (
                       <div className={cn(
-                        'rounded-2xl border border-dashed border-white/[0.06] py-3 text-center text-[11px] font-bold',
-                        future ? 'text-white/15' : 'text-white/20'
+                        'rounded-2xl border border-dashed border-white/[0.06] py-3 text-center text-xs font-bold',
+                        future ? 'text-white/15' : 'text-[var(--text-muted)]'
                       )}>
                         {future ? 'Livre' : 'Nada registrado'}
                       </div>
@@ -869,14 +869,14 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
               {([
                 { key: 'atrasadas', label: 'Sem registro (já passou)', list: pendencias.atrasadas, tone: 'text-amber-400' },
                 { key: 'hoje',      label: 'Hoje',                     list: pendencias.hoje,      tone: 'text-white' },
-                { key: 'proximas',  label: 'Próximos dias',            list: pendencias.proximas,  tone: 'text-white/40' },
+                { key: 'proximas',  label: 'Próximos dias',            list: pendencias.proximas,  tone: 'text-[var(--text-muted)]' },
               ] as const).map(sec => (
                 <div key={sec.key}>
-                  <p className={cn('text-[10px] font-black uppercase tracking-widest mb-2', sec.tone)}>
+                  <p className={cn('text-xs font-black uppercase tracking-widest mb-2', sec.tone)}>
                     {sec.label} · {sec.list.length}
                   </p>
                   {sec.list.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-white/[0.06] py-3 text-center text-[11px] font-bold text-white/20">
+                    <div className="rounded-2xl border border-dashed border-white/[0.06] py-3 text-center text-xs font-bold text-[var(--text-muted)]">
                       Nada aqui
                     </div>
                   ) : (
@@ -904,8 +904,8 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
             <motion.div key="rel" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5">
               {report.total === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/[0.08] py-10 text-center">
-                  <p className="text-white/40 text-sm font-bold">Nada a relatar nesta semana ainda.</p>
-                  <p className="text-white/20 text-xs mt-1">O relatório conta apenas dias que já passaram.</p>
+                  <p className="text-[var(--text-muted)] text-sm font-bold">Nada a relatar nesta semana ainda.</p>
+                  <p className="text-[var(--text-muted)] text-xs mt-1">O relatório conta apenas dias que já passaram.</p>
                 </div>
               ) : (
                 <>
@@ -913,7 +913,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                   <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5">
                     <div className="flex items-end justify-between mb-3">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Aproveitamento</p>
+                        <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Aproveitamento</p>
                         <p className={cn(
                           'text-4xl font-black tabular-nums leading-none mt-1',
                           report.completionRate >= 80 ? 'text-emerald-400'
@@ -925,13 +925,13 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={copyReport}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.06] border border-white/10 hover:border-white/25 text-[9px] font-black uppercase tracking-wider text-white/50 hover:text-white transition-all"
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.06] border border-white/10 hover:border-white/25 text-xs font-black uppercase tracking-wider text-white/50 hover:text-white transition-all"
                         >
                           <Copy size={11} /> {copied ? 'Copiado!' : 'Copiar'}
                         </button>
                         <button
                           onClick={exportPdf}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.06] border border-white/10 hover:border-white/25 text-[9px] font-black uppercase tracking-wider text-white/50 hover:text-white transition-all"
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.06] border border-white/10 hover:border-white/25 text-xs font-black uppercase tracking-wider text-white/50 hover:text-white transition-all"
                         >
                           <FileDown size={11} /> PDF
                         </button>
@@ -954,27 +954,27 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                         { label: 'Concluídos', v: report.done, c: 'text-emerald-400' },
                         { label: 'Parciais', v: report.partial, c: 'text-amber-400' },
                         { label: 'Não feitos', v: report.failed, c: 'text-red-400' },
-                        { label: 'Sem registro', v: report.pending, c: 'text-white/40' },
+                        { label: 'Sem registro', v: report.pending, c: 'text-[var(--text-muted)]' },
                       ].map(s => (
                         <div key={s.label}>
                           <p className={cn('text-lg font-black tabular-nums leading-none', s.c)}>{s.v}</p>
-                          <p className="text-[8px] font-black uppercase tracking-widest text-white/25 mt-1">{s.label}</p>
+                          <p className="text-xs font-black uppercase tracking-widest text-white/25 mt-1">{s.label}</p>
                         </div>
                       ))}
                     </div>
 
                     {report.plannedMinutes > 0 && (
-                      <p className="text-[10px] font-bold text-white/30 mt-4 pt-3 border-t border-white/[0.06]">
+                      <p className="text-xs font-bold text-[var(--text-muted)] mt-4 pt-3 border-t border-white/[0.06]">
                         Tempo previsto na semana: <span className="text-white/60">{fmtMin(report.plannedMinutes)}</span>
                       </p>
                     )}
                     {copyError && (
-                      <p className="text-[10px] font-bold text-amber-400 mt-2">
+                      <p className="text-xs font-bold text-amber-400 mt-2">
                         O navegador bloqueou a cópia. Use o PDF ou copie da tela.
                       </p>
                     )}
                     {pdfError && (
-                      <p className="text-[10px] font-bold text-amber-400 mt-2">
+                      <p className="text-xs font-bold text-amber-400 mt-2">
                         O navegador bloqueou a nova janela. Libere pop-ups para este site e tente de novo.
                       </p>
                     )}
@@ -982,11 +982,11 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
 
                   {/* Por dia */}
                   <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">Por dia</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">Por dia</p>
                     <div className="space-y-2">
                       {report.byDay.map(d => (
                         <div key={d.date} className="flex items-center gap-3">
-                          <span className="text-[10px] font-black text-white/40 w-16 capitalize shrink-0">
+                          <span className="text-xs font-black text-[var(--text-muted)] w-16 capitalize shrink-0">
                             {format(parseISO(`${d.date}T12:00:00`), 'EEE dd', { locale: ptBR })}
                           </span>
                           <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
@@ -998,7 +998,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                               style={{ width: `${d.rate ?? 0}%` }}
                             />
                           </div>
-                          <span className="text-[10px] font-black tabular-nums text-white/40 w-14 text-right shrink-0">
+                          <span className="text-xs font-black tabular-nums text-[var(--text-muted)] w-14 text-right shrink-0">
                             {d.done}/{d.total}
                           </span>
                         </div>
@@ -1012,7 +1012,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                     { label: 'Por solicitante', rows: report.byProject.map(p => ({ k: p.project, ...p })), colored: false },
                   ] as const).map(sec => sec.rows.length > 0 && (
                     <div key={sec.label} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">{sec.label}</p>
+                      <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">{sec.label}</p>
                       <div className="space-y-2.5">
                         {sec.rows.map(r => (
                           <div key={r.k} className="flex items-center gap-3">
@@ -1032,7 +1032,7 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                                 }}
                               />
                             </div>
-                            <span className="text-[10px] font-black tabular-nums text-white/40 w-14 text-right shrink-0">
+                            <span className="text-xs font-black tabular-nums text-[var(--text-muted)] w-14 text-right shrink-0">
                               {r.done}/{r.total}
                             </span>
                           </div>
@@ -1044,11 +1044,11 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                   {/* Por tipo de item */}
                   {report.byKind.length > 1 && (
                     <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">Por tipo</p>
+                      <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">Por tipo</p>
                       <div className="flex flex-wrap gap-2">
                         {report.byKind.map(k => (
                           <div key={k.kind} className={cn(
-                            'px-2.5 py-1.5 rounded-xl border text-[10px] font-black',
+                            'px-2.5 py-1.5 rounded-xl border text-xs font-black',
                             'border-white/10'
                           )}>
                             {kindLabel(k.kind)} · {k.done}/{k.total}
@@ -1064,22 +1064,22 @@ ${report.byProject.map(p => `<tr><td style="width:150px">${esc(p.project)}</td>
                     { label: `Ficou para trás`, list: report.unresolved, tone: 'text-amber-400' },
                   ] as const).map(sec => sec.list.length > 0 && (
                     <div key={sec.label} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-                      <p className={cn('text-[10px] font-black uppercase tracking-widest mb-3', sec.tone)}>
+                      <p className={cn('text-xs font-black uppercase tracking-widest mb-3', sec.tone)}>
                         {sec.label} · {sec.list.length}
                       </p>
                       <div className="space-y-1.5">
                         {sec.list.map(o => (
                           <div key={`${o.id}_${o.occurrence_date}`} className="flex items-center gap-2 text-xs">
-                            <span className="text-[9px] font-black tabular-nums text-white/25 w-11 shrink-0">
+                            <span className="text-xs font-black tabular-nums text-white/25 w-11 shrink-0">
                               {format(parseISO(`${o.occurrence_date}T12:00:00`), 'dd/MM')}
                             </span>
                             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: typeColor(o.kind) }} />
                             <span className="font-bold text-white/75 truncate flex-1">{o.title}</span>
                             {o.status === 'partial' && (
-                              <span className="text-[8px] font-black uppercase text-amber-400 shrink-0">parcial</span>
+                              <span className="text-xs font-black uppercase text-amber-400 shrink-0">parcial</span>
                             )}
                             {o.project && (
-                              <span className="text-[9px] font-bold text-white/25 truncate max-w-[90px] shrink-0">{o.project}</span>
+                              <span className="text-xs font-bold text-white/25 truncate max-w-[90px] shrink-0">{o.project}</span>
                             )}
                           </div>
                         ))}

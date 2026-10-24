@@ -8,6 +8,7 @@ import { useCategories } from '@/lib/hooks/useCategories'
 import { Goal } from '@/types'
 import { cn } from '@/lib/utils/cn'
 import { GoalModal } from '@/components/dashboard/GoalModal'
+import { DeleteButton } from '@/components/ui/DeleteButton'
 import { differenceInDays, parseISO, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useLongPress } from '@/lib/hooks/useLongPress'
@@ -109,7 +110,7 @@ function GoalGridItem({
 
       {/* Completed Badge */}
       {isCompleted && (
-        <div className="absolute top-4 right-4 flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-green-500/10 border border-green-500/20 text-green-500">
+        <div className="absolute top-4 right-4 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-green-500/10 border border-green-500/20 text-green-500">
           <Check size={8} strokeWidth={3} />
           Concluído
         </div>
@@ -130,7 +131,7 @@ function GoalGridItem({
             </div>
             <div className="min-w-0 space-y-0.5">
               <h3 className="text-base md:text-lg font-bold text-[var(--text-primary)] leading-tight truncate">{goal.title}</h3>
-              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
                  <span className={cn(!category?.name && "opacity-50")}>{category?.name || 'Sem Categoria'}</span>
                  {goal.priority && (
                    <>
@@ -144,17 +145,11 @@ function GoalGridItem({
             </div>
           </div>
           {!isSelectionMode && (
-            <button 
-              onClick={(e) => onDelete(goal.id, e)}
-              onMouseDown={(e) => e.stopPropagation()}
-              onMouseUp={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
-              onTouchEnd={(e) => e.stopPropagation()}
-              className="p-2 text-[var(--text-muted)] hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
-            >
-              <Trash2 size={16} />
-            </button>
+            <DeleteButton
+              label="Excluir meta"
+              onConfirm={(e) => onDelete(goal.id, e)}
+              className="text-[var(--text-muted)] hover:text-red-400 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-[var(--text-primary)]"
+            />
           )}
         </div>
 
@@ -190,7 +185,7 @@ function GoalGridItem({
           
           {/* Milestones */}
           {(goal.min_goal_value || goal.elite_goal_value) && (
-            <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]/50 px-0.5">
+            <div className="flex justify-between flex-wrap gap-x-3 gap-y-1 text-xs font-black uppercase tracking-wide sm:tracking-widest text-[var(--text-muted)] px-0.5">
                <span>Início: {goal.initial_value}</span>
                <div className="flex gap-3">
                   {goal.min_goal_value && <span>Mín: {goal.min_goal_value}</span>}
@@ -203,19 +198,19 @@ function GoalGridItem({
       </div>
 
       {/* Footer */}
-      <div className="relative z-10 pt-5 mt-5 flex items-center justify-between border-t border-[var(--border-subtle)] opacity-50 group-hover:opacity-100 transition-opacity">
+      <div className="relative z-10 pt-5 mt-5 flex items-center justify-between border-t border-[var(--border-subtle)] gap-2 transition-opacity">
          <div className="flex items-center gap-2">
             <Calendar size={12} className="text-[var(--text-muted)] shrink-0" />
             <span className="text-xs font-medium text-[var(--text-muted)] truncate">
               Até {formatDateSafely(goal.end_date)}
             </span>
             {daysLeft > 0 && (
-              <span className="text-[10px] font-black text-[var(--text-muted)]/60 hidden sm:inline whitespace-nowrap">
+              <span className="text-xs font-black text-[var(--text-muted)] hidden sm:inline whitespace-nowrap">
                 · {daysLeft}d
               </span>
             )}
          </div>
-         <div className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors whitespace-nowrap">
+         <div className="flex items-center gap-1 text-xs font-black uppercase tracking-wide sm:tracking-widest text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors whitespace-nowrap shrink-0">
             Detalhes <ChevronRight size={12} />
          </div>
       </div>
@@ -251,9 +246,8 @@ export default function GoalsPage() {
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (confirm('Tem certeza que deseja excluir esta meta estratégica?')) {
-      deleteGoal.mutate(id)
-    }
+    // A confirmação agora é inline no DeleteButton do cartão.
+    deleteGoal.mutate(id)
   }
 
   const handleSelectGroup = (type: 'all') => {
@@ -426,7 +420,7 @@ export default function GoalsPage() {
                  <div className="flex items-center gap-3 px-2">
                     <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: categoryColor, color: categoryColor }} />
                     <h2 className="text-sm font-black tracking-widest text-white/50 uppercase">{categoryName}</h2>
-                    <span className="text-white/20 text-xs font-black uppercase tracking-widest">
+                    <span className="text-[var(--text-muted)] text-xs font-black uppercase tracking-widest">
                       {group.yearGroups.reduce((acc, yg) => acc + yg.items.length, 0)}{' '}
                       {group.yearGroups.reduce((acc, yg) => acc + yg.items.length, 0) === 1 ? 'Meta' : 'Metas'}
                     </span>
@@ -436,7 +430,7 @@ export default function GoalsPage() {
                    {group.yearGroups.map((yearGroup) => (
                      <div key={yearGroup.year} className="space-y-6">
                        <div className="flex items-center gap-4">
-                         <span className="text-sm font-black text-white/30 uppercase tracking-[0.3em]">{yearGroup.year === 9999 ? 'Sem prazo' : yearGroup.year}</span>
+                         <span className="text-sm font-black text-[var(--text-muted)] uppercase tracking-[0.3em]">{yearGroup.year === 9999 ? 'Sem prazo' : yearGroup.year}</span>
                          <div className="flex-1 h-px bg-white/5" />
                        </div>
                        
@@ -545,7 +539,7 @@ export default function GoalsPage() {
               {/* Count */}
               <div className="flex flex-col items-center justify-center min-w-[48px] md:min-w-[60px]">
                 <span className="text-xl md:text-2xl font-black text-[var(--text-primary)] leading-none">{selectedIds.length}</span>
-                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-0.5">Itens</span>
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mt-0.5">Itens</span>
               </div>
 
               <div className="h-8 w-px bg-[var(--border-subtle)] flex-shrink-0" />
@@ -563,7 +557,7 @@ export default function GoalsPage() {
                     <div className="w-10 h-10 rounded-2xl bg-[var(--bg-overlay)] flex items-center justify-center border border-[var(--border-subtle)] group-hover/sel:bg-[var(--text-primary)] group-hover/sel:text-[var(--bg-primary)] text-[var(--text-muted)] group-hover/sel:border-transparent transition-all duration-200">
                       <btn.icon size={16} />
                     </div>
-                    <span className="text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] group-hover/sel:text-[var(--text-primary)] transition-colors hidden md:block whitespace-nowrap">
+                    <span className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] group-hover/sel:text-[var(--text-primary)] transition-colors hidden md:block whitespace-nowrap">
                       {btn.label}
                     </span>
                   </button>
@@ -582,12 +576,12 @@ export default function GoalsPage() {
                   <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover/del:bg-red-500 group-hover/del:text-white text-red-500 transition-all duration-200">
                     <Trash2 size={16} />
                   </div>
-                  <span className="text-[8px] font-black uppercase tracking-widest text-red-400/60 hidden md:block whitespace-nowrap">Excluir</span>
+                  <span className="text-xs font-black uppercase tracking-widest text-red-400/60 hidden md:block whitespace-nowrap">Excluir</span>
                 </button>
 
                 <button
                   onClick={() => { setIsSelectionMode(false); setSelectedIds([]) }}
-                  className="h-10 px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-[0.12em] text-[9px] md:text-[10px] transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
+                  className="h-10 px-3 sm:px-4 md:px-6 bg-[var(--bg-overlay)] hover:bg-[var(--text-primary)] text-[var(--text-primary)] hover:text-[var(--bg-primary)] rounded-2xl font-black uppercase tracking-wide sm:tracking-[0.12em] text-xs transition-all duration-200 whitespace-nowrap border border-[var(--border-subtle)] hover:border-transparent"
                 >
                   Cancelar
                 </button>

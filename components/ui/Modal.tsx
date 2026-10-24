@@ -23,7 +23,7 @@ export function unlockBodyScroll() {
   if (scrollLocks === 0) document.body.style.overflow = savedOverflow
 }
 
-export const DARK_TOKENS = '[--bg-primary:#0A0A0A] [--bg-overlay:rgba(255,255,255,0.04)] [--text-primary:#FFFFFF] [--text-secondary:rgba(255,255,255,0.6)] [--text-muted:rgba(255,255,255,0.35)] [--border-subtle:rgba(255,255,255,0.08)]'
+export const DARK_TOKENS = '[--bg-primary:#0A0A0A] [--bg-overlay:rgba(255,255,255,0.04)] [--text-primary:#FFFFFF] [--text-secondary:rgba(255,255,255,0.6)] [--text-muted:rgba(255,255,255,0.5)] [--border-subtle:rgba(255,255,255,0.08)]'
 const FOCUS_RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--text-primary)]'
 
 interface ModalProps {

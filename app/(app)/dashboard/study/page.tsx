@@ -67,7 +67,7 @@ function PomodoroWidget() {
   return (
     <div className="p-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+        <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
           🍅 Modo Foco
         </p>
         {isRunning && (
@@ -95,7 +95,7 @@ function PomodoroWidget() {
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
             {isRunning ? (
-              <span className="text-[9px] font-black tabular-nums text-[var(--text-primary)]">
+              <span className="text-xs font-black tabular-nums text-[var(--text-primary)]">
                 {mins}:{secs}
               </span>
             ) : (
@@ -108,11 +108,11 @@ function PomodoroWidget() {
           <p className="text-base font-black text-[var(--text-primary)] group-hover:text-[var(--text-primary)]">
             {isRunning ? `${mins}:${secs}` : 'Iniciar Foco'}
           </p>
-          <p className="text-[10px] font-black uppercase tracking-widest mt-0.5" style={{ color: phaseColor }}>
+          <p className="text-xs font-black uppercase tracking-widest mt-0.5" style={{ color: phaseColor }}>
             {PHASE_LABELS[phase]}
           </p>
           {cycleCount > 0 && (
-            <p className="text-[9px] text-[var(--text-muted)] mt-1">
+            <p className="text-xs text-[var(--text-muted)] mt-1">
               {cycleCount} sessão{cycleCount !== 1 ? 'ões' : ''} · {hrs > 0 ? `${hrs}h ` : ''}{minsRem}min
             </p>
           )}
@@ -132,7 +132,7 @@ function PomodoroWidget() {
             )}
           />
         ))}
-        <span className="ml-1 text-[9px] text-[var(--text-muted)]">
+        <span className="ml-1 text-xs text-[var(--text-muted)]">
           {cyclesInCurrent - filledDots} para descanso longo
         </span>
       </div>
@@ -146,7 +146,7 @@ function PomodoroWidget() {
 function StreakCard({ streak, totalEntries }: { streak: number; totalEntries: number }) {
   return (
     <div className="p-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl">
-      <p className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">
+      <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">
         📊 Estatísticas
       </p>
       <div className="grid grid-cols-2 gap-3">
@@ -155,7 +155,7 @@ function StreakCard({ streak, totalEntries }: { streak: number; totalEntries: nu
             <Flame size={16} className={streak > 0 ? 'text-orange-400' : 'text-[var(--text-muted)]'} />
             <span className="text-2xl font-black text-[var(--text-primary)]">{streak}</span>
           </div>
-          <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+          <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
             Sequência
           </p>
         </div>
@@ -164,7 +164,7 @@ function StreakCard({ streak, totalEntries }: { streak: number; totalEntries: nu
             <GraduationCap size={16} className="text-blue-400" />
             <span className="text-2xl font-black text-[var(--text-primary)]">{totalEntries}</span>
           </div>
-          <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+          <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
             Dias estudados
           </p>
         </div>
@@ -193,7 +193,7 @@ function HistoryCalendar({
 
   return (
     <div className="p-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl">
-      <p className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">
+      <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">
         📅 Últimos 14 dias
       </p>
       <div className="grid grid-cols-7 gap-1">
@@ -218,13 +218,13 @@ function HistoryCalendar({
               )}
             >
               <span className={cn(
-                'text-[8px] font-black uppercase',
+                'text-xs font-black uppercase',
                 isSelected ? 'text-[var(--bg-primary)]/60' : 'text-[var(--text-muted)]'
               )}>
                 {dayLetter}
               </span>
               <span className={cn(
-                'text-[11px] font-black',
+                'text-xs font-black',
                 isSelected ? 'text-[var(--bg-primary)]' : isToday ? 'text-red-400' : 'text-[var(--text-primary)]'
               )}>
                 {dayNum}
@@ -283,7 +283,7 @@ function SubjectTags({
       {subjects.map(tag => (
         <span
           key={tag}
-          className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-full text-[10px] font-black text-[var(--text-secondary)]"
+          className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-full text-xs font-black text-[var(--text-secondary)]"
         >
           {tag}
           <button
@@ -302,7 +302,7 @@ function SubjectTags({
         onKeyDown={handleKey}
         onBlur={() => { if (inputVal.trim()) add(inputVal) }}
         placeholder={subjects.length === 0 ? 'Adicionar matéria (Enter)...' : ''}
-        className="flex-1 min-w-[120px] bg-transparent text-[11px] font-medium text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
+        className="flex-1 min-w-[120px] bg-transparent text-xs font-medium text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
       />
     </div>
   )
@@ -418,7 +418,7 @@ export default function StudyPage() {
             {!isToday && (
               <button
                 onClick={goToday}
-                className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all mr-1"
+                className="text-xs font-black uppercase tracking-widest px-2.5 py-1.5 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all mr-1"
               >
                 Hoje
               </button>
@@ -453,7 +453,7 @@ export default function StudyPage() {
             <div className="flex-1 flex flex-col gap-4 lg:order-1 min-w-0">
               {/* Note header */}
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
                   📝 Notas do dia
                 </p>
                 {/* Save status */}
@@ -467,7 +467,7 @@ export default function StudyPage() {
                       className="flex items-center gap-1.5 text-[var(--text-muted)]"
                     >
                       <Loader2 size={11} className="animate-spin" />
-                      <span className="text-[9px] font-black uppercase tracking-widest">Salvando</span>
+                      <span className="text-xs font-black uppercase tracking-widest">Salvando</span>
                     </motion.div>
                   )}
                   {saveStatus === 'saved' && (
@@ -479,7 +479,7 @@ export default function StudyPage() {
                       className="flex items-center gap-1.5 text-emerald-400"
                     >
                       <CheckCheck size={11} />
-                      <span className="text-[9px] font-black uppercase tracking-widest">Salvo</span>
+                      <span className="text-xs font-black uppercase tracking-widest">Salvo</span>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -487,7 +487,7 @@ export default function StudyPage() {
 
               {/* Subjects */}
               <div className="px-4 py-2.5 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl">
-                <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">
+                <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">
                   Matérias / Tópicos
                 </p>
                 <SubjectTags subjects={subjects} onChange={handleSubjectsChange} />
@@ -512,7 +512,7 @@ export default function StudyPage() {
                 />
                 {/* Line count hint */}
                 {content.length > 0 && (
-                  <p className="absolute bottom-3 right-4 text-[9px] text-[var(--text-muted)]/50 select-none pointer-events-none">
+                  <p className="absolute bottom-3 right-4 text-xs text-[var(--text-muted)] select-none pointer-events-none">
                     {content.split('\n').length} linha{content.split('\n').length !== 1 ? 's' : ''}
                   </p>
                 )}
@@ -538,7 +538,7 @@ export default function StudyPage() {
 
               {/* Tips card */}
               <div className="p-4 bg-[var(--bg-overlay)] border border-[var(--border-subtle)] rounded-2xl space-y-2">
-                <p className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
                   💡 Dicas
                 </p>
                 <ul className="space-y-1.5">
@@ -549,8 +549,8 @@ export default function StudyPage() {
                     'Combine com o Modo Foco 🍅',
                   ].map((tip, i) => (
                     <li key={i} className="flex items-start gap-2">
-                      <span className="text-red-500/60 text-[10px] mt-0.5 shrink-0">→</span>
-                      <span className="text-[11px] text-[var(--text-muted)] leading-snug">{tip}</span>
+                      <span className="text-red-500/60 text-xs mt-0.5 shrink-0">→</span>
+                      <span className="text-xs text-[var(--text-muted)] leading-snug">{tip}</span>
                     </li>
                   ))}
                 </ul>

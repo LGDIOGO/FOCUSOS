@@ -84,7 +84,7 @@ function TaskItem({
       >
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">
+            <label className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">
               Titulo
             </label>
             <input
@@ -206,18 +206,18 @@ function TaskItem({
       )}
 
       <div className="flex-1 min-w-0">
-        <p className={cn('text-base font-bold truncate tracking-tight transition-all', isDone && 'line-through text-white/40')}>
+        <p className={cn('text-base font-bold truncate tracking-tight transition-all', isDone && 'line-through text-[var(--text-muted)]')}>
           {task.title}
         </p>
         {(task.due_time || dueLabel) && (
           <div className="flex items-center gap-1.5 mt-0.5">
             {task.due_time ? (
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-white/35 uppercase tracking-widest">
+              <span className="flex items-center gap-1 text-xs font-semibold text-white/35 uppercase tracking-widest">
                 <Clock size={10} />
                 {task.due_time}
               </span>
             ) : dueLabel ? (
-              <span className="text-[11px] text-white/30 truncate font-medium uppercase tracking-widest">
+              <span className="text-xs text-[var(--text-muted)] truncate font-medium uppercase tracking-widest">
                 {dueLabel}
               </span>
             ) : null}
@@ -242,7 +242,7 @@ function TaskItem({
               onPointerUp={(eventData) => eventData.stopPropagation()}
               onTouchStart={(eventData) => eventData.stopPropagation()}
               onTouchEnd={(eventData) => eventData.stopPropagation()}
-              className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white/30 hover:text-white hover:bg-white/10 transition-all active:scale-90 action-btn"
+              className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[var(--text-muted)] hover:text-white hover:bg-white/10 transition-all active:scale-90 action-btn"
               title="Editar"
             >
               <Pencil size={13} />
@@ -262,7 +262,7 @@ function TaskItem({
               onPointerUp={(eventData) => eventData.stopPropagation()}
               onTouchStart={(eventData) => eventData.stopPropagation()}
               onTouchEnd={(eventData) => eventData.stopPropagation()}
-              className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all active:scale-90 action-btn"
+              className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 transition-all active:scale-90 action-btn"
               title="Excluir"
             >
               <Trash2 size={13} />
@@ -273,7 +273,7 @@ function TaskItem({
         {!isSelectionMode && !isSelected && (isDone || status === 'partial' || status === 'failed') && (
           <div
             className={cn(
-              'px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border flex-shrink-0',
+              'px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border flex-shrink-0',
               isDone && 'text-green-400 border-green-400/20 bg-green-400/5',
               status === 'partial' && 'text-amber-400 border-amber-400/20 bg-amber-400/5',
               status === 'failed' && 'text-red-400 border-red-400/20 bg-red-400/5'
