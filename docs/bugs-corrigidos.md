@@ -49,6 +49,7 @@ Legenda: ✅ coberto por teste · ⚠️ corrigido mas **sem teste** (dívida: a
 |---|---|---|
 | ESC com sheet, mini-modal ou seletor aberto também fechava o modal de baixo e descartava o formulário | Cada overlay tratava ESC por conta própria, sem pilha | ✅ `lib/utils/__tests__/modalLogic.test.ts` › `createLayerStack` (REGRESSÃO: só o topo) |
 | Banner "Nenhum dado encontrado para seu usuário" para toda conta nova, sobreposto ao relógio e sem como fechar | `FirestoreDiagnostic` tratava coleção de hábitos vazia como erro | ✅ `firestoreDiagnostic.test.ts` (`diagnoseProbe`) |
+| Falso vazio e falso erro: lista vazia com falha de carregamento, erro de refetch apagando dados, orientação de primeiro uso com erro | Cada tela decidia vazio/erro sozinha, sem separar carregando, erro e vazio. Causa exata por tela não registrada `[verificar]` | ✅ `lib/utils/__tests__/viewState.test.ts` › `resolveViewState` e `isFirstUseSummary` (REGRESSÃO: falha sem dados não vira "primeiro uso"; erro com cache mantém o conteúdo) |
 
 ## Próximos testes a escrever (dívida priorizada)
 
@@ -74,4 +75,5 @@ Legenda: ✅ coberto por teste · ⚠️ corrigido mas **sem teste** (dívida: a
 
 | Bug | Causa | Blindagem |
 |---|---|---|
-| Excluir em massa (Agenda, Metas, Hábitos), excluir reserva (Finanças e Aposentadoria) e resetar histórico do Acompanhamento não faziam nada no PWA instalado | `window.confirm()` retorna `false` na hora no PWA (armadilha 12), então a ação nunca executava | ⚠️ trocado por confirmação inline (`DeleteButton`, bandeja "Sim, excluir"/"Cancelar", "Sim, apagar histórico"); sem teste (decisão é só UI); `grep -rn "confirm(" app components lib` deve ficar vazio |
+| Excluir em massa (Agenda, Metas, Hábitos), excluir reserva (Finanças e Aposentadoria) e resetar histórico do Acompanhamento não faziam nada no PWA instalado | `window.confirm()` retorna `false` na hora no PWA (armadilha 12), então a ação nunca executava | ⚠️ trocado por confirmação inline (`DeleteButton`, bandeja "Sim, excluir"/"Cancelar", "Sim, apagar histórico"); sem teste (decisão é só UI); `grep -rn "confirm(" app components lib` deve dar só comentários (hoje: um, em `WorkItemModal.tsx`) |
+| Lixeira de Agenda, Hábitos, Finanças e Notificações apagava com um toque, sem confirmação | Botão chamava a exclusão direto no `onClick` | ⚠️ `DeleteButton` (confirmação inline, foco no "Sim", devolve o foco ao cancelar); sem teste (UI). Verificar no PWA e no celular |

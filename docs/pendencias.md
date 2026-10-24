@@ -1,5 +1,7 @@
 # Pendências e ideias
 
+**Foco atual (diretriz do Diogo, 2026-10-23):** funcionamento e UI/UX. Segredos, preços, rotações e tudo que é comercial continuam com o Diogo (comercial adiado; ver [backlog.md](backlog.md)).
+
 ## Bloqueios (ações do Diogo; Claude não manuseia credenciais)
 
 1. **Google Calendar não conecta em produção.** Falta `FIREBASE_PRIVATE_KEY` (Production) na Vercel. `FIREBASE_CLIENT_EMAIL` e as três `GOOGLE_CALENDAR_*` já existem. Diogo cola o `private_key` da conta de serviço e faz redeploy.
@@ -7,18 +9,18 @@
    - "Acesso bloqueado" ao autorizar: app OAuth em Testing; adicionar `wronskilg300@gmail.com` em "Usuários de teste".
 2. **Rotacionar a chave de serviço antiga do Firebase** (apareceu em terminal/histórico do PowerShell).
 3. **Ativar o Firebase Storage** (Storage → Começar, `southamerica-east1`) e então `npx firebase-tools deploy --only storage`. Sem isso, upload de imagem mostra mensagem explicativa.
-   - Sem `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, a exclusão de conta apaga a conta sem os arquivos do Storage (só aviso no log). Ver backlog item 10.
+   - Sem `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, a exclusão de conta apaga a conta sem os arquivos do Storage (só aviso no log). Ver backlog item 13.
 4. Diogo organizar rótulos do Trabalho (engrenagem → "Cadastrar os N em uso").
 8. **Segurança (2026-10-21), ações do Diogo antes/depois do deploy:**
    - `firestore.rules` **publicadas em produção em 2026-10-23** (regras travam `is_paid`/`subscription_*`/`trial_started_at` e `user_id`). Ainda por verificar à mão: gravar `is_paid: true` pelo console do navegador tem de falhar.
-   - Vercel: Diogo disse ter criado `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `WEBHOOK_URL`, `NEXT_PUBLIC_APP_URL` e `PLAN_PRICE_*` (não verificável por Claude). Falta: webhook salvo no painel do Mercado Pago (Modo de produção, evento Pagamentos) e **não existe tela de compra** no app (o checkout não tem chamador). Credenciais do Mercado Pago apareceram em prints na conversa de 2026-10-23: renovar Access Token e Client Secret.
+   - Vercel: Diogo disse ter criado `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `WEBHOOK_URL`, `NEXT_PUBLIC_APP_URL` e `PLAN_PRICE_*` (não verificável por Claude). Falta: webhook salvo no painel do Mercado Pago (Modo de produção, evento Pagamentos) e **não existe tela de compra** no app (o checkout não tem chamador). **Renovar Access Token e Client Secret do Mercado Pago:** apareceram em prints na conversa de 2026-10-23 (ação do Diogo).
    - Rotacionar o **refresh token OAuth** em `.env.local` (`FIREBASE_OAUTH_REFRESH_TOKEN`) e a chave de serviço antiga; a rota `fix-rules` que o usava foi removida. O `client_secret` que estava no código é o público do Firebase CLI (não é seu), mas continua no histórico git.
    - Conferir o console do preview: violações da CSP (modo Report-Only) antes de promovê-la.
 9. **LGPD (fatia 8a), antes de ir para produção [BLOQUEADO: Diogo]:**
    - E-mail de contato LGPD: definido (`digowronski@icloud.com`, constante `CONTACT_PLACEHOLDER` em `components/legal/LegalShell.tsx`). Falta o **prazo de resposta** a titulares.
    - Revisão jurídica de `/privacidade` e `/termos` (rascunho). A faixa "Rascunho" só sai depois dela.
    - Prazo de retenção de `mp_payments` (exportado, não apagado; ver `decisoes.md`).
-   - Reautenticação e Storage sem bucket são código, não bloqueio (backlog item 10).
+   - Reautenticação e Storage sem bucket são código, não bloqueio (backlog item 13).
 
 ## Infra de qualidade (nova fase)
 

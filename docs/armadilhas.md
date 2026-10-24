@@ -16,7 +16,7 @@ Pegadinhas que já custaram tempo. Antes de investigar algo estranho, procure aq
 9. **CRLF:** substituição multilinha por script falha em silêncio; use Edit com trecho exato.
 10. **Firestore e índices:** consultas usam um único `where('user_id','==',uid)` e filtram o resto no cliente, para não exigir índice composto.
 11. **Firestore rejeita `undefined`.** Para apagar campo: `deleteField()`.
-12. **`window.confirm()` retorna `false` na hora no PWA instalado.** Confirme dentro da UI.
+12. **`window.confirm()` retorna `false` na hora no PWA instalado.** Confirme dentro da UI, com `DeleteButton` (exclusão) ou `InlineConfirm` (`components/ui/`). `grep -rn "confirm(" app components lib` deve dar só comentários (hoje: um, em `WorkItemModal.tsx`).
 13. **Recorrência: um motor só** (`lib/utils/recurrence.ts`). Usa `differenceInCalendar*` de propósito (variantes por duração escorregam com fuso), prende o dia ao tamanho do mês e trata `end_date` como inclusivo.
 14. **Status é por data, não por item.** `habit_logs`/`event_logs`/`work_logs` têm id `{id}_{yyyy-MM-dd}`. Marcar outro dia nunca altera hoje.
 15. **Modelos de IA são aposentados.** Edite `lib/ai/models.ts`.
@@ -36,3 +36,6 @@ Pegadinhas que já custaram tempo. Antes de investigar algo estranho, procure aq
 28. **`'use client'` tem de ser a primeira linha do arquivo** (acima de imports). Em 2026-10-23 a linha estava deslocada em `EmojiPicker` e `CustomDateTimePicker` (commit 2dc93ac). O `tsc` não avisa; confira ao criar componente de cliente.
 29. **ESC em camadas: todo overlay usa `useModalLayer`** (`components/ui/useModalLayer.ts`). Sheet, mini-modal ou seletor fora da pilha faz ESC fechar também o modal de baixo e descartar o formulário (commit b3800cd).
 30. **Altura de tela: `dvh`, nunca `vh` ou `h-screen`.** No iOS a barra de endereço muda o `vh` e corta o rodapé do modal. Sem fallback `vh` no código [verificar se Safari antigo precisa].
+31. **Estado vazio e erro só via `resolveViewState`** (`lib/utils/viewState.ts`). Erro só vale sem dados em cache (erro de refetch não apaga a tela); conta nova sem dados cai em vazio, nunca em erro. Tela que decide sozinha com `isError`/`length === 0` volta a mostrar erro falso ou vazio falso.
+32. **`text-[var(--text-muted)]/40` não existe para o Tailwind:** a classe é inválida e não aplica nada. Para opacidade use `text-[var(--text-muted)]` (token já com contraste) ou `text-white/60` em tela sempre escura.
+33. **Ação só visível no hover não existe no toque.** Botão de excluir/editar deve aparecer sempre (ou usar `DeleteButton`), com alvo de 44px e `aria-label` se for só ícone.
