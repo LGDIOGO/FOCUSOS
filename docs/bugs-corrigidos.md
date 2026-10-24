@@ -69,3 +69,9 @@ Legenda: ✅ coberto por teste · ⚠️ corrigido mas **sem teste** (dívida: a
 | Rota `admin/fix-rules` pública sobrescrevia as regras | Rota de manutenção sem auth | removida (e o `FirestoreDiagnostic` parou de chamá-la) |
 | Leituras do Firestore negadas em produção (`permission-denied` em tudo) | Regra `isOwnerByField` usava `request.resource` em read/delete, onde ele não existe | ⚠️ sem teste (sem emulador); corrigido separando `update` (`userIdUnchanged`) das demais operações; armadilha 27 |
 
+
+## PWA
+
+| Bug | Causa | Blindagem |
+|---|---|---|
+| Excluir em massa (Agenda, Metas, Hábitos), excluir reserva (Finanças e Aposentadoria) e resetar histórico do Acompanhamento não faziam nada no PWA instalado | `window.confirm()` retorna `false` na hora no PWA (armadilha 12), então a ação nunca executava | ⚠️ trocado por confirmação inline (`DeleteButton`, bandeja "Sim, excluir"/"Cancelar", "Sim, apagar histórico"); sem teste (decisão é só UI); `grep -rn "confirm(" app components lib` deve ficar vazio |

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Target, Plus, Trash2, Calendar, TrendingUp, Check, ChevronRight, Sparkles, Zap, History } from 'lucide-react'
 import { useGoals, useDeleteGoal } from '@/lib/hooks/useGoals'
@@ -233,6 +233,11 @@ export default function GoalsPage() {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [confirmBulk, setConfirmBulk] = useState(false)
+  // Fecha a confirmação ao sair do modo seleção ou esvaziar a seleção.
+  useEffect(() => {
+    if (!isSelectionMode || selectedIds.length === 0) setConfirmBulk(false)
+  }, [isSelectionMode, selectedIds.length])
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
 
   // Filtros Globais do Histórico
@@ -264,11 +269,10 @@ export default function GoalsPage() {
   }
 
   const handleBulkDelete = () => {
-    if (confirm(`Excluir ${selectedIds.length} metas estratégicas?`)) {
-      selectedIds.forEach(id => deleteGoal.mutate(id))
-      setSelectedIds([])
-      setIsSelectionMode(false)
-    }
+    selectedIds.forEach(id => deleteGoal.mutate(id))
+    setSelectedIds([])
+    setIsSelectionMode(false)
+    setConfirmBulk(false)
   }
 
   const toggleSelection = (id: string) => {
@@ -568,9 +572,29 @@ export default function GoalsPage() {
               <div className="h-8 w-px bg-[var(--border-subtle)] flex-shrink-0" />
 
               {/* Actions */}
+              {confirmBulk ? (
+              <div role="alert" className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                <span className="text-xs font-bold text-[var(--text-primary)]">Excluir {selectedIds.length} {selectedIds.length === 1 ? 'item' : 'itens'}?</span>
+                <button
+                  autoFocus
+                  type="button"
+                  onClick={handleBulkDelete}
+                  className="min-h-[44px] px-3 rounded-xl bg-red-500 text-white text-xs font-bold whitespace-nowrap"
+                >
+                  Sim, excluir
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmBulk(false)}
+                  className="min-h-[44px] px-3 rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] text-xs font-bold"
+                >
+                  Cancelar
+                </button>
+              </div>
+              ) : (
               <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
                 <button
-                  onClick={handleBulkDelete}
+                  onClick={() => setConfirmBulk(true)}
                   disabled={selectedIds.length === 0}
                   className="flex flex-col items-center gap-1 group/del disabled:opacity-20"
                 >
@@ -587,6 +611,7 @@ export default function GoalsPage() {
                   Cancelar
                 </button>
               </div>
+              )}
             </div>
           </motion.div>
         )}

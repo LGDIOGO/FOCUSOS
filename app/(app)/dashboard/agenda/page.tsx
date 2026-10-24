@@ -203,6 +203,11 @@ function AgendaPage() {
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [confirmBulk, setConfirmBulk] = useState(false)
+  // Fecha a confirmação ao sair do modo seleção ou esvaziar a seleção.
+  useEffect(() => {
+    if (!isSelectionMode || selectedIds.length === 0) setConfirmBulk(false)
+  }, [isSelectionMode, selectedIds.length])
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const [historyStartDate, setHistoryStartDate] = useState<string>('')
   const [historyEndDate, setHistoryEndDate] = useState<string>('')
@@ -296,11 +301,10 @@ function AgendaPage() {
   }
 
   const handleBulkDelete = () => {
-    if (confirm(`Excluir ${selectedIds.length} compromissos?`)) {
-      selectedIds.forEach(id => deleteEvent.mutate(id))
-      setSelectedIds([])
-      setIsSelectionMode(false)
-    }
+    selectedIds.forEach(id => deleteEvent.mutate(id))
+    setSelectedIds([])
+    setIsSelectionMode(false)
+    setConfirmBulk(false)
   }
 
   const groupedEvents = useMemo(() => {
@@ -950,9 +954,29 @@ function AgendaPage() {
               <div className="h-8 w-px bg-[var(--border-subtle)] flex-shrink-0" />
 
               {/* Actions */}
+              {confirmBulk ? (
+              <div role="alert" className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                <span className="text-xs font-bold text-[var(--text-primary)]">Excluir {selectedIds.length} {selectedIds.length === 1 ? 'item' : 'itens'}?</span>
+                <button
+                  autoFocus
+                  type="button"
+                  onClick={handleBulkDelete}
+                  className="min-h-[44px] px-3 rounded-xl bg-red-500 text-white text-xs font-bold whitespace-nowrap"
+                >
+                  Sim, excluir
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmBulk(false)}
+                  className="min-h-[44px] px-3 rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] text-xs font-bold"
+                >
+                  Cancelar
+                </button>
+              </div>
+              ) : (
               <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
                 <button
-                  onClick={handleBulkDelete}
+                  onClick={() => setConfirmBulk(true)}
                   disabled={selectedIds.length === 0}
                   className="flex flex-col items-center gap-1 group/del disabled:opacity-20"
                 >
@@ -969,6 +993,7 @@ function AgendaPage() {
                   Cancelar
                 </button>
               </div>
+              )}
             </div>
           </motion.div>
         )}
