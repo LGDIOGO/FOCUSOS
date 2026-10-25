@@ -21,12 +21,21 @@ Acesso a dados: um hook por domínio em `lib/hooks/` (React Query + Firestore). 
 - Movimento reduzido: `MotionConfig reducedMotion="user"` em `components/Providers.tsx`.
 - Usam o `Modal` base: Hábito, Compromisso, Tarefa, Meta, Trabalho e `CategoryManagerSheet`. `EmojiPicker` (sheet no celular) e `CustomDateTimePicker` usam só a pilha de ESC (`useModalLayer`).
 - CPF e Paywall: não importam o base; só ajuste de rolagem em `CpfOnboarding` [verificar se o Paywall precisa de migração].
-- Limitação: a animação de saída não roda, porque os chamadores não usam `AnimatePresence` (backlog).
+- Limitação: a animação de saída não roda, porque os chamadores não usam `AnimatePresence` (backlog item 10).
 - `GoalModal` e `WorkItemModal` forçam tema escuro (`forceDark`, tokens fixos): provisório, ver [decisoes.md](decisoes.md).
+
+## Componentes de UI (`components/ui`)
+- **`DeleteButton`**: lixeira com confirmação inline ("Sim, excluir" / "Cancelar"). Alvo de 44px e `aria-label`. Usado em Agenda, Hábitos, Finanças, Notificações, Metas, Reservas e Configurações. Foco vai ao "Sim" e volta à lixeira ao cancelar.
+- **`InlineConfirm`**: bandeja de confirmação para ações que não são lixeira (exclusão em massa, reset de histórico). Mesmo padrão, sem `window.confirm` ([armadilhas.md](armadilhas.md), item 12).
+- **`EmptyState`**: estado vazio com ícone, título, texto e primeira ação (`role="status"`). Usado em Resumo, Hábitos, Agenda, Metas e Trabalho.
+- **`ErrorState`**: erro de carregamento com "Tentar de novo" (o botão mostra "Tentando…" enquanto o refetch roda). Mesmas telas do `EmptyState`.
+- **Decisão de estado** em `lib/utils/viewState.ts`: `resolveViewState` (erro só sem dados em cache; conta nova cai em vazio), `isFirstUseSummary` (orientação de primeiro uso no Resumo, só com tudo carregado e nada cadastrado) e `matrixInitialScrollLeft`. Regra em [armadilhas.md](armadilhas.md), item 31.
+- **Configurações** (`SettingsModal`) entra por `next/dynamic` em `app/(app)/layout.tsx`, com spinner. O código só baixa quando o usuário abre Configurações.
 
 ## Hábitos
 - Ofensiva com período de graça (1/2/3 dias conforme 0-6 / 7-29 / 30+ de ofensiva) e escudos. Código: `lib/utils/scoring.ts`, `habitSchedule.ts`.
 - Grades: `components/dashboard/HabitsMatrix.tsx` (períodos longos), `HabitsWeekGrid.tsx` (semana, quadrados 40px, % por dia).
+- Matriz no celular: todos os dias ficam no DOM e a rolagem abre no fim, com o dia mais recente visível (`matrixInitialScrollLeft`, ver [decisoes.md](decisoes.md)).
 - Marcar dia passado/futuro nunca afeta hoje.
 
 ## Trabalho
@@ -48,7 +57,7 @@ Coleção `categories`, escopos `habits | agenda | goals | work_type | work_cate
 - **Componente único:** `components/dashboard/CategoryPicker.tsx` (chips roláveis, "+ Nova" inline que já seleciona a criada, "Gerenciar"). Usado por Hábito, Compromisso e Meta.
 - **Gerenciar** = `CategoryManagerSheet`: editar (propaga emoji e cor ao modal que chamou), excluir com confirmação dentro da UI (nunca `window.confirm`; ver armadilha 12), ordenar.
 - **Ordem:** campo `order` é opcional. Doc sem `order` vai para o fim (por data de criação; empate pela posição original). `sortCategories`, `moveCategory` (renumera tudo, nunca devolve `undefined`) e `selectionAfterDelete` (excluir a selecionada limpa a seleção) em `lib/utils/categories.ts`. Gravação em lote: `useReorderCategories`.
-- Configurações (`SettingsModal`) ainda tem gestão própria, sem ordenar (backlog).
+- Configurações (`SettingsModal`) ainda tem gestão própria, sem ordenar (backlog item 9).
 
 ## Finanças
 Wizard de configuração: flag em `settings/{uid}.finance_onboarded`, pulado se já houver dados. Resumo converte semanal/quinzenal/anual para equivalente mensal.
@@ -70,4 +79,4 @@ Exportar e apagar os próprios dados (LGPD art. 18). Na develop, falta PR; não 
 - Exportação remove segredos (`refresh_token`, `access_token`, `key_hash`) em qualquer nível.
 - Exclusão: apaga os dados, os arquivos do Storage por prefixo `work_notes/{uid}/` e, por último, o usuário no Auth. Se uma etapa de dados falha, o Auth não é apagado e a resposta é 500 genérico. `mp_payments` é exportada mas não apagada ([decisoes.md](decisoes.md)).
 - Páginas `/privacidade` e `/termos` (`app/privacidade`, `app/termos`, casca em `components/legal/LegalShell.tsx`): públicas, com faixa "Rascunho — revisão jurídica pendente". Linkadas no login, no cadastro e nas Configurações.
-- Pendente: reautenticação recente e Storage sem bucket (backlog item 10); e-mail de contato e revisão jurídica (pendências, item 9).
+- Pendente: reautenticação recente e Storage sem bucket (backlog item 13); e-mail de contato e revisão jurídica (pendências, item 9).

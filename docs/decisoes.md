@@ -54,4 +54,13 @@ Hábitos, Compromissos e Metas usam o mesmo conjunto de categorias (escopos `hab
 Resumo, Agenda, Hábitos e Trabalho ficam na barra; o resto vai para o sheet "Mais", junto de Configurações, Modo Foco e Sair. Motivo: alvos de 44px e rótulos legíveis em 390px. Trade-off: Configurações, Sair e Modo Foco ficam a 2 toques, não 1. Ver [modulos.md](modulos.md#navegação).
 
 ## `forceDark` temporário em GoalModal e WorkItemModal
-Estes dois modais têm tokens fixos escuros (`DARK_TOKENS` em `components/ui/Modal.tsx`) e passam `forceDark` ao `CategoryPicker` e ao sheet de categorias, que seguem o tema por padrão. Trade-off: no tema claro esses modais não seguem o tema. Provisório: sai com a migração para tokens na F4 (backlog item 13). Não copiar o padrão para modal novo.
+Estes dois modais têm tokens fixos escuros (`DARK_TOKENS` em `components/ui/Modal.tsx`) e passam `forceDark` ao `CategoryPicker` e ao sheet de categorias, que seguem o tema por padrão. Trade-off: no tema claro esses modais não seguem o tema. Provisório: sai com a migração para tokens (backlog item 12). Não copiar o padrão para modal novo.
+
+## Token `--text-muted` sobe para 0.5 (escuro) e 0.55 (claro)
+Texto secundário tinha opacidade baixa demais (20-40% de branco/preto espalhados pelo código). Centralizado no token `--text-muted` (`app/globals.css`) com valor que chega perto de 4.5:1 de contraste. Telas sempre escuras usam `text-white/60` direto, sem o token. Trade-off: no tema escuro o texto secundário ficou mais claro. Descartado: manter `/20`-`/40` (falha de contraste em celular). Os usos de `text-[var(--text-muted)]/N` são inválidos (armadilha 32).
+
+## Matriz de hábitos: todos os dias no DOM, rolagem ao fim
+No celular a matriz abre rolada até o fim (`matrixInitialScrollLeft`), com todos os dias disponíveis. **Substitui** o critério (b) da F5 que pedia no máximo 14 dias sem rolagem horizontal. Motivo: não esconder dias antigos (teste REGRESSÃO) e deixar o dia mais recente visível ao abrir. Trade-off: rolagem horizontal no celular. Testes em `viewState.test.ts`.
+
+## Confirmação inline é o padrão (sem `window.confirm`)
+Exclusões e ações destrutivas confirmam dentro da UI (`DeleteButton` para lixeira, `InlineConfirm` para o resto). Motivo: `window.confirm()` retorna `false` na hora no PWA instalado (armadilha 12), e a ação simplesmente não executava. Trade-off: mais código de UI, sem teste automatizado de tela (ver [testes.md](testes.md)). Ao criar ação destrutiva nova, use um dos dois componentes.

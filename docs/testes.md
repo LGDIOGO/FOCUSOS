@@ -39,10 +39,11 @@ npx tsc --noEmit    # tipos (o build da Vercel NÃO checa)
 | `lib/utils/__tests__/navItems.test.ts` | Barra inferior (4 destinos fixos), "Mais" sem repetir nem perder destino, rota ativa em subrota, `/dashboard` não casa com prefixo (REGRESSÃO); ordem igual na Sidebar |
 | `lib/utils/__tests__/modalLogic.test.ts` | Modal: fechar pelo fundo só com pressionar e soltar no fundo (REGRESSÃO: arrastar não fecha); Tab cíclico; pilha de ESC só fecha o topo (REGRESSÃO) |
 | `lib/utils/__tests__/categories.test.ts` | Categorias: escopos pessoais compartilhados, legado sem `type` visível, Trabalho isolado (REGRESSÃO); nome duplicado (REGRESSÃO); ordenação sem `order`, mover e seleção após excluir (REGRESSÃO) |
+| `lib/utils/__tests__/viewState.test.ts` | Estados vazio/erro/carregando (`resolveViewState`): conta nova não é erro, erro de refetch com cache não apaga a tela (REGRESSÃO); primeiro uso do Resumo (`isFirstUseSummary`); matriz abre rolada ao fim (`matrixInitialScrollLeft`) |
 
 ## Onde a suíte NÃO chega (honestidade)
 
-- **Telas e interação** (clicar, modais, PWA): sem teste. Hoje só lógica pura é testada. Isso inclui `Modal`, `MobileNav`, `CategoryPicker` e o hook `useReorderCategories` (gravação em lote, sem mock de Firestore). A verificação de F1-F3 em celular e iPad é manual (backlog item 3).
+- **Telas e interação** (clicar, modais, PWA): sem teste. Hoje só lógica pura é testada. Isso inclui `Modal`, `MobileNav`, `CategoryPicker`, `DeleteButton`, `InlineConfirm`, `EmptyState`, `ErrorState` e o hook `useReorderCategories` (gravação em lote, sem mock de Firestore). A verificação de F1-F5 em celular, iPad e PWA é manual (backlog item 1).
 - **Firestore real**: sem teste (precisaria do emulador). Lógica que mistura leitura/gravação com regra de negócio deve ser **extraída para função pura** antes de ser testada.
 - **Google Calendar real**: RRULE e alocação são testados como lógica; o envio à API não.
 - **Carry-over (arraste) de pendências do Trabalho**: a lógica ainda mora dentro de componente; extrair para função pura é o próximo passo para testá-la.
