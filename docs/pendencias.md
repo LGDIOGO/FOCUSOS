@@ -37,3 +37,11 @@ Salvar item/rótulo no Firestore pelo modal; arraste de pendências; anotação 
 - Campo SKU/produto nos itens de Trabalho.
 - Limpeza das branches antigas (`claude/*`, `feature/*`): só quando o Diogo pedir.
 - Testes de UI (Playwright) e de Firestore (emulador).
+
+## Mobile Safari/Chrome (2026-10-25)
+
+- **Unicidade de CPF não funciona:** a coleção `cpfs` não tem regra no `firestore.rules`, então a consulta e a gravação do cadastro (e do `CpfOnboarding`) dão permission-denied. O cadastro agora ignora esse erro e segue (antes travava quem digitava CPF). Para valer de verdade, a checagem precisa ir para uma rota de servidor (Admin SDK), não para o cliente.
+- **`alert()` no PWA:** `app/(app)/dashboard/ia/page.tsx` (l.~314, 399, 407, 458) e `AIChatOnboarding.tsx` (l.~171, 295) usam `alert()`, que no app instalado pode ser suprimido (erro de salvar some). Trocar por mensagem inline.
+- **`navigator.clipboard.writeText` sem tratamento** em `SettingsModal.tsx` (~l.700, copiar chave de API): pode falhar no iOS/PWA; precisa de fallback e aviso.
+- **Verificar em aparelho real:** campos com fonte forçada a 16px no celular (inputs `type=date` da Agenda e Finanças, quick-add, matriz), login com Google em Safari e no PWA instalado (popup), instalação do PWA (Chrome Android "Instalar app", iOS "Adicionar à Tela de Início" com o ícone novo).
+- **Login Google no iOS:** `signInWithPopup` continua. `signInWithRedirect` NÃO foi adotado de propósito: com `authDomain` diferente do domínio do app, o Safari (ITP) quebra o redirect. Se o popup falhar, a mensagem orienta a usar e-mail e senha.

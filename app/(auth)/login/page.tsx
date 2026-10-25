@@ -94,7 +94,7 @@ export default function LoginPage() {
   }
 
   return (
-    // min-h-dvh (não min-h-dvh) e sem overflow-hidden: no Safari/Chrome mobile a barra
+    // min-h-dvh (não min-h-screen) e sem overflow-hidden: no Safari/Chrome mobile a barra
     // do navegador e o teclado diminuem a área visível, e a página precisa poder rolar
     // para o botão "Entrar" nunca ficar cortado.
     <div className="min-h-dvh bg-black flex items-center justify-center px-6 py-10 text-white overflow-x-hidden">

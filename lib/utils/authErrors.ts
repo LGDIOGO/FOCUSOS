@@ -42,6 +42,6 @@ export function friendlyAuthError(err: unknown): string {
     case 'auth/account-exists-with-different-credential':
       return 'Já existe uma conta com esse e-mail usando outro método de login.'
     default:
-      return 'Não foi possível entrar agora. Tente novamente.'
+      return 'Não foi possível concluir agora. Tente novamente.'
   }
 }

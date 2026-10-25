@@ -32,7 +32,7 @@ describe('friendlyAuthError', () => {
 
   it('nunca devolve o texto bruto do SDK (inglês/técnico) em erro desconhecido', () => {
     const msg = friendlyAuthError({ code: 'auth/qualquer-coisa', message: 'Firebase: Some internal text with key AIza123' })
-    expect(msg).toBe('Não foi possível entrar agora. Tente novamente.')
+    expect(msg).toBe('Não foi possível concluir agora. Tente novamente.')
     expect(msg).not.toMatch(/Firebase|AIza/)
   })
 
@@ -42,7 +42,7 @@ describe('friendlyAuthError', () => {
   })
 
   it('entrada que não é erro cai na mensagem genérica', () => {
-    expect(friendlyAuthError(null)).toBe('Não foi possível entrar agora. Tente novamente.')
-    expect(friendlyAuthError('texto')).toBe('Não foi possível entrar agora. Tente novamente.')
+    expect(friendlyAuthError(null)).toBe('Não foi possível concluir agora. Tente novamente.')
+    expect(friendlyAuthError('texto')).toBe('Não foi possível concluir agora. Tente novamente.')
   })
 })
