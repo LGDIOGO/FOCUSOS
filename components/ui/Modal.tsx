@@ -5,23 +5,13 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { fitToVisualViewport } from '@/lib/utils/visualViewport'
 import { cn } from '@/lib/utils/cn'
+import { createScrollLock } from '@/lib/utils/scrollLock'
 import { FOCUSABLE_SELECTOR, nextFocusIndex, shouldCloseOnBackdrop, layerStack } from '@/lib/utils/modalLogic'
 
-// Pilha de modais abertos: ESC e Tab só valem para o do topo (ex.: EmojiPicker sobre um modal).
-let scrollLocks = 0
-let savedOverflow = ''
-
-export function lockBodyScroll() {
-  if (scrollLocks === 0) {
-    savedOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-  }
-  scrollLocks += 1
-}
-export function unlockBodyScroll() {
-  scrollLocks = Math.max(0, scrollLocks - 1)
-  if (scrollLocks === 0) document.body.style.overflow = savedOverflow
-}
+// Trava de rolagem compatível com o Safari do iPhone (position:fixed, não só overflow:hidden).
+const scrollLock = createScrollLock(() => document.body, () => window)
+export function lockBodyScroll() { scrollLock.lock() }
+export function unlockBodyScroll() { scrollLock.unlock() }
 
 export const DARK_TOKENS = '[--bg-primary:#0A0A0A] [--bg-overlay:rgba(255,255,255,0.04)] [--text-primary:#FFFFFF] [--text-secondary:rgba(255,255,255,0.6)] [--text-muted:rgba(255,255,255,0.5)] [--border-subtle:rgba(255,255,255,0.08)]'
 const FOCUS_RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--text-primary)]'

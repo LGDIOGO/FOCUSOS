@@ -99,7 +99,23 @@ html {
 input, textarea, button, select {
   font-family: inherit;
   letter-spacing: inherit;
-  font-size: 16px; /* Prevents iOS zoom on focus */
+  font-size: 16px;
+}
+
+/* iOS Safari dá zoom automático ao focar campo com fonte < 16px. A regra acima
+   perde para qualquer classe `text-xs`/`text-sm` do Tailwind (especificidade), então
+   no celular forçamos 16px nos campos de texto. `!important` é de propósito. */
+@media (max-width: 767px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']):not([type='button']):not([type='submit']),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Remove o atraso de ~300ms e o zoom por toque duplo em elementos interativos. */
+a, button, input, select, textarea, label, summary, [role='button'] {
+  touch-action: manipulation;
 }
 
 /* Custom scrollbar for minimalist look */

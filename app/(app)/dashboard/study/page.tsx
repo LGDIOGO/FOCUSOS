@@ -400,7 +400,7 @@ export default function StudyPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 min-h-screen flex flex-col">
+    <div className="flex-1 min-h-dvh flex flex-col">
       {/* ─ Sticky header ─────────────────────────────────────────────────── */}
       <div className="sticky top-0 z-10 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-b border-[var(--border-subtle)] px-4 md:px-6 lg:px-8 py-4 shrink-0">
         <div className="flex items-center justify-between gap-4">

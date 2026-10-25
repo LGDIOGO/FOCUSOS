@@ -504,7 +504,7 @@ export default function IAPage() {
   const showWelcome = loaded && messages.length === 0
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] lg:h-screen bg-[#050505] text-white relative">
+    <div className="flex flex-col h-[calc(100dvh-4rem)] lg:h-dvh bg-[#050505] text-white relative">
 
       {/* Header */}
       <div className="flex-none flex items-center justify-between px-4 lg:px-6 py-4 border-b border-white/[0.06]">
@@ -896,7 +896,7 @@ export default function IAPage() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="absolute inset-x-0 bottom-0 bg-[#0D0D0D] border-t border-white/10 rounded-t-[32px] p-6 z-50 shadow-[0_-30px_80px_rgba(0,0,0,0.8)] max-h-[80vh] overflow-y-auto"
+            className="absolute inset-x-0 bottom-0 bg-[#0D0D0D] border-t border-white/10 rounded-t-[32px] p-6 z-50 shadow-[0_-30px_80px_rgba(0,0,0,0.8)] max-h-[80dvh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">

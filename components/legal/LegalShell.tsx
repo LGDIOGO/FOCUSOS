@@ -5,7 +5,7 @@ export const CONTACT_PLACEHOLDER = 'digowronski@icloud.com'
 /** Casca das páginas públicas /privacidade e /termos (sem login). */
 export function LegalShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-dvh bg-black text-white">
       <div
         role="note"
         className="w-full bg-yellow-400 text-black text-center text-sm font-black py-3 px-4"

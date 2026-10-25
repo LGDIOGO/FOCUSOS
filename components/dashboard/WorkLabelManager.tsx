@@ -273,7 +273,7 @@ export function WorkLabelManager({
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 40, opacity: 0, scale: 0.98 }}
             transition={{ type: 'spring', damping: 30, stiffness: 320 }}
-            className="relative w-full sm:max-w-lg bg-[#0D0D0D] border border-white/10 rounded-t-[28px] sm:rounded-[28px] p-6 max-h-[92vh] overflow-y-auto shadow-2xl"
+            className="relative w-full sm:max-w-lg bg-[#0D0D0D] border border-white/10 rounded-t-[28px] sm:rounded-[28px] p-6 max-h-[92dvh] overflow-y-auto shadow-2xl"
           >
             <div className="flex items-center justify-between mb-5">
               <div>

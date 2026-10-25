@@ -186,7 +186,7 @@ function EventItem({
 // Suspense wrapper obrigatório no Next.js 14 para useSearchParams
 export default function AgendaPageWrapper() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-workspace)]" />}>
+    <Suspense fallback={<div className="min-h-dvh bg-[var(--bg-workspace)]" />}>
       <AgendaPage />
     </Suspense>
   )

@@ -385,7 +385,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-2xl bg-[#0A0A0A] border border-white/10 rounded-[40px] shadow-2xl overflow-hidden flex flex-col h-[80vh]"
+        className="relative w-full max-w-2xl bg-[#0A0A0A] border border-white/10 rounded-[40px] shadow-2xl overflow-hidden flex flex-col h-[80dvh]"
       >
         {/* Header */}
         <div className="p-6 border-b border-white/5 flex items-center justify-between">
@@ -602,7 +602,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
                 </button>
               </div>
               
-              <div className="space-y-6 overflow-y-auto max-h-[60vh] pr-2 custom-scrollbar">
+              <div className="space-y-6 overflow-y-auto max-h-[60dvh] pr-2 custom-scrollbar">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <p className="text-xs uppercase tracking-widest font-black text-[var(--text-muted)] px-1">Nome / Título</p>

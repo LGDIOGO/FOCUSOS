@@ -424,7 +424,7 @@ export default function InsightsPage() {
   const isLoading = dailyData.length === 0
 
   return (
-    <div className="flex-1 min-h-screen p-4 md:p-6 lg:p-8 pb-24 lg:pb-10 space-y-6">
+    <div className="flex-1 min-h-dvh p-4 md:p-6 lg:p-8 pb-24 lg:pb-10 space-y-6">
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
