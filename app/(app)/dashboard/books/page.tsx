@@ -380,7 +380,7 @@ export default function BooksPage() {
   }
 
   return (
-    <div className="flex-1 min-h-screen p-4 md:p-6 lg:p-8 pb-24 lg:pb-10 space-y-8">
+    <div className="flex-1 min-h-dvh p-4 md:p-6 lg:p-8 pb-24 lg:pb-10 space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -450,7 +450,7 @@ export default function BooksPage() {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0 }}
               transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-              className="relative w-full md:max-w-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-t-[32px] md:rounded-[48px] p-5 md:p-7 overflow-y-auto max-h-[85svh] md:max-h-[90vh] shadow-2xl z-[10001]"
+              className="relative w-full md:max-w-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-t-[32px] md:rounded-[48px] p-5 md:p-7 overflow-y-auto max-h-[85svh] md:max-h-[90dvh] shadow-2xl z-[10001]"
             >
               {/* Drag handle */}
               <div className="w-10 h-1 bg-[var(--border-subtle)] rounded-full mx-auto mb-4 md:hidden" />

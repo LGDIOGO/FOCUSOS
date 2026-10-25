@@ -472,7 +472,7 @@ export default function DashboardPage() {
 
   // Removed the full screen blocking spinner so the UI shell renders instantaneously
   return (
-    <div className="min-h-screen bg-[var(--bg-workspace)] text-[var(--text-primary)] pb-[calc(env(safe-area-inset-bottom)+96px)] lg:pb-12 font-sans transition-colors duration-300">
+    <div className="min-h-dvh bg-[var(--bg-workspace)] text-[var(--text-primary)] pb-[calc(env(safe-area-inset-bottom)+96px)] lg:pb-12 font-sans transition-colors duration-300">
 
       {/* ─── Header ─── */}
       <motion.div

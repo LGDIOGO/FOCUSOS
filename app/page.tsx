@@ -311,7 +311,7 @@ export default function LandingPage() {
   const selectedPlan = PLANS.find(p => p.id === activePlan)!
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black overflow-x-hidden">
+    <div className="min-h-dvh bg-black text-white selection:bg-white selection:text-black overflow-x-hidden">
 
       {/* ─── Navbar ─── */}
       <motion.nav 
@@ -328,15 +328,17 @@ export default function LandingPage() {
             <a href="#pricing" className="hover:text-white transition-colors">Planos</a>
             <a href="#testimonials" className="hover:text-white transition-colors">Depoimentos</a>
           </div>
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm font-medium text-white/50 hover:text-white transition-colors hidden sm:block">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* "Entrar" precisa aparecer no celular também (antes ficava hidden abaixo de sm) */}
+            <Link href="/login" className="inline-flex items-center justify-center min-h-[44px] px-4 text-sm font-bold text-white border border-white/20 rounded-full hover:bg-white/10 transition-colors">
               Entrar
             </Link>
-            <Link 
-              href="/signup" 
-              className="px-5 py-2 bg-white text-black text-sm font-bold rounded-full hover:bg-neutral-200 transition-all active:scale-95"
+            <Link
+              href="/signup"
+              className="inline-flex items-center justify-center min-h-[44px] px-4 sm:px-5 bg-white text-black text-sm font-bold rounded-full hover:bg-neutral-200 transition-all active:scale-95 whitespace-nowrap"
             >
-              Começar Grátis
+              <span className="sm:hidden">Criar conta</span>
+              <span className="hidden sm:inline">Começar Grátis</span>
             </Link>
           </div>
         </div>
@@ -394,6 +396,12 @@ export default function LandingPage() {
                 Ver planos
               </Link>
             </div>
+            <p className="mt-6 text-base text-white/70 font-medium">
+              Já tem conta?
+              <Link href="/login" className="ml-2 inline-block py-2 text-white font-bold underline underline-offset-4">
+                Entrar
+              </Link>
+            </p>
           </motion.div>
 
           {/* Stats */}
