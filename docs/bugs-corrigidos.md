@@ -18,7 +18,8 @@ Legenda: ✅ coberto por teste · ⚠️ corrigido mas **sem teste** (dívida: a
 |---|---|---|
 | Marcar um dia mexia em outros (cache otimista) | Escrevia o status em todos os dias do cache | ⚠️ lógica dentro do hook (`useHabits`) |
 | Override do dashboard chaveado só por id | Faltava a data na chave | ⚠️ lógica dentro de componente |
-| `failed` em data passada zerava a ofensiva de hoje | Atualizava a ofensiva sem checar se a data era hoje | ⚠️ parcial: `habitSchedule.test.ts` cobre o cálculo; a regra de "só hoje" está no hook |
+| `failed` em data passada zerava a ofensiva de hoje | Atualizava a ofensiva sem checar se a data era hoje | ✅ `streakRule.test.ts` (regra extraída para `lib/utils/streakRule.ts`; `onMutate` e `mutationFn` chamam a mesma `decideStreakUpdate`) |
+| Regra "só hoje altera a ofensiva" duplicada em `useHabits` (otimista e gravação) | Duas cópias de `if` sobre data/hoje, podiam divergir | ✅ `streakRule.test.ts` (passada, futura, failed passado, hoje marcar/repetir/desfazer, virada de dia) |
 | Status do Trabalho vazando entre dias | — | ✅ `work.test.ts` › "status é por data" |
 
 ## Firestore / dados
