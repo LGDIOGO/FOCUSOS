@@ -37,6 +37,13 @@ describe('REGRESSÃO: só marcar HOJE altera a ofensiva', () => {
     expect(run({ lastCompletedDate: null, currentStreak: 0 })).toEqual({ type: 'set', streak: 1, lastDate: '2026-10-25' })
     expect(run({ prevScheduledDate: () => null })).toEqual({ type: 'set', streak: 1, lastDate: '2026-10-25' })
   })
+  test('REGRESSÃO: hoje failed -> done volta a 1 (sem última data) ou +1 (última = ocorrência anterior)', () => {
+    expect(run({ previousStatus: 'failed', lastCompletedDate: null, currentStreak: 0 })).toEqual({ type: 'set', streak: 1, lastDate: '2026-10-25' })
+    expect(run({ previousStatus: 'failed' })).toEqual({ type: 'set', streak: 6, lastDate: '2026-10-25' })
+  })
+  test('REGRESSÃO: hoje done -> failed zera e limpa a última data', () => {
+    expect(run({ previousStatus: 'done', status: 'failed', lastCompletedDate: '2026-10-25' })).toEqual({ type: 'set', streak: 0, lastDate: null })
+  })
   test('REGRESSÃO: hoje repetir a mesma marcação não muda a ofensiva', () => {
     expect(run({ previousStatus: 'done' })).toEqual({ type: 'keep' })
     expect(run({ lastCompletedDate: '2026-10-25' })).toEqual({ type: 'set', streak: 5, lastDate: '2026-10-25' })
