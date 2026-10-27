@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { copyText } from '@/lib/utils/copyText'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X, Settings, Tag, User, Bell, Shield, Moon, Trash2, Plus,
@@ -65,6 +66,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [creatingKey, setCreatingKey] = useState(false)
   const [generatedKey, setGeneratedKey] = useState<string | null>(null)
   const [copiedKey, setCopiedKey] = useState(false)
+  const [manualCopy, setManualCopy] = useState(false)
   const [revokingId, setRevokingId] = useState<string | null>(null)
   const [showMcpSetup, setShowMcpSetup] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
@@ -131,6 +133,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         last_used_at: null,
       })
       setGeneratedKey(key)
+      setManualCopy(false)
       setNewKeyName('')
       await loadApiKeys()
     } catch (e: any) {
@@ -696,16 +699,39 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <div className="flex items-center gap-3 bg-black/40 rounded-xl p-3 border border-white/10">
                         <code className="flex-1 text-sm text-green-300 font-mono break-all select-all">{generatedKey}</code>
                         <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(generatedKey)
-                            setCopiedKey(true)
-                            setTimeout(() => setCopiedKey(false), 2000)
+                          type="button"
+                          aria-label="Copiar chave"
+                          onClick={async () => {
+                            const r = await copyText(generatedKey)
+                            if (r === 'copied') {
+                              setManualCopy(false)
+                              setCopiedKey(true)
+                              setTimeout(() => setCopiedKey(false), 2000)
+                            } else {
+                              setManualCopy(true)
+                            }
                           }}
-                          className="shrink-0 p-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 transition-all"
+                          className="shrink-0 w-11 h-11 flex items-center justify-center rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 transition-all"
                         >
                           {copiedKey ? <Check size={16} /> : <Copy size={16} />}
                         </button>
                       </div>
+                      {copiedKey && (
+                        <p role="status" className="text-sm font-bold text-green-400">Copiado!</p>
+                      )}
+                      {manualCopy && (
+                        <div role="alert" className="space-y-2">
+                          <p className="text-sm font-medium text-[var(--text-secondary)]">Não foi possível copiar sozinho. Toque e segure para copiar.</p>
+                          <input
+                            readOnly
+                            value={generatedKey}
+                            aria-label="Chave de API gerada"
+                            autoFocus
+                            onFocus={e => e.currentTarget.select()}
+                            className="w-full bg-black/40 border border-white/10 rounded-xl px-3 min-h-[44px] text-base text-green-300 font-mono"
+                          />
+                        </div>
+                      )}
                       <button onClick={() => setGeneratedKey(null)} className="text-xs text-[var(--text-muted)] hover:text-white/50 font-bold uppercase tracking-widest">
                         Já copiei, fechar
                       </button>

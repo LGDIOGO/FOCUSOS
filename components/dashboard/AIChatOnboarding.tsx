@@ -7,6 +7,8 @@ import { X, Send, Sparkles, Plus, Check, Loader2, Pencil, Trash2, ArrowLeft } fr
 import { cn } from '@/lib/utils/cn'
 import { auth, db } from '@/lib/firebase/config'
 import { useQueryClient } from '@tanstack/react-query'
+import { InlineNotice } from '@/components/ui/InlineNotice'
+import { friendlySaveError } from '@/lib/utils/friendlySaveError'
 import { collection, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from 'firebase/firestore'
 import { format } from 'date-fns'
 import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
@@ -42,6 +44,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [notice, setNotice] = useState<{ message: string; login?: boolean } | null>(null)
   
   // Efeito para carregar mensagem inicial se fornecida
   useEffect(() => {
@@ -168,7 +171,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
   const handleApplySuggestion = async (type: 'habit' | 'event' | 'goal', item: any, msgIndex: number, itemIndex: number) => {
     const user = auth.currentUser
     if (!user) {
-      alert('Você precisa estar logado para salvar itens.')
+      setNotice({ message: 'Faça login para salvar.', login: true })
       return
     }
 
@@ -292,7 +295,7 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
       queryClient.invalidateQueries({ queryKey: ['scores'] })
     } catch (err: any) {
       console.error('FAILED TO SAVE TO FIREBASE:', err)
-      alert(`Erro ao salvar: ${err.message}`)
+      setNotice({ message: friendlySaveError(err) })
     }
   }
 
@@ -706,6 +709,15 @@ export default function AIChatOnboarding({ isOpen, onClose, initialMessage, user
 
         {/* Input Area */}
         <form onSubmit={handleSendMessage} className="p-6 border-t border-white/5 bg-[#050505]">
+          {notice && (
+            <InlineNotice
+              className="mb-3"
+              message={notice.message}
+              onClose={() => setNotice(null)}
+              actionLabel={notice.login ? 'Entrar' : undefined}
+              onAction={notice.login ? () => { window.location.href = '/login' } : undefined}
+            />
+          )}
           <div className="relative">
             <input 
               value={input}
