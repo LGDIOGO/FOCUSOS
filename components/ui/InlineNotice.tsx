@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { AlertTriangle, Info, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
@@ -26,11 +26,16 @@ export function InlineNotice({
   autoCloseMs = 6000,
   className,
 }: InlineNoticeProps) {
+  // `onClose` costuma chegar como arrow nova a cada render do pai; se fosse dependência do
+  // efeito, qualquer re-render (ex.: digitar no chat) reiniciaria os 6s. Fica numa ref.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
   useEffect(() => {
     if (!autoCloseMs || actionLabel) return
-    const t = setTimeout(onClose, autoCloseMs)
+    const t = setTimeout(() => onCloseRef.current(), autoCloseMs)
     return () => clearTimeout(t)
-  }, [message, autoCloseMs, actionLabel, onClose])
+  }, [message, autoCloseMs, actionLabel])
 
   const Icon = variant === 'error' ? AlertTriangle : Info
   return (
