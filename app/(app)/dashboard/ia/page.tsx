@@ -10,6 +10,8 @@ import {
 import { cn } from '@/lib/utils/cn'
 import { auth, db } from '@/lib/firebase/config'
 import { useQueryClient } from '@tanstack/react-query'
+import { InlineNotice } from '@/components/ui/InlineNotice'
+import { friendlySaveError } from '@/lib/utils/friendlySaveError'
 import { collection, addDoc, deleteDoc, doc, updateDoc, deleteField } from 'firebase/firestore'
 import { format } from 'date-fns'
 import { EmojiPicker } from '@/components/dashboard/EmojiPicker'
@@ -221,6 +223,7 @@ export default function IAPage() {
   } | null>(null)
   const [removedSuggestions, setRemovedSuggestions] = useState<string[]>([])
   const [bulkApplying, setBulkApplying] = useState<string | null>(null)
+  const [notice, setNotice] = useState<{ message: string; login?: boolean } | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -311,7 +314,7 @@ export default function IAPage() {
     type: 'habit' | 'event' | 'goal', item: any, msgIndex: number, itemIndex: number
   ) => {
     const user = auth.currentUser
-    if (!user) return alert('Faça login para salvar.')
+    if (!user) { setNotice({ message: 'Faça login para salvar.', login: true }); return }
 
     const sid = `${type}-${itemIndex}`
     try {
@@ -396,7 +399,8 @@ export default function IAPage() {
       qc.invalidateQueries({ queryKey: ['events'] })
       qc.invalidateQueries({ queryKey: ['goals'] })
     } catch (err: any) {
-      alert(`Erro ao salvar: ${err.message}`)
+      console.error('Erro ao salvar sugestão:', err)
+      setNotice({ message: friendlySaveError(err) })
     }
   }
 
@@ -404,7 +408,7 @@ export default function IAPage() {
   const handleApplyAll = async (
     type: 'habit' | 'event' | 'goal', items: any[], msgIndex: number
   ) => {
-    if (!auth.currentUser) return alert('Faça login para salvar.')
+    if (!auth.currentUser) { setNotice({ message: 'Faça login para salvar.', login: true }); return }
     setBulkApplying(`${msgIndex}-${type}`)
     try {
       for (let idx = 0; idx < items.length; idx++) {
@@ -455,7 +459,8 @@ export default function IAPage() {
       qc.invalidateQueries({ queryKey: ['goals'] })
       qc.invalidateQueries({ queryKey: ['tasks'] })
     } catch (err: any) {
-      alert(`Erro ao aplicar ações: ${err.message}`)
+      console.error('Erro ao aplicar ações:', err)
+      setNotice({ message: friendlySaveError(err, 'aplicar as ações') })
     }
   }
 
@@ -540,6 +545,17 @@ export default function IAPage() {
           )}
         </div>
       </div>
+
+      {notice && (
+        <div className="flex-none px-4 lg:px-6 pt-3">
+          <InlineNotice
+            message={notice.message}
+            onClose={() => setNotice(null)}
+            actionLabel={notice.login ? 'Entrar' : undefined}
+            onAction={notice.login ? () => { window.location.href = '/login' } : undefined}
+          />
+        </div>
+      )}
 
       {/* Messages / Welcome */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
